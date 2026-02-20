@@ -562,6 +562,8 @@ function grantAccess(user) {
   if (user.isAdmin) {
     document.getElementById('adminTabBtn').style.display = '';
     document.getElementById('eventsTabBtn').style.display = '';
+    renderAdminWeek();
+    loadAdminEvents();
   }
 }
 
@@ -784,7 +786,7 @@ document.querySelectorAll('.tab').forEach(t => {
     if (id === 'view') loadViewData();
     if (id === 'calendar') loadCalendar();
     if (id === 'events') loadEvents();
-    if (id === 'admin') { loadMembers(); loadAccessSettings(); }
+    if (id === 'admin') { renderAdminWeek(); loadMembers(); loadAccessSettings(); }
   });
 });
 

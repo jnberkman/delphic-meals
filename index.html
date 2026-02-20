@@ -344,6 +344,18 @@
     <div class="info-banner" style="margin-bottom:16px;">
       <strong>Spot Up:</strong> Tap any name to offer that spot to others. Anyone can then claim it.
     </div>
+    <div id="spotupNotifyRow" style="display:none;margin-bottom:16px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:6px;display:none;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+        <div>
+          <div style="font-family:'Jost',sans-serif;font-size:13px;font-weight:500;color:var(--text-bright);">Email me when someone spots up</div>
+          <div style="font-size:12px;color:var(--text-dim);font-family:'Crimson Pro',serif;margin-top:2px;">You'll get a one-click claim link in your inbox</div>
+        </div>
+        <label class="option-pill" style="margin:0;flex-shrink:0;">
+          <input type="checkbox" id="notifyEmailToggle" onchange="toggleNotifyEmail(this.checked)">
+          <span class="pill-label" style="font-size:12px;">On</span>
+        </label>
+      </div>
+    </div>
     <div class="field">
       <label class="field-label">Week of (Monday)</label>
       <div style="display:flex;gap:8px;align-items:center;">
@@ -565,6 +577,12 @@ function grantAccess(user) {
     renderAdminWeek();
     loadAdminEvents();
   }
+  // Show spot-up notify toggle for Google-signed-in members (not guests/open-access)
+  if (user.email && !user.openAccess && !user.guest) {
+    const row = document.getElementById('spotupNotifyRow');
+    row.style.display = 'block';
+    document.getElementById('notifyEmailToggle').checked = !!user.notifyEmail;
+  }
 }
 
 async function handleGoogleSignIn(response) {
@@ -576,7 +594,7 @@ async function handleGoogleSignIn(response) {
   try {
     const result = await apiCall('checkMember', { email });
     if (result.authorized) {
-      grantAccess({ email, name, isAdmin: result.isAdmin });
+      grantAccess({ email, name, isAdmin: result.isAdmin, notifyEmail: result.notifyEmail || false });
     } else {
       errEl.textContent = email + ' is not on the member list. Contact your admin.';
       errEl.style.display = 'block';
@@ -603,6 +621,21 @@ document.addEventListener('keydown', function(e) {
     submitAccessCode();
   }
 });
+
+async function toggleNotifyEmail(enabled) {
+  if (!currentUser || !currentUser.email) return;
+  currentUser.notifyEmail = enabled;
+  sessionStorage.setItem('delphic_user', JSON.stringify(currentUser));
+  try {
+    await apiCall('setNotifyEmail', { email: currentUser.email, notify: enabled });
+    showToast(enabled ? 'You\'ll get emails when someone spots up' : 'Spot-up emails turned off', 'var(--green)');
+  } catch(e) {
+    // revert toggle on failure
+    document.getElementById('notifyEmailToggle').checked = !enabled;
+    currentUser.notifyEmail = !enabled;
+    sessionStorage.setItem('delphic_user', JSON.stringify(currentUser));
+  }
+}
 
 function prefillName(name) {
   const el = document.getElementById('memberName');
@@ -647,6 +680,11 @@ function restorePreferences() {
       if (currentUser.isAdmin) {
         document.getElementById('adminTabBtn').style.display = '';
         document.getElementById('eventsTabBtn').style.display = '';
+      }
+      if (currentUser.email && !currentUser.openAccess && !currentUser.guest) {
+        const row = document.getElementById('spotupNotifyRow');
+        row.style.display = 'block';
+        document.getElementById('notifyEmailToggle').checked = !!currentUser.notifyEmail;
       }
       return;
     }

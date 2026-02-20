@@ -1,0 +1,42 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Watch & Deploy Apps Script",
+      "type": "shell",
+      "command": "/opt/homebrew/bin/node ${workspaceFolder}/Appscripts/watch.js",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      },
+      "isBackground": true,
+      "problemMatcher": [],
+      "runOptions": {
+        "runOn": "folderOpen"
+      }
+    },
+    {
+      "label": "Deploy Frontend to GitHub",
+      "type": "shell",
+      "command": "git add index.html && git commit -m \"${input:commitMsg}\" && git push",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      },
+      "problemMatcher": []
+    }
+  ],
+  "inputs": [
+    {
+      "id": "commitMsg",
+      "type": "promptString",
+      "description": "What did you change?",
+      "default": "Update frontend"
+    }
+  ]
+}

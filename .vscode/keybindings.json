@@ -1,0 +1,7 @@
+[
+  {
+    "key": "shift+cmd+d",
+    "command": "workbench.action.tasks.runTask",
+    "args": "Deploy Frontend to GitHub"
+  }
+]

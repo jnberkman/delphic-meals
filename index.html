@@ -4,7 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Delphic Club — Meal Sign-Ups v5</title>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Crimson+Pro:wght@400;500;600;700&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://script.google.com">
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Crimson+Pro:wght@400;500;600;700&family=Jost:wght@300;400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Crimson+Pro:wght@400;500;600;700&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet"></noscript>
 <style>
   :root {
     --bg: #F5F3EF;
@@ -344,24 +348,6 @@
       <span id="statusText">Connected to Google Sheets</span>
     </div>
 
-    <!-- Capacity -->
-    <div class="card">
-      <div class="card-title">Capacity Settings</div>
-      <div class="card-sub">Maximum signups per time slot</div>
-      <div class="setting-row">
-        <div class="setting-info"><div class="setting-name">Lunch -- 12:00 PM</div><div class="setting-desc">Max per slot</div></div>
-        <input type="number" id="cap12" value="50" min="1" onchange="saveCaps()">
-      </div>
-      <div class="setting-row">
-        <div class="setting-info"><div class="setting-name">Lunch -- 1:00 PM</div><div class="setting-desc">Max per slot</div></div>
-        <input type="number" id="cap1" value="50" min="1" onchange="saveCaps()">
-      </div>
-      <div class="setting-row">
-        <div class="setting-info"><div class="setting-name">Dinner -- 7:30 PM</div><div class="setting-desc">Max per dinner</div></div>
-        <input type="number" id="capDinner" value="50" min="1" onchange="saveCaps()">
-      </div>
-    </div>
-
     <!-- Week config -->
     <div class="card">
       <div class="card-title">Configure Week</div>
@@ -380,6 +366,21 @@
         <div style="font-size:12px;color:var(--text-dim);margin-top:4px;font-family:'Crimson Pro',serif;font-style:italic;">No new sign-ups accepted after this date/time.</div>
       </div>
       <div id="adminWeekSetup"></div>
+      <div style="border-top:1px solid var(--border);margin-top:16px;padding-top:16px;">
+        <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text-dim);margin-bottom:10px;">Capacity (max signups per slot)</div>
+        <div class="setting-row">
+          <div class="setting-info"><div class="setting-name">Lunch — 12:00 PM</div></div>
+          <input type="number" id="cap12" value="50" min="1" onchange="saveCaps()">
+        </div>
+        <div class="setting-row">
+          <div class="setting-info"><div class="setting-name">Lunch — 1:00 PM</div></div>
+          <input type="number" id="cap1" value="50" min="1" onchange="saveCaps()">
+        </div>
+        <div class="setting-row">
+          <div class="setting-info"><div class="setting-name">Dinner — 7:30 PM</div></div>
+          <input type="number" id="capDinner" value="50" min="1" onchange="saveCaps()">
+        </div>
+      </div>
       <button class="btn btn-secondary" onclick="pushWeekConfig()" style="margin-top:12px;">Save Week Config</button>
     </div>
 
@@ -469,6 +470,23 @@ const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz9cIYGawV81WL26gK6S
 let caps = { slot12: 50, slot1: 50, dinner: 50 };
 let weekCache = {};  // monday => {config, signups}
 
+// =============================================
+//  LOCAL CACHE (localStorage, 5-min TTL)
+// =============================================
+const CACHE_TTL = 5 * 60 * 1000;
+function getCache(key) {
+  try {
+    const raw = localStorage.getItem('delphic_' + key);
+    if (!raw) return null;
+    const { v, ts } = JSON.parse(raw);
+    if (Date.now() - ts > CACHE_TTL) return null;
+    return v;
+  } catch(e) { return null; }
+}
+function setCache(key, value) {
+  try { localStorage.setItem('delphic_' + key, JSON.stringify({ v: value, ts: Date.now() })); } catch(e) {}
+}
+
 const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
 const DEFAULT_MEALS = ['Lunch','Lunch','Lunch','Dinner','Lunch'];
 const CATEGORIES = ['No Dietary Restrictions','Vegan','Vegetarian','Gluten-Free','Allergies','No Pork','No Beef'];
@@ -530,6 +548,7 @@ function saveCaps() {
   caps.slot12 = parseInt(document.getElementById('cap12').value) || 50;
   caps.slot1 = parseInt(document.getElementById('cap1').value) || 50;
   caps.dinner = parseInt(document.getElementById('capDinner').value) || 50;
+  if (adminWeekData) adminWeekData.caps = { slot12: caps.slot12, slot1: caps.slot1, dinner: caps.dinner };
 }
 
 // =============================================
@@ -592,22 +611,36 @@ async function loadWeekData() {
   document.getElementById('dayCards').innerHTML = '';
   document.getElementById('timeSection').style.display = 'none';
 
-  document.getElementById('loadingDays').style.display = 'block';
+  // Show cached data instantly if available
+  const cachedWeek = getCache('week_' + monday);
+  if (cachedWeek) {
+    currentWeekData = cachedWeek;
+    weekCache[monday] = cachedWeek;
+    if (cachedWeek.caps) {
+      caps.slot12 = cachedWeek.caps.slot12 || 50;
+      caps.slot1 = cachedWeek.caps.slot1 || 50;
+      caps.dinner = cachedWeek.caps.dinner || 50;
+    }
+    renderDayCards();
+  } else {
+    document.getElementById('loadingDays').style.display = 'block';
+  }
+
   try {
     const result = await apiCall('getWeek', { monday });
     currentWeekData = result;
     weekCache[monday] = result;
-    // Load caps from sheet config if available
+    setCache('week_' + monday, result);
     if (result.caps) {
       caps.slot12 = result.caps.slot12 || 50;
       caps.slot1 = result.caps.slot1 || 50;
       caps.dinner = result.caps.dinner || 50;
     }
+    renderDayCards();
   } catch (e) {
-    currentWeekData = buildDefaultWeek(monday);
+    if (!cachedWeek) currentWeekData = buildDefaultWeek(monday);
   }
   document.getElementById('loadingDays').style.display = 'none';
-  renderDayCards();
 }
 
 function buildDefaultWeek(monday) {
@@ -1210,18 +1243,28 @@ async function pushWeekConfig() {
 let allEvents = [];
 
 async function loadEvents() {
-  document.getElementById('eventsLoading').style.display = 'block';
   document.getElementById('eventsList').innerHTML = '';
+
+  // Show cached events instantly
+  const cachedEvents = getCache('events');
+  if (cachedEvents) {
+    allEvents = cachedEvents;
+    renderEventsList();
+    if (allEvents.length > 0) document.getElementById('eventsTabBtn').style.display = '';
+  } else {
+    document.getElementById('eventsLoading').style.display = 'block';
+  }
+
   try {
     const result = await apiCall('getEvents');
     allEvents = (result.events || []).filter(e => {
       const d = new Date(e.date + 'T23:59:59');
       return d >= new Date(new Date().toDateString()); // today or future
     }).sort((a, b) => new Date(a.date) - new Date(b.date));
-  } catch (e) { allEvents = []; }
+    setCache('events', allEvents);
+  } catch (e) { if (!cachedEvents) allEvents = []; }
   document.getElementById('eventsLoading').style.display = 'none';
   renderEventsList();
-  // Show tab if there are events
   if (allEvents.length > 0) document.getElementById('eventsTabBtn').style.display = '';
 }
 
@@ -1518,9 +1561,6 @@ function showEventFromCal(eventId) {
 // =============================================
 //  INIT
 // =============================================
-document.getElementById('cap12').value = caps.slot12;
-document.getElementById('cap1').value = caps.slot1;
-document.getElementById('capDinner').value = caps.dinner;
 
 function getCurrentMonday() {
   const d = new Date();

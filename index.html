@@ -194,8 +194,8 @@
   .spotup-claim-btn:hover { background: #BF360C; }
   .spotup-action-btn { background: none; border: 1px solid var(--border); border-radius: 3px; padding: 4px 10px; font-family: 'Jost', sans-serif; font-size: 10px; font-weight: 500; letter-spacing: .5px; text-transform: uppercase; cursor: pointer; color: var(--text-dim); transition: all .2s; margin-left: 4px; }
   .spotup-action-btn:hover { border-color: var(--accent-muted); color: var(--accent); }
-  .spotup-name-btn { cursor: pointer; transition: opacity .2s; }
-  .spotup-name-btn:hover { opacity: .7; }
+  .signup-item.can-spotup { cursor: pointer; transition: opacity .15s; }
+  .signup-item.can-spotup:hover { opacity: .8; }
 
   /* Spot Up Modal */
   .spotup-overlay { position: fixed; inset: 0; background: rgba(26,26,26,.55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); z-index: 1000; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity .35s ease; }
@@ -1149,6 +1149,12 @@ async function loadViewData() {
 }
 
 function renderSignupItem(s, monday, dayIdx, slot) {
+  // Resolve identity + permissions
+  const isAdmin = !!(currentUser && currentUser.isAdmin);
+  // "logged in" = signed in via Google with a real name (not open-access or guest)
+  const isLoggedIn = !!(currentUser && currentUser.name && !currentUser.openAccess && !currentUser.guest);
+  const myName = isLoggedIn ? (currentUser.name || '').toLowerCase().trim() : '';
+
   const spotStatus = s.spotUpStatus || '';
   const origName = s.spotUpOrigName || '';
   const claimedBy = s.spotUpClaimedBy || '';
@@ -1156,6 +1162,11 @@ function renderSignupItem(s, monday, dayIdx, slot) {
   const safeName = s.name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
   const safeOrigName = origName.replace(/'/g, "\\'").replace(/"/g, '&quot;');
   const safeTime = (s.time || slot || '').replace(/'/g, "\\'");
+
+  // Permission flags — when not logged in, all actions are open (open-access / guest mode)
+  const canSpotUp = isAdmin || !isLoggedIn || (myName && s.name.toLowerCase().trim() === myName);
+  const canCancelSpotUp = isAdmin || !isLoggedIn || (myName && origName.toLowerCase().trim() === myName);
+  const canManageClaimed = isAdmin || !isLoggedIn || (myName && claimedBy.toLowerCase().trim() === myName);
 
   let display = s.name;
   let tags = [];
@@ -1172,9 +1183,8 @@ function renderSignupItem(s, monday, dayIdx, slot) {
   const gradStyle = isGrad ? 'background:#8B691412;border-color:#8B691430;' : '';
   const gradNameStyle = isGrad ? 'font-weight:800;color:#8B6914;' : 'color:' + nameColor;
 
-  // === SPOT UP STATE ===
+  // === SPOT UP AVAILABLE STATE ===
   if (spotStatus === 'spotup') {
-    // This is an available spot-up — show claim UI
     return '<div class="signup-item spotup-item">' +
       '<div style="flex:1;">' +
         '<div><span class="name" style="color:#E65100;text-decoration:line-through;opacity:.7;">' + display + '</span>' +
@@ -1183,13 +1193,13 @@ function renderSignupItem(s, monday, dayIdx, slot) {
       '</div>' +
       '<div style="display:flex;gap:4px;align-items:center;">' +
         '<button class="spotup-claim-btn" onclick="openClaimModal(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')">Claim</button>' +
-        '<button class="spotup-action-btn" onclick="cancelSpotUpAction(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')" title="Cancel spot up">\u2715</button>' +
+        (canCancelSpotUp ? '<button class="spotup-action-btn" onclick="event.stopPropagation();cancelSpotUpAction(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')" title="Cancel spot up">\u2715</button>' : '') +
       '</div>' +
     '</div>';
   }
 
+  // === CLAIMED STATE ===
   if (spotStatus === 'claimed') {
-    // This spot was claimed — show who claimed it and from whom
     return '<div class="signup-item claimed-item">' +
       '<div style="flex:1;">' +
         '<div><span class="name" style="color:var(--green);font-weight:700;">' + s.name + '</span>' +
@@ -1197,21 +1207,25 @@ function renderSignupItem(s, monday, dayIdx, slot) {
         '<div class="meta" style="color:var(--green);">Was: ' + origName + '</div>' +
         (s.notes ? '<div class="meta">' + s.notes + '</div>' : '') +
       '</div>' +
-      '<div style="display:flex;gap:4px;align-items:center;">' +
-        '<button class="spotup-action-btn" onclick="unclaimSpotUpAction(\'' + monday + '\',' + dayIdx + ',\'' + safeOrigName + '\',\'' + safeTime + '\')" title="Unclaim (revert to spot up)">Unclaim</button>' +
-        '<button class="spotup-action-btn" onclick="reSpotUpAction(\'' + monday + '\',' + dayIdx + ',\'' + safeOrigName + '\',\'' + safeTime + '\')" title="Put this claimed spot back up">Re-Spot</button>' +
-        (isAdmin ? '<button class="remove-btn" title="Remove" onclick="removeSignup(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')">&#215;</button>' : '') +
-      '</div>' +
+      (canManageClaimed || isAdmin ?
+        '<div style="display:flex;gap:4px;align-items:center;">' +
+          (canManageClaimed ? '<button class="spotup-action-btn" onclick="event.stopPropagation();unclaimSpotUpAction(\'' + monday + '\',' + dayIdx + ',\'' + safeOrigName + '\',\'' + safeTime + '\')" title="Unclaim (revert to spot up)">Unclaim</button>' : '') +
+          (canManageClaimed ? '<button class="spotup-action-btn" onclick="event.stopPropagation();reSpotUpAction(\'' + monday + '\',' + dayIdx + ',\'' + safeOrigName + '\',\'' + safeTime + '\')" title="Put this claimed spot back up">Re-Spot</button>' : '') +
+          (isAdmin ? '<button class="remove-btn" title="Remove" onclick="event.stopPropagation();removeSignup(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')">&#215;</button>' : '') +
+        '</div>' : '') +
     '</div>';
   }
 
-  // === NORMAL STATE — clickable name to spot up ===
-  return '<div class="signup-item" style="' + gradStyle + '">' +
+  // === NORMAL STATE — whole row clickable to spot up (if permitted) ===
+  const rowClick = canSpotUp
+    ? 'onclick="openSpotUpModal(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')"'
+    : '';
+  return '<div class="signup-item ' + (canSpotUp ? 'can-spotup' : '') + '" ' + rowClick + ' style="' + gradStyle + '">' +
     '<div style="flex:1;">' +
-      '<span class="name spotup-name-btn" style="' + gradNameStyle + '" onclick="openSpotUpModal(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')" title="Tap to spot up this person">' + display + '</span>' +
+      '<span class="name" style="' + gradNameStyle + '">' + display + '</span>' +
       (s.notes ? '<div class="meta">' + s.notes + '</div>' : '') +
     '</div>' +
-    (isAdmin ? '<button class="remove-btn" title="Remove" onclick="removeSignup(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')">&#215;</button>' : '') +
+    (isAdmin ? '<button class="remove-btn" title="Remove" onclick="event.stopPropagation();removeSignup(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')">&#215;</button>' : '') +
   '</div>';
 }
 
@@ -1235,10 +1249,11 @@ function openClaimModal(monday, dayIdx, origName, time) {
   const overlay = document.getElementById('spotupOverlay');
   document.getElementById('spotupModalTitle').textContent = 'Claim This Spot';
   document.getElementById('spotupModalSub').textContent = 'Take over ' + origName + "'s spot.";
+  const prefilledName = (currentUser && currentUser.name && !currentUser.openAccess && !currentUser.guest) ? currentUser.name : '';
   document.getElementById('spotupModalBody').innerHTML =
     '<div class="field" style="margin-bottom:0;">' +
       '<label class="field-label">Your Name <span class="req">*</span></label>' +
-      '<input type="text" id="claimNameInput" placeholder="Enter your full name">' +
+      '<input type="text" id="claimNameInput" placeholder="Enter your full name" value="' + prefilledName + '">' +
     '</div>';
   document.getElementById('spotupModalActions').innerHTML =
     '<button class="btn btn-secondary" onclick="closeSpotUpModal()">Cancel</button>' +

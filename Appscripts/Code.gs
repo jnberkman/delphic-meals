@@ -957,9 +957,9 @@ function rebuildDisplaySheet(sheet, monday, signupsOverride) {
         var colors = CAT_COLORS[m.diet] || CAT_COLORS['No Dietary Restrictions'];
         if (colors.font !== '#000000') cell.setFontColor(colors.font);
         if (colors.bg) cell.setBackground(colors.bg);
-        if (m.gradGasman) { cell.setBackground('#FFF8E1'); cell.setFontColor('#8B6914'); cell.setFontWeight('bold'); }
         if (m.early) { cell.setBackground('#E3F2FD'); cell.setFontColor('#1565C0'); } // early plate — light blue
-        if (m.allergies) { cell.setBackground('#F3E5F5'); cell.setFontColor('#4A148C'); cell.setFontWeight('bold'); } // allergies — purple (matches key)
+        if (m.allergies) { cell.setBackground('#F3E5F5'); cell.setFontColor('#4A148C'); cell.setFontWeight('bold'); } // allergies — purple
+        if (m.gradGasman) { cell.setBackground('#FFF8E1'); cell.setFontColor('#8B6914'); cell.setFontWeight('bold'); } // grad gasman — gold (overrides allergies)
         if (m.spotUpStatus === 'spotup') { cell.setBackground('#FFF3E0'); cell.setFontColor('#E65100'); }
         if (m.spotUpStatus === 'claimed') { cell.setBackground('#E8F5E9'); cell.setFontColor('#2E7D32'); }
         if (m.servedStatus === 'served') { cell.setFontLine('line-through'); cell.setFontColor('#999999'); }
@@ -1116,4 +1116,30 @@ function claimViaToken(token) {
   } finally {
     lock.releaseLock();
   }
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+//  ONE-TIME UTILITY — run manually from the Apps Script editor
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Run this once from the Apps Script editor (select function → Run)
+ * to recolor all existing week display sheets with the latest formatting
+ * (early plate = light blue, allergies = purple, grad gasman = gold, etc.)
+ */
+function rebuildAllWeekSheets() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheets = ss.getSheets();
+  var rebuilt = 0;
+  sheets.forEach(function(sheet) {
+    // Only target Week_YYYY-MM-DD display sheets (not _data or _config)
+    if (/^Week_\d{4}-\d{2}-\d{2}$/.test(sheet.getName())) {
+      var monday = sheet.getName().replace('Week_', '');
+      Logger.log('Rebuilding: ' + sheet.getName());
+      rebuildDisplaySheet(sheet, monday);
+      rebuilt++;
+    }
+  });
+  Logger.log('Done — rebuilt ' + rebuilt + ' week sheet(s).');
 }

@@ -1229,8 +1229,9 @@ function renderSignupItem(s, monday, dayIdx, slot) {
   if (isGrad) tags.push('Grad Gasman');
   if (tags.length > 0) display += ' (' + tags.join(', ') + ')';
 
-  // Allergy badge — admin only, purple to match sheet key
-  const allergyBadge = (isAdmin && s.allergies)
+  // Allergy badge — visible to admin (all rows) or to the signed-in user on their own row
+  const isMyRow = isLoggedIn && myName && s.name.toLowerCase().trim() === myName;
+  const allergyBadge = ((isAdmin || isMyRow) && s.allergies)
     ? '<span style="display:inline-block;font-size:9px;font-weight:700;color:#4A148C;background:#F3E5F5;padding:1px 7px;border-radius:2px;letter-spacing:.5px;border:1px solid #CE93D8;margin-left:6px;vertical-align:middle;">\u26A0 ' + s.allergies.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</span>'
     : '';
 

@@ -197,6 +197,13 @@
   .signup-item.can-spotup { cursor: pointer; transition: opacity .15s; }
   .signup-item.can-spotup:hover { opacity: .8; }
 
+  /* Served / arrived tracking (admin only) */
+  .served-check { appearance: none; -webkit-appearance: none; width: 16px; height: 16px; border: 1.5px solid var(--border); border-radius: 3px; cursor: pointer; flex-shrink: 0; margin-right: 10px; transition: all .2s; background: var(--surface); position: relative; }
+  .served-check:checked { background: var(--green); border-color: var(--green); }
+  .served-check:checked::after { content: ''; position: absolute; left: 3px; top: 0; width: 5px; height: 9px; border: 2px solid #fff; border-top: none; border-left: none; transform: rotate(45deg); }
+  .signup-item.served-item { opacity: .6; }
+  .signup-item.served-item .name { text-decoration: line-through; }
+
   /* Spot Up Modal */
   .spotup-overlay { position: fixed; inset: 0; background: rgba(26,26,26,.55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); z-index: 1000; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity .35s ease; }
   .spotup-overlay.show { opacity: 1; pointer-events: auto; }
@@ -1236,9 +1243,18 @@ function renderSignupItem(s, monday, dayIdx, slot) {
     '</div>';
   }
 
+  const isServed = s.servedStatus === 'served';
+  const servedCb = isAdmin
+    ? '<input type="checkbox" class="served-check"' + (isServed ? ' checked' : '') +
+      ' onclick="event.stopPropagation()"' +
+      ' onchange="toggleServed(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\',this.checked)"' +
+      ' title="Mark as served">'
+    : '';
+
   // === CLAIMED STATE ===
   if (spotStatus === 'claimed') {
-    return '<div class="signup-item claimed-item">' +
+    return '<div class="signup-item claimed-item' + (isServed ? ' served-item' : '') + '" style="display:flex;align-items:center;">' +
+      servedCb +
       '<div style="flex:1;">' +
         '<div><span class="name" style="color:var(--green);font-weight:700;">' + s.name + '</span>' +
         '<span class="spotup-claimed-badge">CLAIMED</span></div>' +
@@ -1258,7 +1274,8 @@ function renderSignupItem(s, monday, dayIdx, slot) {
   const rowClick = canSpotUp
     ? 'onclick="openSpotUpModal(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')"'
     : '';
-  return '<div class="signup-item ' + (canSpotUp ? 'can-spotup' : '') + '" ' + rowClick + ' style="' + gradStyle + '">' +
+  return '<div class="signup-item ' + (canSpotUp ? 'can-spotup' : '') + (isServed ? ' served-item' : '') + '" ' + rowClick + ' style="display:flex;align-items:center;' + gradStyle + '">' +
+    servedCb +
     '<div style="flex:1;">' +
       '<span class="name" style="' + gradNameStyle + '">' + display + '</span>' +
       (s.notes ? '<div class="meta">' + s.notes + '</div>' : '') +
@@ -1270,6 +1287,15 @@ function renderSignupItem(s, monday, dayIdx, slot) {
 // =============================================
 //  SPOT UP MODAL & ACTIONS
 // =============================================
+
+async function toggleServed(monday, dayIdx, name, time, served) {
+  try {
+    await apiCall('markServed', { monday, dayIndex: dayIdx, name, time, served });
+    loadViewData();
+  } catch(e) {
+    showToast('Could not update served status', true);
+  }
+}
 
 function openSpotUpModal(monday, dayIdx, name, time) {
   const overlay = document.getElementById('spotupOverlay');

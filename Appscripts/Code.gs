@@ -940,6 +940,7 @@ function rebuildDisplaySheet(sheet, monday, signupsOverride) {
       sheet.getRange(row, col).setValue(slotLabel).setFontWeight('bold').setFontSize(11).setBackground('#E3F2FD').setFontColor('#1565C0');
       row++;
       var slotMembers = daySups.filter(function(s) { return normalizeTime(s.time) === slot; });
+      slotMembers.sort(function(a, b) { return (b.early ? 1 : 0) - (a.early ? 1 : 0); }); // early plate first
       slotMembers.forEach(function(m) {
         var display = m.name;
         var tags = [];
@@ -957,6 +958,8 @@ function rebuildDisplaySheet(sheet, monday, signupsOverride) {
         if (colors.font !== '#000000') cell.setFontColor(colors.font);
         if (colors.bg) cell.setBackground(colors.bg);
         if (m.gradGasman) { cell.setBackground('#FFF8E1'); cell.setFontColor('#8B6914'); cell.setFontWeight('bold'); }
+        if (m.early) { cell.setBackground('#E3F2FD'); cell.setFontColor('#1565C0'); } // early plate — light blue
+        if (m.allergies) { cell.setBackground('#F3E5F5'); cell.setFontColor('#4A148C'); cell.setFontWeight('bold'); } // allergies — purple (matches key)
         if (m.spotUpStatus === 'spotup') { cell.setBackground('#FFF3E0'); cell.setFontColor('#E65100'); }
         if (m.spotUpStatus === 'claimed') { cell.setBackground('#E8F5E9'); cell.setFontColor('#2E7D32'); }
         if (m.servedStatus === 'served') { cell.setFontLine('line-through'); cell.setFontColor('#999999'); }

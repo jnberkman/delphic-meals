@@ -1162,13 +1162,20 @@ async function loadViewData() {
         if (slotSups.length === 0) {
           html += '<div style="color:var(--text-dim);font-size:13px;padding:4px 0;">No signups for this time.</div>';
         } else {
+          // Early plate members float to the top
+          const earlyMembers = slotSups.filter(s => s.early);
+          const nonEarlyMembers = slotSups.filter(s => !s.early);
           const grouped = {};
           CATEGORIES.forEach(c => grouped[c] = []);
-          slotSups.forEach(s => {
+          nonEarlyMembers.forEach(s => {
             const cat = CATEGORIES.includes(s.diet) ? s.diet : 'No Dietary Restrictions';
             grouped[cat].push(s);
           });
           html += '<div class="signup-list">';
+          if (earlyMembers.length > 0) {
+            html += '<div style="font-size:11px;font-weight:600;color:#1565C0;text-transform:uppercase;letter-spacing:1px;margin:8px 0 4px;">Early Plate</div>';
+            earlyMembers.forEach(s => { html += renderSignupItem(s, monday, i, slot); });
+          }
           CATEGORIES.forEach(cat => {
             if (grouped[cat].length === 0) return;
             let catColor = 'var(--text-dim)';
@@ -1217,10 +1224,18 @@ function renderSignupItem(s, monday, dayIdx, slot) {
   let tags = [];
   const cat = CATEGORIES.includes(s.diet) ? s.diet : 'No Dietary Restrictions';
   if (cat !== 'No Dietary Restrictions') tags.push(cat.toLowerCase());
-  if (s.allergies) tags.push(s.allergies);
+  // s.allergies intentionally not added to general tags — admin-only badge below
   if (s.early) tags.push('early');
   if (isGrad) tags.push('Grad Gasman');
   if (tags.length > 0) display += ' (' + tags.join(', ') + ')';
+
+  // Allergy badge — admin only, purple to match sheet key
+  const allergyBadge = (isAdmin && s.allergies)
+    ? '<span style="display:inline-block;font-size:9px;font-weight:700;color:#4A148C;background:#F3E5F5;padding:1px 7px;border-radius:2px;letter-spacing:.5px;border:1px solid #CE93D8;margin-left:6px;vertical-align:middle;">\u26A0 ' + s.allergies.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</span>'
+    : '';
+
+  // Early plate — light blue row for everyone
+  const earlyRowStyle = s.early ? 'background:#E3F2FD;border-color:#90CAF9;border-left:3px solid #1E88E5;' : '';
 
   let nameColor = 'var(--text-bright)';
   if (s.diet === 'Vegan') nameColor = '#3D7A4E';
@@ -1233,7 +1248,7 @@ function renderSignupItem(s, monday, dayIdx, slot) {
     return '<div class="signup-item spotup-item">' +
       '<div style="flex:1;">' +
         '<div><span class="name" style="color:#E65100;text-decoration:line-through;opacity:.7;">' + display + '</span>' +
-        '<span class="spotup-badge">SPOT UP</span></div>' +
+        '<span class="spotup-badge">SPOT UP</span>' + allergyBadge + '</div>' +
         '<div class="meta" style="color:#E65100;">This spot is available to claim</div>' +
       '</div>' +
       '<div style="display:flex;gap:4px;align-items:center;">' +
@@ -1257,7 +1272,7 @@ function renderSignupItem(s, monday, dayIdx, slot) {
       servedCb +
       '<div style="flex:1;">' +
         '<div><span class="name" style="color:var(--green);font-weight:700;">' + s.name + '</span>' +
-        '<span class="spotup-claimed-badge">CLAIMED</span></div>' +
+        '<span class="spotup-claimed-badge">CLAIMED</span>' + allergyBadge + '</div>' +
         '<div class="meta" style="color:var(--green);">Was: ' + origName + '</div>' +
         (s.notes ? '<div class="meta">' + s.notes + '</div>' : '') +
       '</div>' +
@@ -1274,10 +1289,10 @@ function renderSignupItem(s, monday, dayIdx, slot) {
   const rowClick = canSpotUp
     ? 'onclick="openSpotUpModal(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')"'
     : '';
-  return '<div class="signup-item ' + (canSpotUp ? 'can-spotup' : '') + (isServed ? ' served-item' : '') + '" ' + rowClick + ' style="display:flex;align-items:center;' + gradStyle + '">' +
+  return '<div class="signup-item ' + (canSpotUp ? 'can-spotup' : '') + (isServed ? ' served-item' : '') + '" ' + rowClick + ' style="display:flex;align-items:center;' + gradStyle + earlyRowStyle + '">' +
     servedCb +
     '<div style="flex:1;">' +
-      '<span class="name" style="' + gradNameStyle + '">' + display + '</span>' +
+      '<span class="name" style="' + gradNameStyle + '">' + display + '</span>' + allergyBadge +
       (s.notes ? '<div class="meta">' + s.notes + '</div>' : '') +
     '</div>' +
     (isAdmin ? '<button class="remove-btn" title="Remove" onclick="event.stopPropagation();removeSignup(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')">&#215;</button>' : '') +

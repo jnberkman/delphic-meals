@@ -437,15 +437,15 @@
         <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text-dim);margin-bottom:10px;">Capacity (max signups per slot)</div>
         <div class="setting-row">
           <div class="setting-info"><div class="setting-name">Lunch — 12:00 PM</div></div>
-          <input type="number" id="cap12" value="50" min="1" onchange="saveCaps()">
+          <input type="number" id="cap12" value="45" min="1" onchange="saveCaps()">
         </div>
         <div class="setting-row">
           <div class="setting-info"><div class="setting-name">Lunch — 1:00 PM</div></div>
-          <input type="number" id="cap1" value="50" min="1" onchange="saveCaps()">
+          <input type="number" id="cap1" value="45" min="1" onchange="saveCaps()">
         </div>
         <div class="setting-row">
           <div class="setting-info"><div class="setting-name">Dinner — 7:30 PM</div></div>
-          <input type="number" id="capDinner" value="50" min="1" onchange="saveCaps()">
+          <input type="number" id="capDinner" value="90" min="1" onchange="saveCaps()">
         </div>
       </div>
       <button class="btn btn-secondary" onclick="pushWeekConfig()" style="margin-top:12px;">Save Week Config</button>
@@ -757,7 +757,7 @@ function restorePreferences() {
 })();
 
 // Capacity defaults (will be overridden by sheet config when available)
-let caps = { slot12: 50, slot1: 50, dinner: 50 };
+let caps = { slot12: 45, slot1: 45, dinner: 90 };
 let weekCache = {};  // monday => {config, signups}
 
 // =============================================
@@ -835,9 +835,9 @@ function getCapForSlot(slot) {
 }
 
 function saveCaps() {
-  caps.slot12 = parseInt(document.getElementById('cap12').value) || 50;
-  caps.slot1 = parseInt(document.getElementById('cap1').value) || 50;
-  caps.dinner = parseInt(document.getElementById('capDinner').value) || 50;
+  caps.slot12 = parseInt(document.getElementById('cap12').value) || 45;
+  caps.slot1 = parseInt(document.getElementById('cap1').value) || 45;
+  caps.dinner = parseInt(document.getElementById('capDinner').value) || 90;
   if (adminWeekData) adminWeekData.caps = { slot12: caps.slot12, slot1: caps.slot1, dinner: caps.dinner };
 }
 
@@ -908,9 +908,9 @@ async function loadWeekData() {
     currentWeekData = cachedWeek;
     weekCache[monday] = cachedWeek;
     if (cachedWeek.caps) {
-      caps.slot12 = cachedWeek.caps.slot12 || 50;
-      caps.slot1 = cachedWeek.caps.slot1 || 50;
-      caps.dinner = cachedWeek.caps.dinner || 50;
+      caps.slot12 = cachedWeek.caps.slot12 || 45;
+      caps.slot1 = cachedWeek.caps.slot1 || 45;
+      caps.dinner = cachedWeek.caps.dinner || 90;
     }
     renderDayCards();
   } else {
@@ -923,9 +923,9 @@ async function loadWeekData() {
     weekCache[monday] = result;
     setCache('week_' + monday, result);
     if (result.caps) {
-      caps.slot12 = result.caps.slot12 || 50;
-      caps.slot1 = result.caps.slot1 || 50;
-      caps.dinner = result.caps.dinner || 50;
+      caps.slot12 = result.caps.slot12 || 45;
+      caps.slot1 = result.caps.slot1 || 45;
+      caps.dinner = result.caps.dinner || 90;
     }
     renderDayCards();
   } catch (e) {
@@ -1152,9 +1152,9 @@ async function loadViewData() {
   try {
     data = await apiCall('getWeek', { monday });
     if (data.caps) {
-      caps.slot12 = data.caps.slot12 || 50;
-      caps.slot1 = data.caps.slot1 || 50;
-      caps.dinner = data.caps.dinner || 50;
+      caps.slot12 = data.caps.slot12 || 45;
+      caps.slot1 = data.caps.slot1 || 45;
+      caps.dinner = data.caps.dinner || 90;
     }
   } catch (e) {
     data = weekCache[monday] || buildDefaultWeek(monday);
@@ -1512,9 +1512,9 @@ async function renderAdminWeek() {
     adminWeekData = await apiCall('getWeek', { monday });
     // Load caps from sheet config
     if (adminWeekData.caps) {
-      caps.slot12 = adminWeekData.caps.slot12 || 50;
-      caps.slot1 = adminWeekData.caps.slot1 || 50;
-      caps.dinner = adminWeekData.caps.dinner || 50;
+      caps.slot12 = adminWeekData.caps.slot12 || 45;
+      caps.slot1 = adminWeekData.caps.slot1 || 45;
+      caps.dinner = adminWeekData.caps.dinner || 90;
       document.getElementById('cap12').value = caps.slot12;
       document.getElementById('cap1').value = caps.slot1;
       document.getElementById('capDinner').value = caps.dinner;

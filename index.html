@@ -263,6 +263,13 @@
       <button class="btn btn-secondary" style="width:auto;padding:13px 20px;" onclick="submitAccessCode()">Enter</button>
     </div>
     <div class="signin-error" id="signinError" style="display:none;"></div>
+    <div id="requestAccessSection" style="display:none;margin-top:16px;">
+      <div style="display:flex;align-items:center;gap:12px;margin:4px 0 16px;"><div style="flex:1;height:1px;background:var(--border);"></div><span style="font-size:11px;color:var(--text-dim);letter-spacing:1px;text-transform:uppercase;">Request Access</span><div style="flex:1;height:1px;background:var(--border);"></div></div>
+      <div style="font-size:13px;color:var(--text-dim);font-family:'Crimson Pro',serif;font-style:italic;margin-bottom:12px;">Not a member yet? Submit a request and an admin will be notified.</div>
+      <input type="text" id="requestName" placeholder="Your full name" style="margin-bottom:8px;width:100%;box-sizing:border-box;">
+      <button class="btn btn-secondary" style="width:100%;" onclick="submitAccessRequest()">Request Access</button>
+      <div id="requestStatus" style="display:none;margin-top:12px;font-size:13px;font-family:'Crimson Pro',serif;"></div>
+    </div>
   </div>
 </div>
 
@@ -460,6 +467,13 @@
       </div>
     </div>
 
+    <!-- Access Requests (hidden until there are pending requests) -->
+    <div class="card" id="accessRequestsCard" style="display:none;">
+      <div class="card-title">Access Requests <span id="accessRequestsBadge" style="display:inline-block;font-size:10px;font-weight:700;color:#fff;background:var(--red,#c0392b);border-radius:8px;padding:1px 7px;margin-left:6px;vertical-align:middle;"></span></div>
+      <div class="card-sub">People who have requested access to the site</div>
+      <div id="accessRequestsList"></div>
+    </div>
+
     <!-- Members Admin -->
     <div class="card">
       <div class="card-title">Manage Members</div>
@@ -570,6 +584,8 @@ const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz9cIYGawV81WL26gK6S
 //  AUTH
 // =============================================
 let currentUser = null;
+let pendingEmail = null;
+let pendingName = null;
 const ACCESS_CODE = 'Linden';
 
 function grantAccess(user) {
@@ -603,12 +619,44 @@ async function handleGoogleSignIn(response) {
     if (result.authorized) {
       grantAccess({ email, name, isAdmin: result.isAdmin, notifyEmail: result.notifyEmail || false });
     } else {
-      errEl.textContent = email + ' is not on the member list. Contact your admin.';
+      pendingEmail = email;
+      pendingName = name;
+      document.getElementById('requestName').value = name;
+      document.getElementById('requestAccessSection').style.display = 'block';
+      document.getElementById('requestStatus').style.display = 'none';
+      errEl.textContent = email + ' is not on the member list.';
       errEl.style.display = 'block';
     }
   } catch(e) {
     errEl.textContent = 'Could not verify membership — try again.';
     errEl.style.display = 'block';
+  }
+}
+
+async function submitAccessRequest() {
+  const name = document.getElementById('requestName').value.trim();
+  const statusEl = document.getElementById('requestStatus');
+  if (!name) { showToast('Enter your name', 'var(--red)'); return; }
+  try {
+    const result = await apiCall('requestAccess', { email: pendingEmail, name });
+    document.getElementById('requestAccessSection').style.display = 'none';
+    document.getElementById('signinError').style.display = 'none';
+    statusEl.style.color = 'var(--green)';
+    statusEl.textContent = 'Request sent! You\'ll receive an email when your account is approved.';
+    statusEl.style.display = 'block';
+    if (result.alreadyMember) {
+      statusEl.style.color = 'var(--text-dim)';
+      statusEl.textContent = 'This email is already on the member list — try signing in again.';
+      statusEl.style.display = 'block';
+    } else if (result.alreadyPending) {
+      statusEl.style.color = 'var(--text-dim)';
+      statusEl.textContent = 'You already have a pending request. An admin will review it soon.';
+      statusEl.style.display = 'block';
+    }
+  } catch(e) {
+    statusEl.style.color = 'var(--red)';
+    statusEl.textContent = 'Could not send request — try again.';
+    statusEl.style.display = 'block';
   }
 }
 
@@ -831,7 +879,7 @@ document.querySelectorAll('.tab').forEach(t => {
     if (id === 'view') loadViewData();
     if (id === 'calendar') loadCalendar();
     if (id === 'events') loadEvents();
-    if (id === 'admin') { renderAdminWeek(); loadMembers(); loadAccessSettings(); }
+    if (id === 'admin') { renderAdminWeek(); loadMembers(); loadAccessRequests(); loadAccessSettings(); }
   });
 });
 
@@ -1699,6 +1747,53 @@ async function toggleOpenAccess(enabled) {
 // =============================================
 //  MEMBER MANAGEMENT
 // =============================================
+async function loadAccessRequests() {
+  try {
+    const result = await apiCall('getAccessRequests');
+    const requests = result.requests || [];
+    const card = document.getElementById('accessRequestsCard');
+    const list = document.getElementById('accessRequestsList');
+    const badge = document.getElementById('accessRequestsBadge');
+    if (!card) return;
+    if (requests.length === 0) { card.style.display = 'none'; return; }
+    card.style.display = '';
+    badge.textContent = requests.length;
+    list.innerHTML = requests.map(r => {
+      const dateStr = r.requestedAt ? new Date(r.requestedAt).toLocaleDateString() : '';
+      const safeName = (r.name || '').replace(/'/g, "\\'").replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const safeEmail = r.email.replace(/'/g, "\\'").replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      return '<div class="setting-row">' +
+        '<div class="setting-info">' +
+          '<div class="setting-name" style="font-size:14px;">' + r.email.replace(/</g,'&lt;') + '</div>' +
+          '<div class="setting-desc">' + (r.name || 'No name provided') + (dateStr ? ' — ' + dateStr : '') + '</div>' +
+        '</div>' +
+        '<div style="display:flex;gap:6px;align-items:center;">' +
+          '<button class="btn btn-secondary" style="width:auto;font-size:12px;padding:6px 14px;" onclick="adminApproveRequest(\'' + safeEmail + '\',\'' + safeName + '\')">Approve</button>' +
+          '<button class="remove-btn" onclick="adminDenyRequest(\'' + safeEmail + '\')" title="Deny">✕</button>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  } catch(e) {}
+}
+
+async function adminApproveRequest(email, name) {
+  try {
+    await apiCall('approveAccessRequest', { email, name });
+    showToast(email + ' approved and added as member');
+    loadAccessRequests();
+    loadMembers();
+  } catch(e) {}
+}
+
+async function adminDenyRequest(email) {
+  if (!confirm('Deny access request from ' + email + '?')) return;
+  try {
+    await apiCall('denyAccessRequest', { email });
+    showToast('Request denied');
+    loadAccessRequests();
+  } catch(e) {}
+}
+
 async function loadMembers() {
   try {
     const result = await apiCall('getMembers');
@@ -1985,7 +2080,7 @@ snapToMonday('viewWeekSelect', loadViewData);
 snapToMonday('adminWeekSelect', renderAdminWeek);
 
 loadWeekData();
-if (currentUser && currentUser.isAdmin) { renderAdminWeek(); loadAdminEvents(); loadMembers(); loadAccessSettings(); }
+if (currentUser && currentUser.isAdmin) { renderAdminWeek(); loadAdminEvents(); loadMembers(); loadAccessRequests(); loadAccessSettings(); }
 
 // Initialize calendar
 initCalendar();

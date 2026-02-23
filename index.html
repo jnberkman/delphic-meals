@@ -286,7 +286,7 @@
     <button class="tab" data-tab="view">View Signups</button>
     <button class="tab" data-tab="calendar">Calendar</button>
     <button class="tab" data-tab="events" id="eventsTabBtn" style="display:none;">Events</button>
-    <button class="tab" data-tab="admin" id="adminTabBtn" style="display:none;">Admin</button>
+    <button class="tab" data-tab="admin" id="adminTabBtn" style="display:none;">Admin <span id="adminTabBadge" style="display:none;background:var(--red);color:#fff;font-size:9px;font-weight:700;border-radius:8px;padding:1px 6px;margin-left:3px;vertical-align:middle;letter-spacing:.3px;"></span></button>
   </div>
 
   <!-- ========== SIGN UP ========== -->
@@ -599,6 +599,7 @@ function grantAccess(user) {
     document.getElementById('eventsTabBtn').style.display = '';
     renderAdminWeek();
     loadAdminEvents();
+    loadAccessRequests();
   }
   // Show spot-up notify toggle for Google-signed-in members (not guests/open-access)
   if (user.email && !user.openAccess && !user.guest) {
@@ -1754,10 +1755,28 @@ async function loadAccessRequests() {
     const card = document.getElementById('accessRequestsCard');
     const list = document.getElementById('accessRequestsList');
     const badge = document.getElementById('accessRequestsBadge');
+    const tabBadge = document.getElementById('adminTabBadge');
     if (!card) return;
-    if (requests.length === 0) { card.style.display = 'none'; return; }
+
+    // Update tab button badge
+    if (tabBadge) {
+      if (requests.length > 0) {
+        tabBadge.textContent = requests.length;
+        tabBadge.style.display = '';
+      } else {
+        tabBadge.style.display = 'none';
+      }
+    }
+
+    // Always show the card; swap content based on count
     card.style.display = '';
+    if (requests.length === 0) {
+      badge.style.display = 'none';
+      list.innerHTML = '<div style="color:var(--text-dim);font-size:13px;padding:8px 0;">No pending requests.</div>';
+      return;
+    }
     badge.textContent = requests.length;
+    badge.style.display = '';
     list.innerHTML = requests.map(r => {
       const dateStr = r.requestedAt ? new Date(r.requestedAt).toLocaleDateString() : '';
       const safeName = (r.name || '').replace(/'/g, "\\'").replace(/</g, '&lt;').replace(/>/g, '&gt;');

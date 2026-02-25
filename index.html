@@ -728,12 +728,13 @@ function restorePreferences() {
 
 // Capacity defaults (will be overridden by sheet config when available)
 let caps = { slot12: 45, slot1: 45, dinner: 90 };
-let weekCache = {};  // monday => {config, signups}
+let weekCache = {};    // monday => {config, signups}
+let weekCacheTs = {};  // monday => timestamp of last fetch
 
 // =============================================
 //  LOCAL CACHE (localStorage, 5-min TTL)
 // =============================================
-const CACHE_TTL = 5 * 60 * 1000;
+const CACHE_TTL = 10 * 60 * 1000;
 function getCache(key) {
   try {
     const raw = localStorage.getItem('delphic_' + key);
@@ -885,7 +886,7 @@ async function loadWeekData() {
   document.getElementById('timeSection').style.display = 'none';
 
   // Show cached data instantly if available
-  const cachedWeek = getCache('week_' + monday);
+  const cachedWeek = weekCache[monday] || getCache('week_' + monday);
   if (cachedWeek) {
     currentWeekData = cachedWeek;
     weekCache[monday] = cachedWeek;
@@ -899,10 +900,17 @@ async function loadWeekData() {
     document.getElementById('loadingDays').style.display = 'block';
   }
 
+  // Skip background re-fetch if data was just fetched within 60 seconds
+  if (weekCacheTs[monday] && Date.now() - weekCacheTs[monday] < 60000) {
+    document.getElementById('loadingDays').style.display = 'none';
+    return;
+  }
+
   try {
     const result = await apiCall('getWeek', { monday });
     currentWeekData = result;
     weekCache[monday] = result;
+    weekCacheTs[monday] = Date.now();
     setCache('week_' + monday, result);
     if (result.caps) {
       caps.slot12 = result.caps.slot12 || 45;
@@ -1104,6 +1112,7 @@ async function submitSignup() {
     selectedDays.clear();
     selectedTimes = {};
     dayOptions = {};
+    delete weekCacheTs[monday]; // force fresh fetch after signup
     await loadWeekData();
   } catch (e) {
     // already toasted
@@ -1123,6 +1132,42 @@ let viewMonday = ''; // track current view week for spot-up calls
 let viewDayIdx = 0;
 let viewEnabledDays = [];
 
+function _applyViewData(data, preserveIdx) {
+  const nav = document.getElementById('viewDayNav');
+  if (data.caps) {
+    caps.slot12 = data.caps.slot12 || 45;
+    caps.slot1 = data.caps.slot1 || 45;
+    caps.dinner = data.caps.dinner || 90;
+  }
+  const { config, signups } = data;
+  const newEnabled = config
+    .map((day, i) => ({ day, sups: signups[i] || [], configIdx: i }))
+    .filter(d => d.day.enabled);
+
+  if (newEnabled.length === 0) {
+    document.getElementById('viewContent').innerHTML = '<div class="info-banner">No meals configured for this week.</div>';
+    nav.style.display = 'none';
+    viewEnabledDays = [];
+    return;
+  }
+
+  if (!preserveIdx || viewEnabledDays.length === 0) {
+    const now = new Date(); const dow = now.getDay();
+    let target = new Date(now);
+    if (dow === 0) target.setDate(now.getDate() + 1);
+    if (dow === 6) target.setDate(now.getDate() + 2);
+    const targetDate = target.toISOString().slice(0, 10);
+    let found = newEnabled.findIndex(d => d.day.date === targetDate);
+    viewDayIdx = found === -1 ? 0 : found;
+  } else {
+    viewDayIdx = Math.min(viewDayIdx, newEnabled.length - 1);
+  }
+
+  viewEnabledDays = newEnabled;
+  nav.style.display = 'flex';
+  renderViewDay(viewDayIdx);
+}
+
 async function loadViewData() {
   const weekInput = document.getElementById('viewWeekSelect').value;
   const nav = document.getElementById('viewDayNav');
@@ -1134,49 +1179,34 @@ async function loadViewData() {
   const monday = getMonday(weekInput);
   viewMonday = monday;
 
-  document.getElementById('viewLoading').style.display = 'block';
-  document.getElementById('viewContent').innerHTML = '';
-  nav.style.display = 'none';
-
-  let data;
-  try {
-    data = await apiCall('getWeek', { monday });
-    if (data.caps) {
-      caps.slot12 = data.caps.slot12 || 45;
-      caps.slot1 = data.caps.slot1 || 45;
-      caps.dinner = data.caps.dinner || 90;
-    }
-  } catch (e) {
-    data = weekCache[monday] || buildDefaultWeek(monday);
+  // Show cached data instantly (in-memory first, then localStorage)
+  const cached = weekCache[monday] || getCache('week_' + monday);
+  if (cached) {
+    weekCache[monday] = cached;
+    _applyViewData(cached, false);
+  } else {
+    document.getElementById('viewLoading').style.display = 'block';
+    document.getElementById('viewContent').innerHTML = '';
+    nav.style.display = 'none';
   }
-  document.getElementById('viewLoading').style.display = 'none';
 
-  const { config, signups } = data;
-
-  // Build list of enabled days
-  viewEnabledDays = config
-    .map((day, i) => ({ day, sups: signups[i] || [], configIdx: i }))
-    .filter(d => d.day.enabled);
-
-  if (viewEnabledDays.length === 0) {
-    document.getElementById('viewContent').innerHTML = '<div class="info-banner">No meals configured for this week.</div>';
+  // Skip background re-fetch if data was just fetched within 60 seconds
+  if (weekCacheTs[monday] && Date.now() - weekCacheTs[monday] < 60000) {
+    document.getElementById('viewLoading').style.display = 'none';
     return;
   }
 
-  // Find today (or Monday if weekend) in enabled days
-  const now = new Date();
-  const dow = now.getDay();
-  let target = new Date(now);
-  if (dow === 0) target.setDate(now.getDate() + 1); // Sun → Mon
-  if (dow === 6) target.setDate(now.getDate() + 2); // Sat → Mon
-  const targetDate = target.toISOString().slice(0, 10);
-
-  let found = viewEnabledDays.findIndex(d => d.day.date === targetDate);
-  if (found === -1) found = 0;
-  viewDayIdx = found;
-
-  nav.style.display = 'flex';
-  renderViewDay(viewDayIdx);
+  // Fetch fresh data in background (stale-while-revalidate)
+  try {
+    const data = await apiCall('getWeek', { monday });
+    weekCache[monday] = data;
+    weekCacheTs[monday] = Date.now();
+    setCache('week_' + monday, data);
+    _applyViewData(data, !!cached); // preserve current day index if cache was shown
+  } catch (e) {
+    if (!cached) _applyViewData(buildDefaultWeek(monday), false);
+  }
+  document.getElementById('viewLoading').style.display = 'none';
 }
 
 function changeViewDay(delta) {
@@ -1440,6 +1470,7 @@ async function doSpotUp(monday, dayIdx, name, time) {
     const result = await apiCall('spotUp', { monday, dayIndex: dayIdx, name, time });
     if (result.status === 'ok') {
       showToast(name + "'s spot is now up for grabs!");
+      delete weekCacheTs[monday];
       await loadViewData();
     }
   } catch (e) {}
@@ -1455,6 +1486,7 @@ async function doClaimSpotUp(monday, dayIdx, origName, time) {
     const result = await apiCall('claimSpotUp', { monday, dayIndex: dayIdx, originalName: origName, time, claimerName });
     if (result.status === 'ok') {
       showToast(claimerName + ' claimed ' + origName + "'s spot!");
+      delete weekCacheTs[monday];
       await loadViewData();
     }
   } catch (e) {}
@@ -1467,6 +1499,7 @@ async function unclaimSpotUpAction(monday, dayIdx, origName, time) {
     const result = await apiCall('unclaimSpotUp', { monday, dayIndex: dayIdx, originalName: origName, time });
     if (result.status === 'ok') {
       showToast('Spot unclaimed — back to spot up');
+      delete weekCacheTs[monday];
       await loadViewData();
     }
   } catch (e) {}
@@ -2193,6 +2226,7 @@ snapToMonday('viewWeekSelect', loadViewData);
 snapToMonday('adminWeekSelect', renderAdminWeek);
 
 loadWeekData();
+loadViewData(); // prefetch so View tab renders instantly on first click
 if (currentUser && currentUser.isAdmin) { renderAdminWeek(); loadAdminEvents(); loadMembers(); loadAccessRequests(); loadAccessSettings(); }
 
 // Initialize calendar

@@ -153,6 +153,18 @@ function handleRequest(data) {
     case 'removeMember':
       result = removeMember(data.email);
       break;
+    case 'requestAccess':
+      result = requestAccess(data.email, data.name);
+      break;
+    case 'getAccessRequests':
+      result = getAccessRequests();
+      break;
+    case 'approveAccessRequest':
+      result = approveAccessRequest(data.email, data.name);
+      break;
+    case 'denyAccessRequest':
+      result = denyAccessRequest(data.email);
+      break;
     // ── Settings ──
     case 'getSettings':
       result = getSettings();
@@ -633,6 +645,161 @@ function removeMember(email) {
     }
   }
   return { removed: false };
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+//  ACCESS REQUESTS
+// ═══════════════════════════════════════════════════════════════
+
+function getAccessRequestsSheet() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName('AccessRequests');
+  if (!sheet) {
+    sheet = ss.insertSheet('AccessRequests');
+    sheet.getRange('A1:D1').setValues([['email', 'name', 'requestedAt', 'status']]);
+    sheet.getRange('A1:D1').setFontWeight('bold');
+    sheet.hideSheet();
+  }
+  return sheet;
+}
+
+function requestAccess(email, name) {
+  // Already a member?
+  var membersSheet = getMembersSheet();
+  if (membersSheet.getLastRow() > 1) {
+    var mData = membersSheet.getRange(2, 1, membersSheet.getLastRow() - 1, 1).getValues();
+    for (var m = 0; m < mData.length; m++) {
+      if (mData[m][0].toString().toLowerCase().trim() === email.toLowerCase().trim()) {
+        return { alreadyMember: true };
+      }
+    }
+  }
+
+  // Already pending?
+  var sheet = getAccessRequestsSheet();
+  if (sheet.getLastRow() > 1) {
+    var existing = sheet.getRange(2, 1, sheet.getLastRow() - 1, 4).getValues();
+    for (var r = 0; r < existing.length; r++) {
+      if (existing[r][0].toString().toLowerCase().trim() === email.toLowerCase().trim() &&
+          existing[r][3].toString() === 'pending') {
+        return { alreadyPending: true };
+      }
+    }
+  }
+
+  // Record request
+  sheet.appendRow([email, name || '', new Date().toISOString(), 'pending']);
+
+  // Email all admins
+  var siteUrl = 'https://rmeek-robot.github.io/delphic-meals/';
+  if (membersSheet.getLastRow() > 1) {
+    var lastCol = Math.max(membersSheet.getLastColumn(), 4);
+    var members = membersSheet.getRange(2, 1, membersSheet.getLastRow() - 1, lastCol).getValues();
+    for (var i = 0; i < members.length; i++) {
+      var isAdmin = members[i][1] === true || members[i][1] === 'true' || members[i][1] === 'TRUE';
+      var adminEmail = members[i][0] ? members[i][0].toString().trim() : '';
+      var adminName = members[i][2] ? members[i][2].toString() : '';
+      if (!adminEmail || !isAdmin) continue;
+      MailApp.sendEmail({
+        to: adminEmail,
+        subject: 'Access Request — ' + (name || email) + ' — Delphic Meals',
+        htmlBody: buildAccessRequestEmail(name || email, email, adminName, siteUrl)
+      });
+    }
+  }
+
+  return { status: 'ok' };
+}
+
+function getAccessRequests() {
+  var sheet = getAccessRequestsSheet();
+  var requests = [];
+  if (sheet.getLastRow() < 2) return { requests: requests };
+  var data = sheet.getRange(2, 1, sheet.getLastRow() - 1, 4).getValues();
+  for (var r = 0; r < data.length; r++) {
+    if (data[r][3].toString() === 'pending') {
+      requests.push({ email: data[r][0].toString(), name: data[r][1].toString(), requestedAt: data[r][2].toString() });
+    }
+  }
+  return { requests: requests };
+}
+
+function approveAccessRequest(email, name) {
+  // Add to Members
+  addMember(email, false, name || '');
+
+  // Send approval email
+  MailApp.sendEmail({
+    to: email,
+    subject: 'You\'ve been approved — Delphic Meals',
+    htmlBody: buildApprovalEmail(name || '', 'https://rmeek-robot.github.io/delphic-meals/')
+  });
+
+  // Mark as approved in sheet
+  var sheet = getAccessRequestsSheet();
+  if (sheet.getLastRow() > 1) {
+    var data = sheet.getRange(2, 1, sheet.getLastRow() - 1, 4).getValues();
+    for (var r = 0; r < data.length; r++) {
+      if (data[r][0].toString().toLowerCase().trim() === email.toLowerCase().trim() &&
+          data[r][3].toString() === 'pending') {
+        sheet.getRange(r + 2, 4).setValue('approved');
+        break;
+      }
+    }
+  }
+  return { status: 'ok' };
+}
+
+function denyAccessRequest(email) {
+  var sheet = getAccessRequestsSheet();
+  if (sheet.getLastRow() > 1) {
+    var data = sheet.getRange(2, 1, sheet.getLastRow() - 1, 4).getValues();
+    for (var r = 0; r < data.length; r++) {
+      if (data[r][0].toString().toLowerCase().trim() === email.toLowerCase().trim() &&
+          data[r][3].toString() === 'pending') {
+        sheet.getRange(r + 2, 4).setValue('denied');
+        break;
+      }
+    }
+  }
+  return { status: 'ok' };
+}
+
+function buildAccessRequestEmail(requesterName, requesterEmail, adminName, siteUrl) {
+  var greeting = adminName ? 'Hi ' + adminName + ',' : 'Hi,';
+  return '<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f4f1eb;font-family:Georgia,serif;">' +
+    '<div style="max-width:480px;margin:40px auto;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.1);">' +
+    '<div style="background:#1a1a2e;padding:24px 32px;">' +
+    '<div style="font-size:20px;font-weight:700;color:#e8d5a3;">Delphic Club</div>' +
+    '<div style="font-size:11px;color:#8888aa;margin-top:2px;letter-spacing:1px;text-transform:uppercase;">Access Request</div>' +
+    '</div>' +
+    '<div style="padding:32px;">' +
+    '<p style="margin:0 0 8px;font-size:14px;color:#666;">' + greeting + '</p>' +
+    '<p style="margin:0 0 20px;font-size:16px;color:#222;line-height:1.6;">' +
+    '<strong>' + requesterName + '</strong> (<a href="mailto:' + requesterEmail + '" style="color:#1a1a2e;">' + requesterEmail + '</a>) has requested access to Delphic Meals.</p>' +
+    '<p style="margin:0 0 28px;font-size:14px;color:#555;line-height:1.6;">Sign in to the site and open the <strong>Admin</strong> tab to approve or deny this request.</p>' +
+    '<div style="text-align:center;margin:0 0 28px;">' +
+    '<a href="' + siteUrl + '" style="display:inline-block;background:#1a1a2e;color:#e8d5a3;text-decoration:none;padding:15px 40px;border-radius:4px;font-size:15px;font-weight:700;letter-spacing:.5px;">Open Admin Tab</a>' +
+    '</div>' +
+    '</div></div></body></html>';
+}
+
+function buildApprovalEmail(recipientName, siteUrl) {
+  var greeting = recipientName ? 'Hi ' + recipientName + ',' : 'Hi,';
+  return '<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f4f1eb;font-family:Georgia,serif;">' +
+    '<div style="max-width:480px;margin:40px auto;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.1);">' +
+    '<div style="background:#1a1a2e;padding:24px 32px;">' +
+    '<div style="font-size:20px;font-weight:700;color:#e8d5a3;">Delphic Club</div>' +
+    '<div style="font-size:11px;color:#8888aa;margin-top:2px;letter-spacing:1px;text-transform:uppercase;">Access Approved</div>' +
+    '</div>' +
+    '<div style="padding:32px;">' +
+    '<p style="margin:0 0 8px;font-size:14px;color:#666;">' + greeting + '</p>' +
+    '<p style="margin:0 0 28px;font-size:16px;color:#222;line-height:1.6;">Your access to <strong>Delphic Meals</strong> has been approved. You can now sign in with your Google account.</p>' +
+    '<div style="text-align:center;margin:0 0 28px;">' +
+    '<a href="' + siteUrl + '" style="display:inline-block;background:#1a1a2e;color:#e8d5a3;text-decoration:none;padding:15px 40px;border-radius:4px;font-size:15px;font-weight:700;letter-spacing:.5px;">Sign In Now</a>' +
+    '</div>' +
+    '</div></div></body></html>';
 }
 
 

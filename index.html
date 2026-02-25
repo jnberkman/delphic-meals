@@ -98,6 +98,12 @@
   .day-card .day-spots.open { background: #3D7A4E12; color: var(--green); }
   .day-card .day-spots.almost { background: #B07A2A12; color: var(--orange); }
   .day-card .day-spots.full-tag { background: #B1424212; color: var(--red); }
+  .day-card .day-menu-preview { font-family: 'Crimson Pro', serif; font-size: 11px; font-style: italic; color: var(--text-dim); margin-top: 6px; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .my-signups-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--border); font-family: 'Crimson Pro', serif; font-size: 15px; color: var(--text-bright); }
+  .my-signups-row:last-child { border-bottom: none; }
+  .my-signups-cancel { background: none; border: none; cursor: pointer; color: var(--text-dim); font-size: 18px; padding: 0 2px; line-height: 1; transition: color .15s; }
+  .my-signups-cancel:hover { color: var(--red); }
 
   .time-row { display: flex; gap: 10px; flex-wrap: wrap; }
   .time-chip { flex: 1; min-width: 120px; padding: 14px; border-radius: 4px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; text-align: center; transition: all .2s; }
@@ -114,8 +120,10 @@
   .btn-secondary:hover { border-color: var(--border-light); background: var(--surface2); }
   .btn:disabled { opacity: .35; cursor: not-allowed; }
 
-  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--green); color: #fff; padding: 12px 24px; border-radius: 3px; font-weight: 500; font-size: 13px; z-index: 999; transition: transform .4s cubic-bezier(.36,.66,.04,1); pointer-events: none; }
-  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--green); color: #fff; padding: 12px 24px; border-radius: 3px; font-weight: 500; font-size: 13px; z-index: 999; transition: transform .4s cubic-bezier(.36,.66,.04,1); pointer-events: none; white-space: nowrap; }
+  .toast.show { transform: translateX(-50%) translateY(0); pointer-events: auto; }
+  .toast-undo { background: none; border: 1px solid rgba(255,255,255,.5); color: #fff; font-family: 'Jost', sans-serif; font-size: 11px; font-weight: 500; letter-spacing: .5px; padding: 3px 10px; border-radius: 2px; cursor: pointer; margin-left: 14px; vertical-align: middle; transition: background .15s; }
+  .toast-undo:hover { background: rgba(255,255,255,.15); }
 
   .setting-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--border); }
   .setting-row:last-child { border-bottom: none; }
@@ -349,8 +357,10 @@
           <input type="date" id="weekSelect" style="flex:1;">
           <button class="btn btn-secondary" style="width:auto;padding:10px 14px;font-size:16px;" onclick="shiftWeek('weekSelect',7,loadWeekData)" title="Next week">&#8594;</button>
         </div>
+        <div style="text-align:right;margin-top:4px;"><a href="#" onclick="jumpToThisWeek('weekSelect',loadWeekData);return false;" style="font-family:'Crimson Pro',serif;font-size:13px;font-style:italic;color:var(--accent);text-decoration:none;border-bottom:1px solid transparent;transition:border-color .15s;" onmouseover="this.style.borderBottomColor='var(--accent)'" onmouseout="this.style.borderBottomColor='transparent'">This week</a></div>
       </div>
       <div id="loadingDays" style="display:none;text-align:center;padding:24px;color:var(--text-dim);"><div class="spinner"></div> Loading meals...</div>
+      <div id="mySignupsSummary"></div>
       <div id="dayCards" class="day-grid"></div>
     </div>
 
@@ -373,7 +383,7 @@
 
   <!-- ========== VIEW ========== -->
   <div id="tab-view" class="section">
-    <div class="info-banner" style="margin-bottom:16px;">
+    <div id="spotUpInfoBanner" class="info-banner" style="margin-bottom:16px;">
       <strong>Spot Up:</strong> Tap any name to offer that spot to others. Anyone can then claim it.
     </div>
     <div class="field">
@@ -383,6 +393,7 @@
         <input type="date" id="viewWeekSelect" style="flex:1;">
         <button class="btn btn-secondary" style="width:auto;padding:10px 14px;font-size:16px;" onclick="shiftWeek('viewWeekSelect',7,loadViewData)" title="Next week">&#8594;</button>
       </div>
+      <div style="text-align:right;margin-top:4px;"><a href="#" onclick="jumpToThisWeek('viewWeekSelect',loadViewData);return false;" style="font-family:'Crimson Pro',serif;font-size:13px;font-style:italic;color:var(--accent);text-decoration:none;border-bottom:1px solid transparent;transition:border-color .15s;" onmouseover="this.style.borderBottomColor='var(--accent)'" onmouseout="this.style.borderBottomColor='transparent'">This week</a></div>
     </div>
     <div id="viewDayNav" style="display:none;margin-top:8px;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:10px 14px;">
       <button id="viewPrevDay" class="btn btn-secondary" style="width:auto;padding:8px 14px;font-size:16px;" onclick="changeViewDay(-1)">&#8592;</button>
@@ -812,6 +823,10 @@ let caps = { slot12: 45, slot1: 45, dinner: 90 };
 let weekCache = {};    // monday => {config, signups}
 let weekCacheTs = {};  // monday => timestamp of last fetch
 let spotUpEnabled = true; // controlled by admin Settings toggle
+let _pendingCancels = new Set(); // dayIdx of optimistically-removed signups
+let _cancelData = {};            // dayIdx => stored entry for undo
+let _toastTimer = null;
+let _toastUndoFn = null;
 
 // =============================================
 //  LOCAL CACHE (localStorage, 5-min TTL)
@@ -845,12 +860,23 @@ function getMonday(dateStr) {
   return d.toISOString().split('T')[0];
 }
 
-function showToast(msg, color) {
+function showToast(msg, color, undoFn) {
+  if (_toastTimer) { clearTimeout(_toastTimer); _toastTimer = null; }
+  _toastUndoFn = undoFn || null;
   const t = document.getElementById('toast');
-  t.textContent = msg;
   t.style.background = color || 'var(--green)';
+  if (undoFn) {
+    t.innerHTML = msg + ' <button class="toast-undo" onclick="_toastUndo()">Undo</button>';
+  } else {
+    t.textContent = msg;
+  }
   t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2800);
+  _toastTimer = setTimeout(() => { t.classList.remove('show'); _toastUndoFn = null; _toastTimer = null; }, 3500);
+}
+function _toastUndo() {
+  if (_toastUndoFn) { _toastUndoFn(); _toastUndoFn = null; }
+  if (_toastTimer) { clearTimeout(_toastTimer); _toastTimer = null; }
+  document.getElementById('toast').classList.remove('show');
 }
 
 function showConfirmation(name, daysList, count, wasUpdate, isEvent) {
@@ -879,6 +905,69 @@ function showConfirmation(name, daysList, count, wasUpdate, isEvent) {
 function closeConfirm() {
   document.getElementById('confirmOverlay').classList.remove('show');
   document.body.style.overflow = '';
+}
+
+function renderMySignupsSummary() {
+  const el = document.getElementById('mySignupsSummary');
+  if (!el || !currentWeekData) { if (el) el.innerHTML = ''; return; }
+  const myName = (currentUser && currentUser.name && !currentUser.guest)
+    ? currentUser.name.toLowerCase().trim() : '';
+  if (!myName) { el.innerHTML = ''; return; }
+
+  const { config, signups, monday } = currentWeekData;
+  const myEntries = [];
+  config.forEach((day, i) => {
+    if (!day.enabled || _pendingCancels.has(i)) return;
+    (signups[i] || []).forEach(s => {
+      if (s.name && s.name.toLowerCase().trim() === myName)
+        myEntries.push({ day, dayIdx: i, name: s.name, time: s.time });
+    });
+  });
+
+  if (myEntries.length === 0) { el.innerHTML = ''; return; }
+
+  let html = '<div style="margin-bottom:20px;padding:16px 20px;background:var(--accent-glow2);border:1px solid #8B691430;border-radius:6px;">';
+  html += '<div style="font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);margin-bottom:10px;">Your Sign-Ups This Week</div>';
+  myEntries.forEach(({ day, dayIdx, name, time }) => {
+    const safeTime = (time || '').replace(/'/g, "\\'");
+    const safeName = name.replace(/'/g, "\\'");
+    const safeMon = monday.replace(/'/g, "\\'");
+    const timeLabel = time === '12:00 PM' ? '12:00\u20131:00 PM' : time === '1:00 PM' ? '1:00\u20132:00 PM' : (time || '');
+    html += '<div class="my-signups-row">' +
+      '<span>' + day.day + ' <span style="color:var(--text-dim);">&middot;</span> ' + day.meal +
+        (timeLabel ? ' <span style="color:var(--text-dim);">&middot;</span> <span style="font-size:13px;color:var(--text-dim);">' + timeLabel + '</span>' : '') +
+      '</span>' +
+      '<button class="my-signups-cancel" onclick="cancelMySignup(\'' + safeMon + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')" title="Remove sign-up">&#215;</button>' +
+    '</div>';
+  });
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function cancelMySignup(monday, dayIdx, name, time) {
+  _pendingCancels.add(dayIdx);
+  renderMySignupsSummary();
+
+  showToast('Sign-up removed', '#4A4A4A', () => {
+    _pendingCancels.delete(dayIdx);
+    delete _cancelData[dayIdx];
+    renderMySignupsSummary();
+  });
+
+  setTimeout(async () => {
+    if (!_pendingCancels.has(dayIdx)) return; // undo was clicked
+    try {
+      await apiCall('removeSignup', { monday, dayIndex: dayIdx, name, time });
+      delete weekCacheTs[monday];
+      _pendingCancels.delete(dayIdx);
+      delete _cancelData[dayIdx];
+      await loadWeekData();
+    } catch(e) {
+      _pendingCancels.delete(dayIdx);
+      renderMySignupsSummary();
+      showToast('Could not remove \u2014 please try again', 'var(--red)');
+    }
+  }, 3600);
 }
 
 function getDayTimes(day) {
@@ -941,7 +1030,17 @@ document.querySelectorAll('.tab').forEach(t => {
     t.classList.add('active');
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
     document.getElementById('tab-' + id).classList.add('active');
-    if (id === 'view') loadViewData();
+    if (id === 'view') {
+      const sw = document.getElementById('weekSelect').value;
+      const vw = document.getElementById('viewWeekSelect');
+      if (sw && vw.value !== sw) vw.value = sw;
+      loadViewData();
+    }
+    if (id === 'signup') {
+      const vw = document.getElementById('viewWeekSelect').value;
+      const sw = document.getElementById('weekSelect');
+      if (vw && sw.value !== vw) { sw.value = vw; loadWeekData(); }
+    }
     if (id === 'calendar') loadCalendar();
     if (id === 'events') loadEvents();
     if (id === 'admin') { switchAdminPanel('week'); loadAccessRequests(); }
@@ -1020,6 +1119,7 @@ function buildDefaultWeek(monday) {
 
 function renderDayCards() {
   if (!currentWeekData) return;
+  _pendingCancels.clear(); // fresh data, reset optimistic state
   const { config, signups } = currentWeekData;
 
   let html = '';
@@ -1047,14 +1147,17 @@ function renderDayCards() {
     if (isFull) { spotsClass = 'full-tag'; spotsText = 'FULL'; }
     else if (pct > 0.8) { spotsClass = 'almost'; spotsText = (maxTotal - total) + ' spots left'; }
 
+    const menuPreview = day.menu ? (day.menu.length > 32 ? day.menu.slice(0, 32) + '\u2026' : day.menu) : '';
     html += '<div class="day-card ' + (isFull ? 'full' : '') + '" data-day="' + i + '" onclick="' + (isFull ? '' : 'toggleDay(' + i + ')') + '">' +
       '<div class="day-meal">' + day.meal + '</div>' +
       '<div class="day-name">' + day.day + '</div>' +
       '<div class="day-date">' + new Date(day.date + 'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}) + '</div>' +
+      (menuPreview ? '<div class="day-menu-preview">' + menuPreview + '</div>' : '') +
       '<div class="day-spots ' + spotsClass + '">' + spotsText + '</div>' +
     '</div>';
   });
   document.getElementById('dayCards').innerHTML = html || '<div class="info-banner">No meals configured for this week.</div>';
+  renderMySignupsSummary();
 }
 
 function toggleDay(idx) {
@@ -1756,6 +1859,13 @@ function shiftAdminWeek(days) {
   shiftWeek('adminWeekSelect', days, renderAdminWeek);
 }
 
+function jumpToThisWeek(inputId, callback) {
+  const el = document.getElementById(inputId);
+  if (!el) return;
+  el.value = getCurrentMonday();
+  if (callback) callback();
+}
+
 // ── Admin inner panel navigation ──
 function switchAdminPanel(panel) {
   document.querySelectorAll('.admin-nav-btn').forEach(b => b.classList.toggle('active', b.dataset.panel === panel));
@@ -2091,6 +2201,8 @@ async function loadAccessSettings() {
     const suToggle = document.getElementById('spotUpToggle');
     if (suToggle) suToggle.checked = settings.spotUpEnabled !== false;
     spotUpEnabled = settings.spotUpEnabled !== false;
+    const banner = document.getElementById('spotUpInfoBanner');
+    if (banner) banner.style.display = spotUpEnabled ? '' : 'none';
   } catch(e) {}
 }
 
@@ -2111,6 +2223,8 @@ async function toggleSpotUp(enabled) {
     const cur = getCache('settings') || {};
     setCache('settings', { ...cur, spotUpEnabled: enabled });
     spotUpEnabled = enabled;
+    const banner = document.getElementById('spotUpInfoBanner');
+    if (banner) banner.style.display = enabled ? '' : 'none';
     showToast(enabled ? 'Spot ups enabled' : 'Spot ups disabled — members will see "Put spot ups in chat"');
   } catch(e) {
     showToast('Failed to update setting', 'var(--red)');
@@ -2480,6 +2594,21 @@ initCalendar();
 
 // Load events to check if Events tab should be visible
 loadEvents();
+
+// Re-fetch data when user returns to the tab after 60+ seconds away
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible') return;
+  const weekVal = document.getElementById('weekSelect').value;
+  if (!weekVal) return;
+  const mon = getMonday(weekVal);
+  if (!weekCacheTs[mon] || Date.now() - weekCacheTs[mon] > 55000) {
+    apiCall('getWeek', { monday: mon }).then(data => {
+      weekCache[mon] = data; weekCacheTs[mon] = Date.now(); setCache('week_' + mon, data);
+      if (currentWeekData && currentWeekData.monday === mon) { currentWeekData = data; renderDayCards(); }
+      if (viewMonday === mon) _applyViewData(data, true);
+    }).catch(() => {});
+  }
+});
 </script>
 </body>
 </html>

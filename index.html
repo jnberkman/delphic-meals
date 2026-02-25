@@ -584,10 +584,18 @@ const ACCESS_CODE = 'Linden';
 
 function grantAccess(user) {
   currentUser = user;
+  // For open-access users, restore identity from the last saved name so
+  // "Your Spot" and form pre-fill work without requiring a Google sign-in.
+  if (user.openAccess && !user.name) {
+    try {
+      const prefs = JSON.parse(localStorage.getItem('delphic_prefs') || '{}');
+      if (prefs.name) currentUser.name = prefs.name;
+    } catch(e) {}
+  }
   sessionStorage.setItem('delphic_user', JSON.stringify(currentUser));
   document.getElementById('signinOverlay').style.display = 'none';
   restorePreferences();
-  if (user.name) prefillName(user.name);
+  if (currentUser.name) prefillName(currentUser.name);
   if (user.isAdmin) {
     document.getElementById('adminTabBtn').style.display = '';
     renderAdminWeek();
@@ -1055,6 +1063,11 @@ async function submitSignup() {
   if (!currentWeekData) { showToast('Please select a week', 'var(--red)'); return; }
   if (selectedDays.size === 0) { showToast('Please select at least one day', 'var(--red)'); return; }
   savePreferences();
+  // Keep currentUser.name in sync so "Your Spot" works immediately after signup
+  if (currentUser && !currentUser.name) {
+    currentUser.name = name;
+    sessionStorage.setItem('delphic_user', JSON.stringify(currentUser));
+  }
 
   if (currentWeekData.freezeDate) {
     const freezeTime = new Date(currentWeekData.freezeDate).getTime();
@@ -1229,8 +1242,8 @@ function renderViewDay(idx) {
   const lbl = document.getElementById('viewDayLabel');
   if (lbl) lbl.textContent = day.day + ' \u2014 ' + day.meal;
 
-  const isLoggedIn = !!(currentUser && currentUser.name && !currentUser.openAccess && !currentUser.guest);
-  const myName = isLoggedIn ? (currentUser.name || '').toLowerCase().trim() : '';
+  const myName = (currentUser && currentUser.name && !currentUser.guest)
+    ? currentUser.name.toLowerCase().trim() : '';
 
   let html = '<div class="card">';
   html += '<div style="display:flex;justify-content:space-between;align-items:start;">' +
@@ -1318,9 +1331,9 @@ function renderViewDay(idx) {
 function renderSignupItem(s, monday, dayIdx, slot) {
   // Resolve identity + permissions
   const isAdmin = !!(currentUser && currentUser.isAdmin);
-  // "logged in" = signed in via Google with a real name (not open-access or guest)
-  const isLoggedIn = !!(currentUser && currentUser.name && !currentUser.openAccess && !currentUser.guest);
-  const myName = isLoggedIn ? (currentUser.name || '').toLowerCase().trim() : '';
+  // myName is set for any user with a known name (Google sign-in OR named open-access)
+  const myName = (currentUser && currentUser.name && !currentUser.guest)
+    ? currentUser.name.toLowerCase().trim() : '';
 
   const spotStatus = s.spotUpStatus || '';
   const origName = s.spotUpOrigName || '';

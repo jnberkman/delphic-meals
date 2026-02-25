@@ -815,19 +815,21 @@ function getSettingsSheet() {
     sheet.getRange('A1:B1').setValues([['key', 'value']]);
     sheet.getRange('A1:B1').setFontWeight('bold');
     sheet.appendRow(['openAccess', 'false']);
+    sheet.appendRow(['spotUpEnabled', 'true']);
   }
   return sheet;
 }
 
 function getSettings() {
   var sheet = getSettingsSheet();
-  var settings = { openAccess: false };
+  var settings = { openAccess: false, spotUpEnabled: true };
   if (sheet.getLastRow() < 2) return { settings: settings };
   var data = sheet.getDataRange().getValues();
   for (var r = 1; r < data.length; r++) {
     var key = data[r][0].toString();
     var val = data[r][1];
     if (key === 'openAccess') settings.openAccess = val === true || val === 'true' || val === 'TRUE';
+    if (key === 'spotUpEnabled') settings.spotUpEnabled = !(val === false || val === 'false' || val === 'FALSE');
   }
   return { settings: settings };
 }

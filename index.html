@@ -460,6 +460,16 @@
           <span class="pill-label" style="font-size:12px;">Enabled</span>
         </label>
       </div>
+      <div class="setting-row" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+        <div class="setting-info">
+          <div class="setting-name">Spot Ups</div>
+          <div class="setting-desc">Members can mark their spot as available and others can claim it. When off, "Put spot ups in chat" is shown instead.</div>
+        </div>
+        <label class="option-pill" style="margin:0;">
+          <input type="checkbox" id="spotUpToggle" onchange="toggleSpotUp(this.checked)" checked>
+          <span class="pill-label" style="font-size:12px;">Enabled</span>
+        </label>
+      </div>
     </div>
 
     <!-- Access Requests (hidden until there are pending requests) -->
@@ -737,6 +747,7 @@ function restorePreferences() {
       settings = res.settings || {};
       setCache('settings', settings);
     }
+    if (settings.spotUpEnabled === false) spotUpEnabled = false;
     if (settings.openAccess) {
       grantAccess({ name: '', isAdmin: false, openAccess: true });
     }
@@ -747,6 +758,7 @@ function restorePreferences() {
 let caps = { slot12: 45, slot1: 45, dinner: 90 };
 let weekCache = {};    // monday => {config, signups}
 let weekCacheTs = {};  // monday => timestamp of last fetch
+let spotUpEnabled = true; // controlled by admin Settings toggle
 
 // =============================================
 //  LOCAL CACHE (localStorage, 5-min TTL)
@@ -1332,6 +1344,9 @@ function renderViewDay(idx) {
       html += '</div>';
     });
   }
+  if (!spotUpEnabled) {
+    html += '<div style="margin-top:18px;padding:12px 16px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);text-align:center;font-family:\'Crimson Pro\',serif;font-size:15px;color:var(--text-dim);font-style:italic;">Put spot ups in chat</div>';
+  }
   html += '</div>';
   document.getElementById('viewContent').innerHTML = html;
 }
@@ -1381,6 +1396,40 @@ function renderSignupItem(s, monday, dayIdx, slot) {
   const gradStyle = isGrad ? 'background:#8B691412;border-color:#8B691430;' : '';
   const gradNameStyle = isGrad ? 'font-weight:800;color:#8B6914;' : 'color:' + nameColor;
 
+  const isServed = s.servedStatus === 'served';
+  const servedCb = isAdmin
+    ? '<input type="checkbox" class="served-check"' + (isServed ? ' checked' : '') +
+      ' onclick="event.stopPropagation()"' +
+      ' onchange="toggleServed(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\',this.checked)"' +
+      ' title="Mark as served">'
+    : '';
+
+  // ── SPOT UPS DISABLED ──
+  // Regular users see a plain row. Admins get a click handler to manually swap spots.
+  if (!spotUpEnabled) {
+    const adminClick = isAdmin
+      ? 'onclick="openAdminSwapModal(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\',\'' + (spotStatus || '') + '\',\'' + safeOrigName + '\')"'
+      : '';
+    const adminClass = isAdmin ? 'can-spotup' : '';
+    // Render claimed rows to show the swap, but without user-facing buttons
+    let nameHtml = '<span class="name" style="' + gradNameStyle + '">' + display + '</span>' + allergyBadge;
+    let metaHtml = s.notes ? '<div class="meta">' + s.notes + '</div>' : '';
+    if (spotStatus === 'claimed') {
+      nameHtml = '<span class="name" style="color:var(--green);font-weight:700;">' + s.name + '</span><span class="spotup-claimed-badge">SWAPPED</span>' + allergyBadge;
+      metaHtml = '<div class="meta" style="color:var(--green);">Was: ' + origName + '</div>' + metaHtml;
+    } else if (spotStatus === 'spotup') {
+      nameHtml = '<span class="name" style="color:#E65100;text-decoration:line-through;opacity:.7;">' + display + '</span><span class="spotup-badge">SPOT UP</span>' + allergyBadge;
+      metaHtml = '<div class="meta" style="color:#E65100;">Pending admin reassignment</div>';
+    }
+    return '<div class="signup-item ' + adminClass + (isServed ? ' served-item' : '') + '" ' + adminClick + ' style="display:flex;align-items:center;' + gradStyle + earlyRowStyle + '">' +
+      servedCb +
+      '<div style="flex:1;">' + nameHtml + metaHtml + '</div>' +
+      (isAdmin ? '<button class="remove-btn" title="Remove" onclick="event.stopPropagation();removeSignup(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')">&#215;</button>' : '') +
+    '</div>';
+  }
+
+  // ── SPOT UPS ENABLED ──
+
   // === SPOT UP AVAILABLE STATE ===
   if (spotStatus === 'spotup') {
     return '<div class="signup-item spotup-item">' +
@@ -1395,14 +1444,6 @@ function renderSignupItem(s, monday, dayIdx, slot) {
       '</div>' +
     '</div>';
   }
-
-  const isServed = s.servedStatus === 'served';
-  const servedCb = isAdmin
-    ? '<input type="checkbox" class="served-check"' + (isServed ? ' checked' : '') +
-      ' onclick="event.stopPropagation()"' +
-      ' onchange="toggleServed(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\',this.checked)"' +
-      ' title="Mark as served">'
-    : '';
 
   // === CLAIMED STATE ===
   if (spotStatus === 'claimed') {
@@ -1547,6 +1588,73 @@ async function cancelSpotUpAction(monday, dayIdx, name, time) {
     const result = await apiCall('cancelSpotUp', { monday, dayIndex: dayIdx, name, time });
     if (result.status === 'ok') {
       showToast('Spot up cancelled');
+      await loadViewData();
+    }
+  } catch (e) {}
+}
+
+// ── Admin manual swap (used when spot-ups are disabled) ──
+function openAdminSwapModal(monday, dayIdx, name, time, spotStatus, origName) {
+  const overlay = document.getElementById('spotupOverlay');
+  document.getElementById('spotupModalTitle').textContent = 'Admin: Manage Spot';
+  document.getElementById('spotupModalSub').textContent = name + (origName ? ' (was: ' + origName + ')' : '');
+
+  let bodyHtml = '<div class="field" style="margin-bottom:8px;">' +
+    '<label class="field-label">Replace with name <span class="req">*</span></label>' +
+    '<input type="text" id="adminSwapNameInput" placeholder="Enter replacement name" style="margin-bottom:0;">' +
+  '</div>';
+  document.getElementById('spotupModalBody').innerHTML = bodyHtml;
+
+  let actionsHtml = '<button class="btn btn-secondary" onclick="closeSpotUpModal()">Cancel</button>';
+  actionsHtml += '<button class="btn btn-primary" style="background:#5B8DEF;" onclick="doAdminSwap(\'' + monday + '\',' + dayIdx + ',\'' + name.replace(/'/g, "\\'") + '\',\'' + time.replace(/'/g, "\\'") + '\',\'' + (spotStatus||'') + '\',\'' + (origName||'').replace(/'/g, "\\'") + '\')">Assign</button>';
+  if (spotStatus === 'claimed' || spotStatus === 'spotup') {
+    const restoreName = origName || name;
+    actionsHtml += '<button class="btn btn-secondary" style="margin-left:4px;" onclick="doAdminRestore(\'' + monday + '\',' + dayIdx + ',\'' + name.replace(/'/g, "\\'") + '\',\'' + time.replace(/'/g, "\\'") + '\',\'' + restoreName.replace(/'/g, "\\'") + '\',\'' + (spotStatus||'') + '\')">Restore to ' + restoreName + '</button>';
+  }
+  document.getElementById('spotupModalActions').innerHTML = actionsHtml;
+
+  overlay.classList.add('show');
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => { const el = document.getElementById('adminSwapNameInput'); if (el) el.focus(); }, 200);
+}
+
+async function doAdminSwap(monday, dayIdx, currentName, time, spotStatus, origName) {
+  const newName = (document.getElementById('adminSwapNameInput') || {}).value || '';
+  if (!newName.trim()) { showToast('Enter a name', 'var(--red)'); return; }
+  closeSpotUpModal();
+  showToast('Updating...', 'var(--orange)');
+  delete weekCacheTs[monday];
+  try {
+    // If already claimed, unclaim first to get back to spotup state
+    if (spotStatus === 'claimed') {
+      await apiCall('unclaimSpotUp', { monday, dayIndex: dayIdx, originalName: origName || currentName, time });
+    }
+    // If normal signup, mark as spot up first
+    if (!spotStatus || spotStatus === '') {
+      await apiCall('spotUp', { monday, dayIndex: dayIdx, name: currentName, time });
+    }
+    // Now claim it under the new name
+    const nameForClaim = (spotStatus === 'claimed') ? (origName || currentName) : currentName;
+    const result = await apiCall('claimSpotUp', { monday, dayIndex: dayIdx, originalName: nameForClaim, time, claimerName: newName.trim() });
+    if (result.status === 'ok') {
+      showToast(currentName + "'s spot assigned to " + newName.trim());
+      await loadViewData();
+    }
+  } catch (e) {}
+}
+
+async function doAdminRestore(monday, dayIdx, currentName, time, origName, spotStatus) {
+  closeSpotUpModal();
+  showToast('Restoring...', 'var(--orange)');
+  delete weekCacheTs[monday];
+  try {
+    if (spotStatus === 'claimed') {
+      await apiCall('unclaimSpotUp', { monday, dayIndex: dayIdx, originalName: origName, time });
+    }
+    // Cancel the spot-up to restore to normal signup for origName
+    const result = await apiCall('cancelSpotUp', { monday, dayIndex: dayIdx, name: origName, time });
+    if (result.status === 'ok') {
+      showToast("Restored to " + origName + "'s original spot");
       await loadViewData();
     }
   } catch (e) {}
@@ -1880,16 +1988,32 @@ async function loadAccessSettings() {
     const res = await apiCall('getSettings');
     const settings = res.settings || {};
     setCache('settings', settings);
-    const toggle = document.getElementById('openAccessToggle');
-    if (toggle) toggle.checked = !!settings.openAccess;
+    const oaToggle = document.getElementById('openAccessToggle');
+    if (oaToggle) oaToggle.checked = !!settings.openAccess;
+    const suToggle = document.getElementById('spotUpToggle');
+    if (suToggle) suToggle.checked = settings.spotUpEnabled !== false;
+    spotUpEnabled = settings.spotUpEnabled !== false;
   } catch(e) {}
 }
 
 async function toggleOpenAccess(enabled) {
   try {
     await apiCall('setSettings', { settings: { openAccess: enabled } });
-    setCache('settings', { openAccess: enabled });
+    const cur = getCache('settings') || {};
+    setCache('settings', { ...cur, openAccess: enabled });
     showToast(enabled ? 'Open access enabled — anyone can access the site' : 'Open access disabled — sign-in required');
+  } catch(e) {
+    showToast('Failed to update setting', 'var(--red)');
+  }
+}
+
+async function toggleSpotUp(enabled) {
+  try {
+    await apiCall('setSettings', { settings: { spotUpEnabled: enabled } });
+    const cur = getCache('settings') || {};
+    setCache('settings', { ...cur, spotUpEnabled: enabled });
+    spotUpEnabled = enabled;
+    showToast(enabled ? 'Spot ups enabled' : 'Spot ups disabled — members will see "Put spot ups in chat"');
   } catch(e) {
     showToast('Failed to update setting', 'var(--red)');
   }

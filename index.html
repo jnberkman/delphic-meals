@@ -384,11 +384,7 @@
         <button class="btn btn-secondary" style="width:auto;padding:10px 14px;font-size:16px;" onclick="shiftWeek('viewWeekSelect',7,loadViewData)" title="Next week">&#8594;</button>
       </div>
     </div>
-    <div id="viewDayNav" style="display:none;margin-top:8px;display:none;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:10px 14px;">
-      <button id="viewPrevDay" class="btn btn-secondary" style="width:auto;padding:8px 14px;font-size:16px;" onclick="changeViewDay(-1)">&#8592;</button>
-      <div id="viewDayLabel" style="flex:1;text-align:center;font-family:'Cormorant Garamond',serif;font-size:19px;font-weight:600;color:var(--text-bright);"></div>
-      <button id="viewNextDay" class="btn btn-secondary" style="width:auto;padding:8px 14px;font-size:16px;" onclick="changeViewDay(1)">&#8594;</button>
-    </div>
+    <div id="viewDayNav" style="display:none;"></div>
     <div id="viewLoading" style="display:none;text-align:center;padding:24px;color:var(--text-dim);"><div class="spinner"></div> Loading signups...</div>
     <div id="viewContent"></div>
   </div>
@@ -1238,21 +1234,9 @@ function _applyViewData(data, preserveIdx) {
     return;
   }
 
-  if (!preserveIdx || viewEnabledDays.length === 0) {
-    const now = new Date(); const dow = now.getDay();
-    let target = new Date(now);
-    if (dow === 0) target.setDate(now.getDate() + 1);
-    if (dow === 6) target.setDate(now.getDate() + 2);
-    const targetDate = target.toISOString().slice(0, 10);
-    let found = newEnabled.findIndex(d => d.day.date === targetDate);
-    viewDayIdx = found === -1 ? 0 : found;
-  } else {
-    viewDayIdx = Math.min(viewDayIdx, newEnabled.length - 1);
-  }
-
   viewEnabledDays = newEnabled;
-  nav.style.display = 'flex';
-  renderViewDay(viewDayIdx);
+  nav.style.display = 'none';
+  renderAllDays();
 }
 
 async function loadViewData() {
@@ -1302,105 +1286,105 @@ function changeViewDay(delta) {
 }
 
 function renderViewDay(idx) {
+  // Legacy shim — vertical layout renders all days at once
+  renderAllDays();
+}
+
+function renderAllDays() {
   if (!viewEnabledDays || viewEnabledDays.length === 0) return;
-
-  const { day, sups, configIdx: i } = viewEnabledDays[idx];
-  const times = getDayTimes(day);
-  const maxTotal = times.reduce((s, t) => s + getCapForSlot(t, day), 0);
-
-  // Update nav prev/next state
-  const prevBtn = document.getElementById('viewPrevDay');
-  const nextBtn = document.getElementById('viewNextDay');
-  if (prevBtn) prevBtn.disabled = idx <= 0;
-  if (nextBtn) nextBtn.disabled = idx >= viewEnabledDays.length - 1;
-  const lbl = document.getElementById('viewDayLabel');
-  if (lbl) lbl.textContent = day.day + ' \u2014 ' + day.meal;
 
   const myName = (currentUser && currentUser.name && !currentUser.guest)
     ? currentUser.name.toLowerCase().trim() : '';
 
-  let html = '<div class="card">';
-  html += '<div style="display:flex;justify-content:space-between;align-items:start;">' +
-    '<div>' +
-      '<div class="card-title">' + day.day + ' \u2014 ' + day.meal + '</div>' +
-      '<div class="card-sub">' + new Date(day.date + 'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}) + ' &middot; ' + sups.length + '/' + maxTotal + ' signed up</div>' +
-    '</div>' +
-    '<span class="tag ' + (sups.length >= maxTotal ? 'tag-red' : sups.length > maxTotal * 0.8 ? 'tag-orange' : 'tag-green') + '">' + (sups.length >= maxTotal ? 'FULL' : 'OPEN') + '</span>' +
-  '</div>';
+  let html = '';
 
-  if (day.menu) html += '<div class="menu-display"><strong>Menu:</strong> ' + day.menu + '</div>';
+  viewEnabledDays.forEach(({ day, sups, configIdx: i }) => {
+    const times = getDayTimes(day);
+    const maxTotal = times.reduce((s, t) => s + getCapForSlot(t, day), 0);
 
-  if (sups.length === 0) {
-    html += '<div style="color:var(--text-dim);font-size:13px;padding:12px 0;">No signups yet.</div>';
-  } else {
-    times.forEach(slot => {
-      const slotLabel = slot === '12:00 PM' ? '12:00\u20131:00 PM' : slot === '1:00 PM' ? '1:00\u20132:00 PM' : slot;
-      const slotSups = sups.filter(s => {
-        const t = (s.time || '').toString();
-        if (t.indexOf('1899') !== -1 || t.indexOf('GMT') !== -1) {
-          try {
-            const d = new Date(t); const h = d.getHours();
-            if (slot === '12:00 PM') return h === 12 || h === 0;
-            if (slot === '1:00 PM') return h === 13 || h === 1;
-            if (slot === '7:30 PM') return h === 19;
-          } catch(e) {}
-        }
-        return t === slot || t.includes(slot);
-      });
-      const slotCap = getCapForSlot(slot, day);
+    html += '<div class="card">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:start;">' +
+      '<div>' +
+        '<div class="card-title">' + day.day + ' \u2014 ' + day.meal + '</div>' +
+        '<div class="card-sub">' + new Date(day.date + 'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}) + ' &middot; ' + sups.length + '/' + maxTotal + ' signed up</div>' +
+      '</div>' +
+      '<span class="tag ' + (sups.length >= maxTotal ? 'tag-red' : sups.length > maxTotal * 0.8 ? 'tag-orange' : 'tag-green') + '">' + (sups.length >= maxTotal ? 'FULL' : 'OPEN') + '</span>' +
+    '</div>';
 
-      html += '<div style="margin-top:16px;padding:12px 16px;background:var(--surface2);border-radius:12px;border-left:3px solid #5B8DEF;">';
-      html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
-        '<span style="font-weight:700;font-size:15px;color:#5B8DEF;">' + slotLabel + '</span>' +
-        '<span style="font-size:12px;color:var(--text-dim);">' + slotSups.length + '/' + slotCap + ' signed up</span>' +
-      '</div>';
+    if (day.menu) html += '<div class="menu-display"><strong>Menu:</strong> ' + day.menu + '</div>';
 
-      if (slotSups.length === 0) {
-        html += '<div style="color:var(--text-dim);font-size:13px;padding:4px 0;">No signups for this time.</div>';
-      } else {
-        // Own signup floats to top
-        const mySignups = myName ? slotSups.filter(s => s.name && s.name.toLowerCase().trim() === myName) : [];
-        const others = myName ? slotSups.filter(s => !s.name || s.name.toLowerCase().trim() !== myName) : slotSups;
-
-        const earlyMembers = others.filter(s => s.early);
-        const nonEarlyMembers = others.filter(s => !s.early);
-        const grouped = {};
-        CATEGORIES.forEach(c => grouped[c] = []);
-        nonEarlyMembers.forEach(s => {
-          const cat = CATEGORIES.includes(s.diet) ? s.diet : 'No Dietary Restrictions';
-          grouped[cat].push(s);
+    if (sups.length === 0) {
+      html += '<div style="color:var(--text-dim);font-size:13px;padding:12px 0;">No signups yet.</div>';
+    } else {
+      times.forEach(slot => {
+        const slotLabel = slot === '12:00 PM' ? '12:00\u20131:00 PM' : slot === '1:00 PM' ? '1:00\u20132:00 PM' : slot;
+        const slotSups = sups.filter(s => {
+          const t = (s.time || '').toString();
+          if (t.indexOf('1899') !== -1 || t.indexOf('GMT') !== -1) {
+            try {
+              const d = new Date(t); const h = d.getHours();
+              if (slot === '12:00 PM') return h === 12 || h === 0;
+              if (slot === '1:00 PM') return h === 13 || h === 1;
+              if (slot === '7:30 PM') return h === 19;
+            } catch(e) {}
+          }
+          return t === slot || t.includes(slot);
         });
+        const slotCap = getCapForSlot(slot, day);
 
-        html += '<div class="signup-list">';
-        if (mySignups.length > 0) {
-          html += '<div style="font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin:0 0 4px;">Your Spot</div>';
-          mySignups.forEach(s => { html += renderSignupItem(s, viewMonday, i, slot); });
-          if (others.length > 0) html += '<div style="height:1px;background:var(--border);margin:8px 0;"></div>';
+        html += '<div style="margin-top:16px;padding:12px 16px;background:var(--surface2);border-radius:12px;border-left:3px solid #5B8DEF;">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
+          '<span style="font-weight:700;font-size:15px;color:#5B8DEF;">' + slotLabel + '</span>' +
+          '<span style="font-size:12px;color:var(--text-dim);">' + slotSups.length + '/' + slotCap + ' signed up</span>' +
+        '</div>';
+
+        if (slotSups.length === 0) {
+          html += '<div style="color:var(--text-dim);font-size:13px;padding:4px 0;">No signups for this time.</div>';
+        } else {
+          const mySignups = myName ? slotSups.filter(s => s.name && s.name.toLowerCase().trim() === myName) : [];
+          const others = myName ? slotSups.filter(s => !s.name || s.name.toLowerCase().trim() !== myName) : slotSups;
+
+          const earlyMembers = others.filter(s => s.early);
+          const nonEarlyMembers = others.filter(s => !s.early);
+          const grouped = {};
+          CATEGORIES.forEach(c => grouped[c] = []);
+          nonEarlyMembers.forEach(s => {
+            const cat = CATEGORIES.includes(s.diet) ? s.diet : 'No Dietary Restrictions';
+            grouped[cat].push(s);
+          });
+
+          html += '<div class="signup-list">';
+          if (mySignups.length > 0) {
+            html += '<div style="font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin:0 0 4px;">Your Spot</div>';
+            mySignups.forEach(s => { html += renderSignupItem(s, viewMonday, i, slot); });
+            if (others.length > 0) html += '<div style="height:1px;background:var(--border);margin:8px 0;"></div>';
+          }
+          if (earlyMembers.length > 0) {
+            html += '<div style="font-size:11px;font-weight:600;color:#1565C0;text-transform:uppercase;letter-spacing:1px;margin:8px 0 4px;">Early Plate</div>';
+            earlyMembers.forEach(s => { html += renderSignupItem(s, viewMonday, i, slot); });
+          }
+          CATEGORIES.forEach(cat => {
+            if (grouped[cat].length === 0) return;
+            let catColor = 'var(--text-dim)';
+            if (cat === 'Vegan') catColor = '#4CAF50';
+            if (cat === 'Vegetarian') catColor = '#8BC34A';
+            if (cat === 'Gluten-Free') catColor = '#E89B3E';
+            if (cat === 'No Pork' || cat === 'No Beef') catColor = '#AB47BC';
+            if (cat === 'Allergies') catColor = '#E05555';
+            html += '<div style="font-size:11px;font-weight:600;color:' + catColor + ';text-transform:uppercase;letter-spacing:1px;margin:8px 0 4px;">' + cat + '</div>';
+            grouped[cat].forEach(s => { html += renderSignupItem(s, viewMonday, i, slot); });
+          });
+          html += '</div>';
         }
-        if (earlyMembers.length > 0) {
-          html += '<div style="font-size:11px;font-weight:600;color:#1565C0;text-transform:uppercase;letter-spacing:1px;margin:8px 0 4px;">Early Plate</div>';
-          earlyMembers.forEach(s => { html += renderSignupItem(s, viewMonday, i, slot); });
-        }
-        CATEGORIES.forEach(cat => {
-          if (grouped[cat].length === 0) return;
-          let catColor = 'var(--text-dim)';
-          if (cat === 'Vegan') catColor = '#4CAF50';
-          if (cat === 'Vegetarian') catColor = '#8BC34A';
-          if (cat === 'Gluten-Free') catColor = '#E89B3E';
-          if (cat === 'No Pork' || cat === 'No Beef') catColor = '#AB47BC';
-          if (cat === 'Allergies') catColor = '#E05555';
-          html += '<div style="font-size:11px;font-weight:600;color:' + catColor + ';text-transform:uppercase;letter-spacing:1px;margin:8px 0 4px;">' + cat + '</div>';
-          grouped[cat].forEach(s => { html += renderSignupItem(s, viewMonday, i, slot); });
-        });
         html += '</div>';
-      }
-      html += '</div>';
-    });
-  }
-  if (!spotUpEnabled) {
-    html += '<div style="margin-top:18px;padding:12px 16px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);text-align:center;font-family:\'Crimson Pro\',serif;font-size:15px;color:var(--text-dim);font-style:italic;">Put spot ups in chat</div>';
-  }
-  html += '</div>';
+      });
+    }
+    if (!spotUpEnabled) {
+      html += '<div style="margin-top:18px;padding:12px 16px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);text-align:center;font-family:\'Crimson Pro\',serif;font-size:15px;color:var(--text-dim);font-style:italic;">Put spot ups in chat</div>';
+    }
+    html += '</div>';
+  });
+
   document.getElementById('viewContent').innerHTML = html;
 }
 
@@ -1831,9 +1815,9 @@ function renderAdminWeekHTML() {
 
         (isEnabled ?
           // Row 2: Menu textarea (full width, prominent)
-          '<textarea style="min-height:52px;font-size:13px;resize:vertical;margin-bottom:10px;width:100%;box-sizing:border-box;" ' +
+          '<textarea id="adminMenu' + i + '" style="min-height:52px;font-size:13px;resize:vertical;margin-bottom:10px;width:100%;box-sizing:border-box;" ' +
             'placeholder="Menu — e.g. Grilled chicken, roasted vegetables, rice pilaf" ' +
-            'onchange="adminWeekData.config[' + i + '].menu=this.value">' + (day.menu || '') + '</textarea>' +
+            'oninput="adminWeekData.config[' + i + '].menu=this.value">' + (day.menu || '') + '</textarea>' +
 
           // Row 3: Guests + time slots toggle
           '<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">' +
@@ -1916,6 +1900,13 @@ async function renderAdminWeek() {
 
 async function pushWeekConfig() {
   if (!adminWeekData) { showToast('Select a week first', 'var(--red)'); return; }
+  // Harvest current textarea values before saving (handles case where Save is clicked while textarea has focus)
+  adminWeekData.config.forEach((day, i) => {
+    const ta = document.getElementById('adminMenu' + i);
+    if (ta) day.menu = ta.value;
+  });
+  const fd = document.getElementById('freezeDate');
+  if (fd) adminWeekData.freezeDate = fd.value;
   try {
     await apiCall('setWeekConfig', { monday: adminWeekData.monday, config: adminWeekData.config, caps, freezeDate: adminWeekData.freezeDate || '' });
     showToast('Week config saved!');

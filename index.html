@@ -1343,10 +1343,10 @@ function renderSignupItem(s, monday, dayIdx, slot) {
   const safeOrigName = origName.replace(/'/g, "\\'").replace(/"/g, '&quot;');
   const safeTime = (s.time || slot || '').replace(/'/g, "\\'");
 
-  // Permission flags — when not logged in, all actions are open (open-access / guest mode)
-  const canSpotUp = isAdmin || !isLoggedIn || (myName && s.name.toLowerCase().trim() === myName);
-  const canCancelSpotUp = isAdmin || !isLoggedIn || (myName && origName.toLowerCase().trim() === myName);
-  const canManageClaimed = isAdmin || !isLoggedIn || (myName && claimedBy.toLowerCase().trim() === myName);
+  // Permission flags — no known identity means actions are open (guest / anonymous open-access)
+  const canSpotUp = isAdmin || !myName || s.name.toLowerCase().trim() === myName;
+  const canCancelSpotUp = isAdmin || !myName || origName.toLowerCase().trim() === myName;
+  const canManageClaimed = isAdmin || !myName || claimedBy.toLowerCase().trim() === myName;
 
   let display = s.name;
   let tags = [];
@@ -1357,8 +1357,8 @@ function renderSignupItem(s, monday, dayIdx, slot) {
   if (isGrad) tags.push('Grad Gasman');
   if (tags.length > 0) display += ' (' + tags.join(', ') + ')';
 
-  // Allergy badge — visible to admin (all rows) or to the signed-in user on their own row
-  const isMyRow = isLoggedIn && myName && s.name.toLowerCase().trim() === myName;
+  // Allergy badge — visible to admin (all rows) or to the user on their own row
+  const isMyRow = !!myName && s.name.toLowerCase().trim() === myName;
   const allergyBadge = ((isAdmin || isMyRow) && s.allergies)
     ? '<span style="display:inline-block;font-size:9px;font-weight:700;color:#4A148C;background:#F3E5F5;padding:1px 7px;border-radius:2px;letter-spacing:.5px;border:1px solid #CE93D8;margin-left:6px;vertical-align:middle;">\u26A0 ' + s.allergies.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</span>'
     : '';

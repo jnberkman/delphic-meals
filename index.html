@@ -245,7 +245,6 @@
       <div id="g_id_onload"
         data-client_id="1069648806215-40s3q129olr1dmohnhfeb4g1gpnmrlbh.apps.googleusercontent.com"
         data-callback="handleGoogleSignIn"
-        data-auto_select="true"
         data-context="signin">
       </div>
       <div class="g_id_signin"
@@ -257,6 +256,7 @@
         data-logo_alignment="left">
       </div>
     </div>
+    <div id="signinLoading" style="display:none;margin-top:14px;font-family:'Crimson Pro',serif;font-size:14px;color:var(--text-dim);font-style:italic;">Verifying your account&#8230;</div>
     <div style="display:flex;align-items:center;gap:12px;margin:20px 0;"><div style="flex:1;height:1px;background:var(--border);"></div><span style="font-size:11px;color:var(--text-dim);letter-spacing:1px;text-transform:uppercase;">or</span><div style="flex:1;height:1px;background:var(--border);"></div></div>
     <div style="display:flex;gap:8px;">
       <input type="text" id="accessCodeInput" placeholder="Guest access code" style="flex:1;">
@@ -604,12 +604,17 @@ function grantAccess(user) {
   }
 }
 
+let _signingIn = false;
 async function handleGoogleSignIn(response) {
+  if (_signingIn) return; // prevent double-fire
+  _signingIn = true;
+  const loadingEl = document.getElementById('signinLoading');
+  const errEl = document.getElementById('signinError');
+  if (loadingEl) loadingEl.style.display = 'block';
+  errEl.style.display = 'none';
   const payload = JSON.parse(atob(response.credential.split('.')[1]));
   const email = payload.email;
   const name = payload.name;
-  const errEl = document.getElementById('signinError');
-  errEl.style.display = 'none';
   try {
     const result = await apiCall('checkMember', { email });
     if (result.authorized) {
@@ -626,6 +631,9 @@ async function handleGoogleSignIn(response) {
   } catch(e) {
     errEl.textContent = 'Could not verify membership — try again.';
     errEl.style.display = 'block';
+  } finally {
+    if (loadingEl) loadingEl.style.display = 'none';
+    _signingIn = false;
   }
 }
 

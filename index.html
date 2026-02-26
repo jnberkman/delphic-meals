@@ -286,9 +286,15 @@
     .view-col-served-cb:checked::after { content: ''; position: absolute; left: 2px; top: -1px; width: 4px; height: 7px; border: 2px solid #fff; border-top: none; border-left: none; transform: rotate(45deg); }
     .view-col-name.vn-served .vn { text-decoration: line-through; opacity: .5; }
     .view-col-no-sups { font-family: 'Crimson Pro', serif; font-size: 13px; color: var(--text-dim); font-style: italic; padding: 4px 0; }
-    .vn-entry-wrap { border: 1px solid #CE93D8; border-radius: 4px; padding: 2px 5px 4px; margin: 2px 0 4px; background: #FDF8FF; }
+    .vn-entry-wrap { border-radius: 3px; margin: 1px 0; }
+    .vn-entry-wrap.vn-flagged { border: 1px solid #CE93D8; padding: 2px 5px 4px; margin: 2px 0 4px; background: #FDF8FF; }
+    .vn-entry-wrap.vn-clickable { cursor: pointer; }
+    .vn-entry-wrap.vn-clickable:hover { background: rgba(0,0,0,.05); }
+    .vn-entry-wrap.vn-flagged.vn-clickable:hover { background: #EEE0F5; }
     .vn-admin-note { font-family: 'Jost', sans-serif; font-size: 9px; font-weight: 600; color: #4A148C; white-space: normal; word-break: break-word; }
     .vn-admin-notes-text { font-family: 'Crimson Pro', serif; font-size: 11px; font-style: italic; color: var(--text-dim); margin: 1px 0 0; padding-left: 1px; }
+    .vn-compact-claim { font-family: 'Jost', sans-serif; font-size: 9px; font-weight: 600; color: var(--green); background: none; border: 1px solid var(--green); border-radius: 2px; padding: 1px 7px; cursor: pointer; letter-spacing: .3px; display: inline-block; margin: 2px 0 1px; }
+    .vn-compact-claim:hover { background: var(--green); color: #fff; }
   }
 </style>
 </head>
@@ -1644,6 +1650,21 @@ function renderHorizontalName(s, monday, dayIdx, slot, myName, isAdmin) {
   let displayName = s.name;
   if (spotStatus === 'claimed' && claimedBy) displayName = claimedBy;
 
+  const canSpotUp = isAdmin || !myName || s.name.toLowerCase().trim() === myName;
+
+  const safeName = s.name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+  const safeTime = (s.time || slot || '').replace(/'/g, "\\'");
+  const safeOrigName = origName.replace(/'/g, "\\'");
+
+  // Determine row click action
+  let rowClick = '';
+  if (!spotUpEnabled) {
+    if (isAdmin) rowClick = 'onclick="openAdminSwapModal(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\',\'' + (spotStatus || '') + '\',\'' + safeOrigName + '\')"';
+  } else if (spotStatus !== 'spotup' && spotStatus !== 'claimed' && canSpotUp) {
+    rowClick = 'onclick="openSpotUpModal(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')"';
+  }
+  const isClickable = !!rowClick;
+
   // Short diet tag
   const cat = CATEGORIES.includes(s.diet) ? s.diet : '';
   const dietShort = { 'Vegan': 'VE', 'Vegetarian': 'V', 'Gluten-Free': 'GF', 'No Pork': 'NP', 'No Beef': 'NB', 'Allergies': '\u26A0' }[cat] || '';
@@ -1664,10 +1685,6 @@ function renderHorizontalName(s, monday, dayIdx, slot, myName, isAdmin) {
   if (s.early) cls += ' vn-early';
   if (isServed) cls += ' vn-served';
 
-  const safeName = s.name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-  const safeTime = (s.time || slot || '').replace(/'/g, "\\'");
-  const safeOrigName = origName.replace(/'/g, "\\'");
-
   const servedCb = isAdmin
     ? '<input type="checkbox" class="view-col-served-cb"' + (isServed ? ' checked' : '') +
       ' onclick="event.stopPropagation()"' +
@@ -1676,7 +1693,9 @@ function renderHorizontalName(s, monday, dayIdx, slot, myName, isAdmin) {
     : '';
 
   const hasExtra = isAdmin && !!(s.allergies || s.notes);
-  let html = hasExtra ? '<div class="vn-entry-wrap">' : '';
+  const wrapCls = 'vn-entry-wrap' + (hasExtra ? ' vn-flagged' : '') + (isClickable ? ' vn-clickable' : '');
+
+  let html = '<div class="' + wrapCls + '" ' + rowClick + '>';
   html += '<div class="' + cls + '" style="' + nameColor + '">';
   html += servedCb;
   html += '<span class="vn">' + displayName + '</span>';
@@ -1685,10 +1704,16 @@ function renderHorizontalName(s, monday, dayIdx, slot, myName, isAdmin) {
     html += '<span class="vn-admin-note">\u26A0\uFE0F ' + s.allergies.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</span>';
   }
   html += '</div>';
+
+  // Spot-up state: show compact Claim button
+  if (spotUpEnabled && spotStatus === 'spotup') {
+    html += '<button class="vn-compact-claim" onclick="event.stopPropagation();openClaimModal(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')">Claim</button>';
+  }
+
   if (isAdmin && s.notes) {
     html += '<div class="vn-admin-notes-text">' + s.notes.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div>';
   }
-  if (hasExtra) html += '</div>';
+  html += '</div>';
   return html;
 }
 

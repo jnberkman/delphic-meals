@@ -7,7 +7,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://script.google.com">
-<script src="https://accounts.google.com/gsi/client" async></script>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Crimson+Pro:wght@400;500;600;700&family=Jost:wght@300;400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'">
 <noscript><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Crimson+Pro:wght@400;500;600;700&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet"></noscript>
 <style>
@@ -238,6 +237,9 @@
   .signin-sub { font-family: 'Crimson Pro', serif; font-size: 15px; color: var(--text-dim); font-style: italic; margin-bottom: 32px; line-height: 1.5; }
   .signin-error { font-size: 13px; color: var(--red); margin-top: 16px; font-family: 'Crimson Pro', serif; line-height: 1.5; }
   .signin-gsi { display: flex; justify-content: center; }
+  .google-signin-btn { display: inline-flex; align-items: center; gap: 10px; background: #fff; color: #3c4043; border: 1px solid #dadce0; border-radius: 4px; padding: 10px 20px; font-family: 'Jost', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; letter-spacing: .25px; transition: box-shadow .15s, border-color .15s; white-space: nowrap; }
+  .google-signin-btn:hover { border-color: #bdc1c6; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+  .google-signin-btn:active { background: #f8f9fa; }
   /* In-app browser warning */
   .inapp-warn { background: #FFF8E7; border: 1px solid #E8A000; border-radius: 6px; padding: 14px 16px; margin-bottom: 20px; text-align: left; }
   .inapp-warn-title { font-family: 'Jost', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #8B5E00; margin-bottom: 8px; }
@@ -332,20 +334,10 @@
     </div>
     <div class="signin-sub">Sign in with your approved Google account<br>to access meal sign-ups</div>
     <div class="signin-gsi" id="signinGsi">
-      <div id="g_id_onload"
-        data-client_id="1069648806215-40s3q129olr1dmohnhfeb4g1gpnmrlbh.apps.googleusercontent.com"
-        data-callback="handleGoogleSignIn"
-        data-auto_select="false"
-        data-context="signin">
-      </div>
-      <div class="g_id_signin"
-        data-type="standard"
-        data-theme="outline"
-        data-size="large"
-        data-text="sign_in_with"
-        data-shape="rectangular"
-        data-logo_alignment="left">
-      </div>
+      <button class="google-signin-btn" onclick="signInWithGoogle()">
+        <svg width="18" height="18" viewBox="0 0 48 48" style="flex-shrink:0"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>
+        Sign in with Google
+      </button>
     </div>
     <div id="signinLoading" style="display:none;margin-top:14px;font-family:'Crimson Pro',serif;font-size:14px;color:var(--text-dim);font-style:italic;">Verifying your account&#8230;</div>
     <div style="display:flex;align-items:center;gap:12px;margin:20px 0;"><div style="flex:1;height:1px;background:var(--border);"></div><span style="font-size:11px;color:var(--text-dim);letter-spacing:1px;text-transform:uppercase;">or</span><div style="flex:1;height:1px;background:var(--border);"></div></div>
@@ -744,6 +736,50 @@ if (isInAppBrowser()) {
   if (gsi) gsi.style.display = 'none';
 }
 
+const GOOGLE_CLIENT_ID = '1069648806215-40s3q129olr1dmohnhfeb4g1gpnmrlbh.apps.googleusercontent.com';
+
+// Redirect-based Google sign-in — no popup, works on all mobile browsers.
+// Returns the ID token in the URL fragment (#id_token=...) which is never
+// sent to the server, so GitHub Pages never receives a POST.
+function signInWithGoogle() {
+  const nonce = crypto.getRandomValues(new Uint32Array(4)).join('');
+  sessionStorage.setItem('google_nonce', nonce);
+  const redirectUri = location.origin + location.pathname;
+  const params = new URLSearchParams({
+    client_id: GOOGLE_CLIENT_ID,
+    redirect_uri: redirectUri,
+    response_type: 'id_token',
+    scope: 'openid email profile',
+    nonce: nonce,
+    prompt: 'select_account',
+  });
+  location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + params;
+}
+
+// On page load: check if Google returned an id_token in the URL fragment.
+// Clean the URL immediately so bookmarking/sharing never captures the token.
+// Async so the loading overlay stays up while the membership API call runs.
+async function _handleGoogleRedirectReturn() {
+  if (!location.hash) return false;
+  const params = new URLSearchParams(location.hash.slice(1));
+  const idToken = params.get('id_token');
+  if (!idToken) return false;
+  history.replaceState(null, '', location.pathname);
+  // Validate nonce
+  const storedNonce = sessionStorage.getItem('google_nonce') || '';
+  sessionStorage.removeItem('google_nonce');
+  try {
+    const payload = JSON.parse(atob(idToken.split('.')[1]));
+    if (storedNonce && payload.nonce !== storedNonce) {
+      document.getElementById('signinError').textContent = 'Sign-in failed (nonce mismatch). Please try again.';
+      document.getElementById('signinError').style.display = 'block';
+      return false;
+    }
+  } catch(e) { return false; }
+  await handleGoogleSignIn({ credential: idToken });
+  return true;
+}
+
 let currentUser = null;
 let pendingEmail = null;
 let pendingName = null;
@@ -882,6 +918,9 @@ function restorePreferences() {
 // ── Open Access & Session Restore ──
 (async function() {
   try {
+    // Handle return from Google OAuth redirect (loading overlay stays up during API call)
+    if (await _handleGoogleRedirectReturn()) return;
+
     // Check if already signed in this session
     const stored = sessionStorage.getItem('delphic_user');
     if (stored) {

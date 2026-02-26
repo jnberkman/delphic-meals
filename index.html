@@ -1494,7 +1494,7 @@ function renderViewDay(idx) {
   } else {
     times.forEach(slot => {
       const slotLabel = slot === '12:00 PM' ? '12:00\u20131:00 PM' : slot === '1:00 PM' ? '1:00\u20132:00 PM' : slot;
-      const slotSups = sups.filter(s => {
+      const slotSups = times.length === 1 ? sups : sups.filter(s => {
         const t = (s.time || '').toString();
         if (t.indexOf('1899') !== -1 || t.indexOf('GMT') !== -1) {
           try {
@@ -1596,7 +1596,7 @@ function renderHorizontalView() {
       html += '<div class="view-col-no-sups">No signups yet.</div>';
     } else {
       times.forEach((slot, si) => {
-        const slotSups = sups.filter(s => {
+        const slotSups = times.length === 1 ? sups : sups.filter(s => {
           const t = (s.time || '').toString();
           if (t.indexOf('1899') !== -1 || t.indexOf('GMT') !== -1) {
             try {

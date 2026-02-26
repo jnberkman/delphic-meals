@@ -86,7 +86,7 @@
   .card-sub { font-family: 'Crimson Pro', serif; color: var(--text-dim); font-size: 14px; font-style: italic; margin-bottom: 20px; }
 
   .day-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(125px, 1fr)); gap: 10px; margin-bottom: 24px; }
-  .day-card { border: 1px solid var(--border); border-radius: 4px; padding: 16px 12px; cursor: pointer; transition: all .2s; background: var(--surface); text-align: center; }
+  .day-card { border: 1px solid var(--border); border-radius: 4px; padding: 16px 12px; cursor: pointer; transition: all .2s; background: var(--surface); text-align: center; min-width: 0; }
   .day-card:hover { border-color: var(--border-light); background: var(--surface2); }
   .day-card.selected { border-color: var(--accent-muted); background: var(--accent-glow2); }
   .day-card.full { border-color: var(--red); opacity: .4; cursor: not-allowed; }

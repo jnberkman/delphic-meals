@@ -226,12 +226,23 @@
     
 
   /* Sign-In Overlay */
-  .signin-overlay { position: fixed; inset: 0; background: var(--bg); z-index: 2000; display: flex; align-items: center; justify-content: center; }
+  /* App loading overlay */
+  #appLoading { position: fixed; inset: 0; background: var(--bg); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; transition: opacity .35s; }
+  #appLoading.fade-out { opacity: 0; pointer-events: none; }
+  .app-loading-logo { font-family: 'Cormorant Garamond', serif; font-size: 38px; font-weight: 600; color: var(--text-bright); line-height: 1.1; text-align: center; }
+  .app-loading-sub { font-family: 'Crimson Pro', serif; font-size: 13px; color: var(--text-dim); font-style: italic; }
+  /* Sign-in overlay */
+  .signin-overlay { position: fixed; inset: 0; background: var(--bg); z-index: 2000; display: flex; align-items: center; justify-content: center; overflow-y: auto; }
   .signin-modal { text-align: center; padding: 48px 40px; max-width: 400px; width: 90%; }
   .signin-logo { font-family: 'Cormorant Garamond', serif; font-size: 42px; font-weight: 600; color: var(--text-bright); margin-bottom: 12px; line-height: 1.1; }
   .signin-sub { font-family: 'Crimson Pro', serif; font-size: 15px; color: var(--text-dim); font-style: italic; margin-bottom: 32px; line-height: 1.5; }
   .signin-error { font-size: 13px; color: var(--red); margin-top: 16px; font-family: 'Crimson Pro', serif; line-height: 1.5; }
   .signin-gsi { display: flex; justify-content: center; }
+  /* In-app browser warning */
+  .inapp-warn { background: #FFF8E7; border: 1px solid #E8A000; border-radius: 6px; padding: 14px 16px; margin-bottom: 20px; text-align: left; }
+  .inapp-warn-title { font-family: 'Jost', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #8B5E00; margin-bottom: 8px; }
+  .inapp-warn-body { font-family: 'Crimson Pro', serif; font-size: 15px; color: var(--text); line-height: 1.6; }
+  .inapp-warn-steps { font-family: 'Jost', sans-serif; font-size: 12px; font-weight: 500; color: #5A3D00; background: #FFE88A; border-radius: 4px; padding: 8px 12px; margin-top: 10px; text-align: center; letter-spacing: .2px; }
 
   /* Admin inner nav */
   .admin-nav { display: flex; gap: 2px; margin-bottom: 20px; border-bottom: 2px solid var(--border); }
@@ -301,17 +312,30 @@
 <body>
 
 <!-- ========== SIGN-IN OVERLAY ========== -->
+<!-- App-level loading screen (shown until session check completes) -->
+<div id="appLoading">
+  <div class="app-loading-logo">Delphic Club<br>Meal Sign-Ups</div>
+  <div class="spinner" style="width:22px;height:22px;border-width:3px;border-top-color:var(--accent);border-color:rgba(0,0,0,.12);border-top-color:var(--accent);"></div>
+  <div class="app-loading-sub">Loading&hellip;</div>
+</div>
+
 <div class="signin-overlay" id="signinOverlay">
   <div class="signin-modal">
     <div class="header-badge">Members Only</div>
     <div class="signin-logo">Delphic Club<br>Meal Sign-Ups</div>
     <div class="header-rule" style="margin:16px auto 20px;"></div>
+    <!-- In-app browser warning (shown by JS when needed) -->
+    <div id="inAppWarning" class="inapp-warn" style="display:none;">
+      <div class="inapp-warn-title">⚠&nbsp; Google Sign-In Unavailable</div>
+      <div class="inapp-warn-body">This browser (GroupMe, etc.) blocks Google Sign-In. Please open the link in <strong>Safari</strong> or <strong>Chrome</strong>.</div>
+      <div class="inapp-warn-steps">Tap &nbsp;&#8943;&nbsp; or &nbsp;&#8942;&nbsp; → <strong>Open in Browser</strong></div>
+    </div>
     <div class="signin-sub">Sign in with your approved Google account<br>to access meal sign-ups</div>
-    <div class="signin-gsi">
+    <div class="signin-gsi" id="signinGsi">
       <div id="g_id_onload"
         data-client_id="1069648806215-40s3q129olr1dmohnhfeb4g1gpnmrlbh.apps.googleusercontent.com"
         data-callback="handleGoogleSignIn"
-        data-auto_select="true"
+        data-auto_select="false"
         data-context="signin">
       </div>
       <div class="g_id_signin"
@@ -693,6 +717,33 @@ const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz9cIYGawV81WL26gK6S
 // =============================================
 //  AUTH
 // =============================================
+
+function isInAppBrowser() {
+  const ua = navigator.userAgent || '';
+  // Named in-app browsers
+  if (/Instagram|FBAN|FBAV|FB_IAB|Twitter|Line|WeChat|Snapchat/i.test(ua)) return true;
+  // iOS WebView: has iPhone/iPad but NOT Safari, Chrome (CriOS), or Firefox (FxiOS) for iOS
+  if (/iPhone|iPad|iPod/i.test(ua) && !/Safari/i.test(ua) && !/CriOS/i.test(ua) && !/FxiOS/i.test(ua)) return true;
+  // Android WebView flag
+  if (/Android/i.test(ua) && /wv\b/i.test(ua)) return true;
+  return false;
+}
+
+function hideAppLoading() {
+  const el = document.getElementById('appLoading');
+  if (!el) return;
+  el.classList.add('fade-out');
+  setTimeout(() => { if (el.parentNode) el.parentNode.removeChild(el); }, 380);
+}
+
+// Run in-app detection immediately (before async init)
+if (isInAppBrowser()) {
+  const warn = document.getElementById('inAppWarning');
+  if (warn) warn.style.display = 'block';
+  const gsi = document.getElementById('signinGsi');
+  if (gsi) gsi.style.display = 'none';
+}
+
 let currentUser = null;
 let pendingEmail = null;
 let pendingName = null;
@@ -841,8 +892,6 @@ function restorePreferences() {
       if (currentUser.isAdmin) {
         document.getElementById('adminTabBtn').style.display = '';
       }
-      if (currentUser.email && !currentUser.openAccess && !currentUser.guest) {
-      }
       return;
     }
     // Check open access setting (cached 5 min)
@@ -858,7 +907,11 @@ function restorePreferences() {
     if (settings.openAccess) {
       grantAccess({ name: '', isAdmin: false, openAccess: true });
     }
-  } catch(e) {}
+  } catch(e) {
+    // Network error during init — still show sign-in so user isn't stuck
+  } finally {
+    hideAppLoading();
+  }
 })();
 
 // Capacity defaults (will be overridden by sheet config when available)

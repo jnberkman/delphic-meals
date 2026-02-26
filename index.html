@@ -149,6 +149,8 @@
   .tag-red { background: #B1424212; color: var(--red); }
 
   .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(0,0,0,.15); border-top-color: var(--accent); border-radius: 50%; animation: spin .6s linear infinite; }
+  .btn-primary .spinner { border-color: rgba(0,0,0,.18); border-top-color: rgba(0,0,0,.65); }
+  .btn-primary:disabled { opacity: .75; cursor: not-allowed; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
   .connection-status { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 4px; font-size: 12px; font-weight: 500; letter-spacing: .5px; margin-bottom: 20px; }
@@ -333,7 +335,7 @@
 
 <div class="app">
   <div class="header">
-    <div class="header-badge">2025–2026 Season</div>
+    <div class="header-badge" id="seasonBadge"></div>
     <h1>Delphic Club<br>Meal Sign-Ups</h1>
     <div class="header-rule"></div>
     <p>Sign up for weekly club lunches &amp; dinners. Please only sign up for meals you can attend.</p>
@@ -415,7 +417,7 @@
 
   <!-- ========== VIEW ========== -->
   <div id="tab-view" class="section">
-    <div id="spotUpInfoBanner" class="info-banner" style="margin-bottom:16px;">
+    <div id="spotUpInfoBanner" class="info-banner" style="display:none;margin-bottom:16px;">
       <strong>Spot Up:</strong> Tap any name to offer that spot to others. Anyone can then claim it.
     </div>
     <div class="field">
@@ -844,6 +846,8 @@ function restorePreferences() {
       setCache('settings', settings);
     }
     if (settings.spotUpEnabled === false) spotUpEnabled = false;
+    const _initBanner = document.getElementById('spotUpInfoBanner');
+    if (_initBanner) _initBanner.style.display = spotUpEnabled ? '' : 'none';
     if (settings.openAccess) {
       grantAccess({ name: '', isAdmin: false, openAccess: true });
     }
@@ -881,6 +885,14 @@ const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
 const DEFAULT_MEALS = ['Lunch','Lunch','Lunch','Dinner','Lunch'];
 const CATEGORIES = ['No Dietary Restrictions','Vegan','Vegetarian','Gluten-Free','Allergies','No Pork','No Beef'];
 const DEFAULT_TIMES = { Lunch: ['12:00 PM','1:00 PM'], Dinner: ['7:30 PM'], Brunch: ['12:00 PM'] };
+
+(function() {
+  const now = new Date();
+  const yr = now.getFullYear();
+  const startYear = now.getMonth() >= 8 ? yr : yr - 1; // Sep (8) starts new season
+  const el = document.getElementById('seasonBadge');
+  if (el) el.textContent = startYear + '\u2013' + (startYear + 1) + ' Season';
+})();
 
 // =============================================
 //  HELPERS

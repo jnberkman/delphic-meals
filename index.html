@@ -392,7 +392,7 @@
           <input type="date" id="weekSelect" style="flex:1;">
           <button class="btn btn-secondary" style="width:auto;padding:10px 14px;font-size:16px;" onclick="shiftWeek('weekSelect',7,loadWeekData)" title="Next week">&#8594;</button>
         </div>
-        <div style="text-align:right;margin-top:4px;"><a href="#" onclick="jumpToThisWeek('weekSelect',loadWeekData);return false;" style="font-family:'Crimson Pro',serif;font-size:13px;font-style:italic;color:var(--accent);text-decoration:none;border-bottom:1px solid transparent;transition:border-color .15s;" onmouseover="this.style.borderBottomColor='var(--accent)'" onmouseout="this.style.borderBottomColor='transparent'">This week</a></div>
+        <div style="text-align:right;margin-top:4px;"><a href="#" onclick="document.getElementById('weekSelect').value=getSignupMonday();loadWeekData();return false;" style="font-family:'Crimson Pro',serif;font-size:13px;font-style:italic;color:var(--accent);text-decoration:none;border-bottom:1px solid transparent;transition:border-color .15s;" onmouseover="this.style.borderBottomColor='var(--accent)'" onmouseout="this.style.borderBottomColor='transparent'">This week</a></div>
       </div>
       <div id="loadingDays" style="display:none;text-align:center;padding:24px;color:var(--text-dim);"><div class="spinner"></div> Loading meals...</div>
       <div id="mySignupsSummary"></div>
@@ -428,7 +428,7 @@
         <input type="date" id="viewWeekSelect" style="flex:1;">
         <button class="btn btn-secondary" style="width:auto;padding:10px 14px;font-size:16px;" onclick="shiftWeek('viewWeekSelect',7,loadViewData)" title="Next week">&#8594;</button>
       </div>
-      <div style="text-align:right;margin-top:4px;"><a href="#" onclick="jumpToThisWeek('viewWeekSelect',loadViewData);return false;" style="font-family:'Crimson Pro',serif;font-size:13px;font-style:italic;color:var(--accent);text-decoration:none;border-bottom:1px solid transparent;transition:border-color .15s;" onmouseover="this.style.borderBottomColor='var(--accent)'" onmouseout="this.style.borderBottomColor='transparent'">This week</a></div>
+      <div style="text-align:right;margin-top:4px;"><a href="#" onclick="document.getElementById('viewWeekSelect').value=getCurrentMonday();loadViewData();return false;" style="font-family:'Crimson Pro',serif;font-size:13px;font-style:italic;color:var(--accent);text-decoration:none;border-bottom:1px solid transparent;transition:border-color .15s;" onmouseover="this.style.borderBottomColor='var(--accent)'" onmouseout="this.style.borderBottomColor='transparent'">This week</a></div>
     </div>
     <div id="viewDayNav" style="display:none;margin-top:8px;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:10px 14px;">
       <button id="viewPrevDay" class="btn btn-secondary" style="width:auto;padding:8px 14px;font-size:16px;" onclick="changeViewDay(-1)">&#8592;</button>
@@ -1078,17 +1078,10 @@ document.querySelectorAll('.tab').forEach(t => {
     const appEl = document.querySelector('.app');
     if (id === 'view') {
       appEl.classList.add('view-wide');
-      const sw = document.getElementById('weekSelect').value;
-      const vw = document.getElementById('viewWeekSelect');
-      if (sw && vw.value !== sw) vw.value = sw;
       loadViewData();
     } else {
       appEl.classList.remove('view-wide');
-      if (id === 'signup') {
-        const vw = document.getElementById('viewWeekSelect').value;
-        const sw = document.getElementById('weekSelect');
-        if (vw && sw.value !== vw) { sw.value = vw; loadWeekData(); }
-      }
+      if (id === 'signup') loadWeekData();
       if (id === 'calendar') loadCalendar();
       if (id === 'events') loadEvents();
       if (id === 'admin') { switchAdminPanel('week'); loadAccessRequests(); }

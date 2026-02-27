@@ -942,9 +942,7 @@ function restorePreferences() {
       settings = res.settings || {};
       setCache('settings', settings);
     }
-    if (settings.spotUpEnabled === false) spotUpEnabled = false;
-    const _initBanner = document.getElementById('spotUpInfoBanner');
-    if (_initBanner) _initBanner.style.display = spotUpEnabled ? '' : 'none';
+    if (settings.spotUpEnabled === false || String(settings.spotUpEnabled).toUpperCase() === 'FALSE') spotUpEnabled = false;
     if (settings.openAccess) {
       grantAccess({ name: '', isAdmin: false, openAccess: true });
     }
@@ -2503,10 +2501,10 @@ async function loadAccessSettings() {
     const oaToggle = document.getElementById('openAccessToggle');
     if (oaToggle) oaToggle.checked = !!settings.openAccess;
     const suToggle = document.getElementById('spotUpToggle');
-    if (suToggle) suToggle.checked = settings.spotUpEnabled !== false;
-    spotUpEnabled = settings.spotUpEnabled !== false;
-    const banner = document.getElementById('spotUpInfoBanner');
-    if (banner) banner.style.display = spotUpEnabled ? '' : 'none';
+    const _suRaw = settings.spotUpEnabled;
+    const _suOn = _suRaw !== false && String(_suRaw).toUpperCase() !== 'FALSE';
+    if (suToggle) suToggle.checked = _suOn;
+    spotUpEnabled = _suOn;
   } catch(e) {}
 }
 
@@ -2527,8 +2525,6 @@ async function toggleSpotUp(enabled) {
     const cur = getCache('settings') || {};
     setCache('settings', { ...cur, spotUpEnabled: enabled });
     spotUpEnabled = enabled;
-    const banner = document.getElementById('spotUpInfoBanner');
-    if (banner) banner.style.display = enabled ? '' : 'none';
     showToast(enabled ? 'Spot ups enabled' : 'Spot ups disabled — members will see "Put spot ups in chat"');
   } catch(e) {
     showToast('Failed to update setting', 'var(--red)');

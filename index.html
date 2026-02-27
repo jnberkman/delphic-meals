@@ -331,7 +331,7 @@
   .moose-cal-mlbl { font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 600; color: var(--text-bright); flex: 1; text-align: center; }
   .moose-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); }
   .moose-cal-dow { padding: 6px 2px; text-align: center; font-family: 'Jost', sans-serif; font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--text-dim); background: var(--surface2); border-bottom: 1px solid var(--border); }
-  .moose-cal-cell { padding: 5px 4px 4px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); min-height: 52px; box-sizing: border-box; overflow: hidden; min-width: 0; cursor: default; transition: background .12s; }
+  .moose-cal-cell { padding: 5px 4px 5px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); min-height: 58px; box-sizing: border-box; overflow: hidden; min-width: 0; cursor: default; transition: background .12s; }
   .moose-cal-cell:nth-child(7n) { border-right: none; }
   .moose-cal-cell.mc-click { cursor: pointer; }
   .moose-cal-cell.mc-click:hover { background: var(--accent-glow); }
@@ -340,15 +340,16 @@
   .moose-cal-cell.mc-today .mc-num { background: var(--accent); color: #fff; border-radius: 50%; width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; }
   .mc-num { font-family: 'Jost', sans-serif; font-size: 11px; font-weight: 600; color: var(--text-bright); line-height: 1; display: inline-block; margin-bottom: 3px; }
   .moose-cal-cell.mc-weekend .mc-num { font-weight: 400; color: var(--text-dim); }
-  .mc-dots { display: flex; gap: 3px; margin-top: 2px; flex-wrap: wrap; }
-  .mc-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .mc-pill { display: block; font-family: 'Jost', sans-serif; font-size: 8px; font-weight: 700; letter-spacing: .2px; padding: 2px 5px; border-radius: 3px; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mc-pill.mp-mine { background: var(--accent-glow2); color: var(--accent); border: 1px solid #8B691428; }
+  .mc-pill.mp-open { background: var(--surface2); color: var(--text-dim); border: 1px solid var(--border); }
+  .mc-pill.mp-evt  { background: #5B8DEF15; color: #3B6BC4; border: 1px solid #5B8DEF28; }
+  .mc-pill.mp-past { opacity: .45; }
+  /* legend dots kept for the key at bottom */
+  .mc-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
   .mc-dot.dm { background: var(--accent); }
   .mc-dot.do { background: var(--border-light); }
   .mc-dot.de { background: #5B8DEF; }
-  .mc-lbl { display: block; font-family: 'Jost', sans-serif; font-size: 8px; font-weight: 600; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .mc-lbl.lm { color: var(--accent); }
-  .mc-lbl.lo { color: var(--text-dim); }
-  .mc-lbl.mc-past-dim { opacity: .5; }
 
   /* Bottom sheets */
   .moose-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.42); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 500; opacity: 0; pointer-events: none; transition: opacity .22s; display: flex; align-items: flex-end; justify-content: center; }
@@ -2478,7 +2479,7 @@ async function loadEvents() {
   } catch (e) { if (!cachedEvents) allEvents = []; }
   document.getElementById('eventsLoading').style.display = 'none';
   renderEventsList();
-  if (allEvents.length > 0) document.getElementById('eventsTabBtn').style.display = '';
+  // Events live in the Moose tab — don't show the legacy Events tab
 }
 
 function renderEventsList() {
@@ -3106,7 +3107,7 @@ function renderMooseUpcoming() {
   const upcoming = (_mooseEvents || [])
     .filter(e => new Date(e.date + 'T23:59:00') >= now)
     .sort((a, b) => a.date.localeCompare(b.date))
-    .slice(0, 3);
+    ; // show all upcoming
   if (!upcoming.length) { el.innerHTML = ''; if (lbl) lbl.style.display = 'none'; return; }
   if (lbl) lbl.style.display = 'block';
   let html = '<div class="moose-upcoming">';
@@ -3206,25 +3207,24 @@ function renderMooseCalendar() {
     if (isWeekend) cls += ' mc-weekend';
     if ((hasContent || isTappableWeekday) && !isPast && inMonth) cls += ' mc-click';
 
-    // Dots
-    let dots = '';
-    if (meal) dots += '<span class="mc-dot ' + (meal.isMine ? 'dm' : 'do') + '"></span>';
-    dayEvs.forEach(() => dots += '<span class="mc-dot de"></span>');
-
-    // Label (meal type, small)
-    let labelHtml = '';
+    // Pills — meal + events, clearly labeled
+    let pillsHtml = '';
     if (meal && inMonth) {
-      const lblCls = meal.isMine ? 'lm' : 'lo';
-      labelHtml = '<span class="mc-lbl ' + lblCls + (isPast ? ' mc-past-dim' : '') + '">' + meal.label + '</span>';
+      const pillCls = 'mc-pill ' + (meal.isMine ? 'mp-mine' : 'mp-open') + (isPast ? ' mp-past' : '');
+      const pillText = meal.isMine ? '&#10003; ' + meal.label : meal.label;
+      pillsHtml += '<span class="' + pillCls + '">' + pillText + '</span>';
     }
+    dayEvs.forEach(ev => {
+      const short = ev.title.length > 11 ? ev.title.slice(0, 10) + '\u2026' : ev.title;
+      pillsHtml += '<span class="mc-pill mp-evt' + (isPast ? ' mp-past' : '') + '">' + short + '</span>';
+    });
 
     const clickAttr = ((hasContent || isTappableWeekday) && !isPast && inMonth)
       ? ' onclick="openMooseDaySheet(\'' + dateStr + '\')"' : '';
 
     html += '<div class="' + cls + '"' + clickAttr + '>' +
       '<span class="mc-num">' + d.getDate() + '</span>' +
-      (dots ? '<div class="mc-dots">' + dots + '</div>' : '') +
-      labelHtml +
+      pillsHtml +
     '</div>';
 
     d.setDate(d.getDate() + 1);

@@ -2376,7 +2376,6 @@ async function loadEvents() {
   } catch (e) { if (!cachedEvents) allEvents = []; }
   document.getElementById('eventsLoading').style.display = 'none';
   renderEventsList();
-  if (allEvents.length > 0) document.getElementById('eventsTabBtn').style.display = '';
 }
 
 function renderEventsList() {

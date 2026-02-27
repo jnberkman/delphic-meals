@@ -2757,16 +2757,103 @@ async function loadAdminEvents() {
     const result = await apiCall('getEvents');
     const events = (result.events || []).sort((a, b) => new Date(a.date) - new Date(b.date));
     let html = '';
-    events.forEach(evt => {
-      const dateStr = new Date(evt.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-      html += '<div style="border:1px solid var(--border);border-radius:4px;padding:12px 16px;margin-bottom:8px;background:var(--surface);display:flex;justify-content:space-between;align-items:center;">' +
-        '<div><strong style="font-family:\'Crimson Pro\',serif;font-size:15px;">' + evt.title + '</strong><div style="font-size:12px;color:var(--text-dim);">' + dateStr + ' &middot; ' + evt.signupCount + ' signed up</div></div>' +
-        '<button class="remove-btn" title="Delete event" onclick="deleteAdminEvent(\'' + evt.eventId + '\',\'' + evt.title.replace(/'/g, "\\'") + '\')">&#215;</button>' +
-      '</div>';
-    });
+    events.forEach(evt => { html += _adminEventRowHtml(evt); });
     if (events.length === 0) html = '<div style="color:var(--text-dim);font-size:13px;padding:8px 0;font-style:italic;">No events created yet.</div>';
     document.getElementById('adminEventsList').innerHTML = html;
   } catch (e) {}
+}
+
+function _adminEventRowHtml(evt) {
+  const dateStr = new Date(evt.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const safeId    = evt.eventId.replace(/'/g, "\\'");
+  const safeTitle = evt.title.replace(/'/g, "\\'");
+  return '<div id="adminEvtRow_' + evt.eventId + '" style="border:1px solid var(--border);border-radius:4px;padding:12px 16px;margin-bottom:8px;background:var(--surface);">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+      '<div style="min-width:0;">' +
+        '<strong style="font-family:\'Crimson Pro\',serif;font-size:15px;">' + evt.title + '</strong>' +
+        '<div style="font-size:12px;color:var(--text-dim);">' + dateStr + ' &middot; ' + evt.signupCount + ' signed up</div>' +
+      '</div>' +
+      '<div style="display:flex;gap:8px;flex-shrink:0;margin-left:12px;">' +
+        '<button class="btn btn-secondary" style="width:auto;padding:5px 12px;font-size:12px;" onclick="editAdminEvent(\'' + safeId + '\')">Edit</button>' +
+        '<button class="remove-btn" title="Delete" onclick="deleteAdminEvent(\'' + safeId + '\',\'' + safeTitle + '\')">&#215;</button>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+function editAdminEvent(eventId) {
+  apiCall('getEvents').then(r => {
+    const evt = (r.events || []).find(e => e.eventId === eventId);
+    if (!evt) return;
+    const row = document.getElementById('adminEvtRow_' + eventId);
+    if (!row) return;
+    const safeId = eventId.replace(/'/g, "\\'");
+    const freezeVal = evt.freezeDate
+      ? evt.freezeDate.slice(0, 16) // "YYYY-MM-DDTHH:MM" for datetime-local
+      : '';
+    row.innerHTML =
+      '<div style="font-family:\'Jost\',sans-serif;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);margin-bottom:12px;">Edit Event</div>' +
+      '<div class="field" style="margin-bottom:10px;"><label class="field-label">Title <span class="req">*</span></label>' +
+        '<input type="text" id="editEvtTitle_' + eventId + '" value="' + evt.title.replace(/"/g,'&quot;') + '"></div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">' +
+        '<div class="field" style="margin-bottom:10px;"><label class="field-label">Date <span class="req">*</span></label>' +
+          '<input type="date" id="editEvtDate_' + eventId + '" value="' + (evt.date||'') + '"></div>' +
+        '<div class="field" style="margin-bottom:10px;"><label class="field-label">Time</label>' +
+          '<input type="text" id="editEvtTime_' + eventId + '" value="' + (evt.time||'') + '" placeholder="e.g. 7:30 PM"></div>' +
+      '</div>' +
+      '<div class="field" style="margin-bottom:10px;"><label class="field-label">Location</label>' +
+        '<input type="text" id="editEvtLoc_' + eventId + '" value="' + (evt.location||'').replace(/"/g,'&quot;') + '"></div>' +
+      '<div class="field" style="margin-bottom:10px;"><label class="field-label">Description</label>' +
+        '<textarea id="editEvtDesc_' + eventId + '" rows="3">' + (evt.description||'') + '</textarea></div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">' +
+        '<div class="field" style="margin-bottom:10px;"><label class="field-label">Capacity <span style="font-size:10px;color:var(--text-dim);">(0&nbsp;=&nbsp;unlimited)</span></label>' +
+          '<input type="number" id="editEvtCap_' + eventId + '" value="' + (evt.capacity||0) + '" min="0"></div>' +
+        '<div class="field" style="margin-bottom:10px;"><label class="field-label">Sign-up Freeze</label>' +
+          '<input type="datetime-local" id="editEvtFreeze_' + eventId + '" value="' + freezeVal + '"></div>' +
+      '</div>' +
+      '<div style="display:flex;gap:16px;margin-bottom:14px;">' +
+        '<label class="option-pill"><input type="checkbox" id="editEvtGrad_' + eventId + '"' + (evt.collectGradYear ? ' checked' : '') + '><span class="pill-label" style="font-size:12px;">Collect Grad Year</span></label>' +
+        '<label class="option-pill"><input type="checkbox" id="editEvtDiet_' + eventId + '"' + (evt.collectDiet ? ' checked' : '') + '><span class="pill-label" style="font-size:12px;">Collect Dietary Info</span></label>' +
+      '</div>' +
+      '<div style="display:flex;gap:10px;">' +
+        '<button class="btn btn-primary" style="width:auto;padding:9px 20px;font-size:13px;" onclick="saveAdminEvent(\'' + safeId + '\')">Save Changes</button>' +
+        '<button class="btn btn-secondary" style="width:auto;padding:9px 16px;font-size:13px;" onclick="loadAdminEvents()">Cancel</button>' +
+      '</div>' +
+      '<div id="editEvtErr_' + eventId + '" style="display:none;color:var(--red);font-size:13px;margin-top:8px;"></div>';
+  }).catch(() => showToast('Could not load event', 'var(--red)'));
+}
+
+async function saveAdminEvent(eventId) {
+  const title = (document.getElementById('editEvtTitle_' + eventId)||{}).value || '';
+  const date  = (document.getElementById('editEvtDate_'  + eventId)||{}).value || '';
+  if (!title.trim() || !date) {
+    const err = document.getElementById('editEvtErr_' + eventId);
+    if (err) { err.textContent = 'Title and date are required.'; err.style.display = 'block'; }
+    return;
+  }
+  const freezeRaw = (document.getElementById('editEvtFreeze_' + eventId)||{}).value || '';
+  const event = {
+    title:       title.trim(),
+    date,
+    time:        (document.getElementById('editEvtTime_' + eventId)||{}).value || '',
+    location:    (document.getElementById('editEvtLoc_'  + eventId)||{}).value || '',
+    description: (document.getElementById('editEvtDesc_' + eventId)||{}).value || '',
+    capacity:    parseInt((document.getElementById('editEvtCap_' + eventId)||{}).value||'0', 10)||0,
+    collectGradYear: !!((document.getElementById('editEvtGrad_' + eventId)||{}).checked),
+    collectDiet:     !!((document.getElementById('editEvtDiet_' + eventId)||{}).checked),
+    freezeDate: freezeRaw ? new Date(freezeRaw).toISOString() : '',
+  };
+  try {
+    await apiCall('updateEvent', { eventId, event });
+    showToast('Event updated', 'var(--green)');
+    loadAdminEvents();
+    // Invalidate Moose events cache so it refreshes on next tab visit
+    _mooseEvents = null;
+    if (document.querySelector('.tab.active[data-tab="moose"]')) loadMoose();
+  } catch(e) {
+    const err = document.getElementById('editEvtErr_' + eventId);
+    if (err) { err.textContent = 'Save failed \u2014 please try again.'; err.style.display = 'block'; }
+  }
 }
 
 async function deleteAdminEvent(eventId, title) {

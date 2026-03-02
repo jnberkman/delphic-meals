@@ -358,8 +358,13 @@
   .moose-overlay.show .moose-sheet { transform: translateY(0); }
   .moose-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 16px; }
   .moose-sheet-title { font-family: 'Cormorant Garamond', serif; font-size: 23px; font-weight: 600; color: var(--text-bright); margin-bottom: 2px; }
-  .moose-sheet-sub { font-family: 'Crimson Pro', serif; font-size: 14px; color: var(--text-dim); font-style: italic; margin-bottom: 16px; }
+  .moose-sheet-sub { font-family: 'Crimson Pro', serif; font-size: 14px; color: var(--text-dim); font-style: italic; margin-bottom: 6px; }
   .moose-sheet-sect { font-family: 'Jost', sans-serif; font-size: 9px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-dim); margin: 18px 0 8px; }
+  .ink-choice-wrap { display: flex; gap: 10px; margin: 16px 0 20px; }
+  .ink-choice { flex: 1; padding: 13px 8px; border-radius: 8px; border: 2px solid var(--border); background: var(--surface2); font-family: 'Jost', sans-serif; font-weight: 600; font-size: 14px; cursor: pointer; transition: all .15s; color: var(--text-dim); text-align: center; }
+  .ink-choice.active { border-color: var(--accent); background: var(--accent-glow2); color: var(--accent); }
+  .ink-choice.active.int-btn { border-color: #5B8DEF; background: #5B8DEF15; color: #3B6BC4; }
+  .ink-count-bar { font-family: 'Jost', sans-serif; font-size: 11px; font-weight: 500; color: var(--text-dim); letter-spacing: .3px; margin-bottom: 14px; }
   .moose-meal-box { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 14px 16px; }
   .moose-meal-type { font-family: 'Jost', sans-serif; font-size: 9px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); margin-bottom: 2px; }
   .moose-meal-menu { font-family: 'Crimson Pro', serif; font-size: 15px; font-style: italic; color: var(--text-dim); margin: 4px 0 12px; line-height: 1.5; }
@@ -748,9 +753,10 @@
               <input type="datetime-local" id="newEventFreeze">
             </div>
           </div>
-          <div style="display:flex;gap:12px;margin-bottom:14px;">
+          <div style="display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap;">
             <label class="option-pill"><input type="checkbox" id="newEventGradYear" checked><span class="pill-label" style="font-size:12px;">Collect Grad Year</span></label>
             <label class="option-pill"><input type="checkbox" id="newEventDiet"><span class="pill-label" style="font-size:12px;">Collect Dietary Info</span></label>
+            <label class="option-pill"><input type="checkbox" id="newEventInterestOnly"><span class="pill-label" style="font-size:12px;">Interest Only</span></label>
           </div>
           <button class="btn btn-primary" onclick="createNewEvent()">Create Event</button>
         </div>
@@ -2576,7 +2582,8 @@ async function createNewEvent() {
     capacity: parseInt(document.getElementById('newEventCap').value) || 0,
     collectGradYear: document.getElementById('newEventGradYear').checked,
     collectDiet: document.getElementById('newEventDiet').checked,
-    freezeDate: document.getElementById('newEventFreeze').value || ''
+    interestOnly: document.getElementById('newEventInterestOnly').checked,
+    freezeDate: document.getElementById('newEventFreeze').value ? new Date(document.getElementById('newEventFreeze').value).toISOString() : ''
   };
   try {
     await apiCall('createEvent', { event });
@@ -2814,6 +2821,7 @@ function editAdminEvent(eventId) {
       '<div style="display:flex;gap:16px;margin-bottom:14px;">' +
         '<label class="option-pill"><input type="checkbox" id="editEvtGrad_' + eventId + '"' + (evt.collectGradYear ? ' checked' : '') + '><span class="pill-label" style="font-size:12px;">Collect Grad Year</span></label>' +
         '<label class="option-pill"><input type="checkbox" id="editEvtDiet_' + eventId + '"' + (evt.collectDiet ? ' checked' : '') + '><span class="pill-label" style="font-size:12px;">Collect Dietary Info</span></label>' +
+        '<label class="option-pill"><input type="checkbox" id="editEvtInterestOnly_' + eventId + '"' + (evt.interestOnly ? ' checked' : '') + '><span class="pill-label" style="font-size:12px;">Interest Only</span></label>' +
       '</div>' +
       '<div style="display:flex;gap:10px;">' +
         '<button class="btn btn-primary" style="width:auto;padding:9px 20px;font-size:13px;" onclick="saveAdminEvent(\'' + safeId + '\')">Save Changes</button>' +
@@ -2839,8 +2847,9 @@ async function saveAdminEvent(eventId) {
     location:    (document.getElementById('editEvtLoc_'  + eventId)||{}).value || '',
     description: (document.getElementById('editEvtDesc_' + eventId)||{}).value || '',
     capacity:    parseInt((document.getElementById('editEvtCap_' + eventId)||{}).value||'0', 10)||0,
-    collectGradYear: !!((document.getElementById('editEvtGrad_' + eventId)||{}).checked),
-    collectDiet:     !!((document.getElementById('editEvtDiet_' + eventId)||{}).checked),
+    collectGradYear:  !!((document.getElementById('editEvtGrad_'         + eventId)||{}).checked),
+    collectDiet:      !!((document.getElementById('editEvtDiet_'         + eventId)||{}).checked),
+    interestOnly:     !!((document.getElementById('editEvtInterestOnly_' + eventId)||{}).checked),
     freezeDate: freezeRaw ? new Date(freezeRaw).toISOString() : '',
   };
   try {
@@ -3109,6 +3118,7 @@ let _mooseCalYear = null, _mooseCalMonth = null;
 let _mooseEvents = null;          // cached events array
 let _mooseLoadingWeeks = new Set(); // mondays currently being fetched
 let _mooseSelectedTime = null;    // selected time slot in the day sheet
+let _mooseInkChoice = 'ink';      // 'ink' or 'interest' for event sheet
 let _mooseSheetDate = null;       // currently open day sheet date
 let _mooseSheetMealData = null;   // data for the open meal row
 
@@ -3202,13 +3212,20 @@ function renderMooseUpcoming() {
     const d = new Date(ev.date + 'T12:00:00');
     const dateStr = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
     const meta = [dateStr, ev.time, ev.location].filter(Boolean).join(' · ');
-    const cap = ev.capacity > 0 ? ' &middot; ' + ev.signupCount + '/' + ev.capacity : '';
+    const inkC = ev.inkCount || 0, intC = ev.interestCount || 0;
+    const countStr = [
+      inkC > 0 ? inkC + ' inked' : '',
+      intC > 0 ? intC + ' interested' : '',
+      ev.capacity > 0 ? 'cap ' + ev.capacity : ''
+    ].filter(Boolean).join(' · ');
     const safeId = ev.eventId.replace(/'/g, "\\'");
+    const btnLabel = ev.interestOnly ? 'Interest \u2192' : 'Ink \u2192';
     html += '<div class="moose-evt-card" onclick="openMooseEventSheet(\'' + safeId + '\')">' +
       '<div class="moose-evt-title">' + ev.title + '</div>' +
-      '<div class="moose-evt-meta">' + meta + cap + '</div>' +
+      '<div class="moose-evt-meta">' + meta + '</div>' +
+      (countStr ? '<div class="moose-evt-meta" style="font-size:11px;margin-top:2px;">' + countStr + '</div>' : '') +
       (ev.description ? '<div class="moose-evt-desc">' + ev.description + '</div>' : '') +
-      '<button class="moose-evt-btn">RSVP &rarr;</button>' +
+      '<button class="moose-evt-btn">' + btnLabel + '</button>' +
     '</div>';
   });
   html += '</div>';
@@ -3437,7 +3454,7 @@ function openMooseDaySheet(dateStr) {
         '<div style="font-family:\'Cormorant Garamond\',serif;font-size:19px;font-weight:600;color:var(--text-bright);margin-bottom:2px;">' + ev.title + '</div>' +
         (meta || cap ? '<div style="font-family:\'Crimson Pro\',serif;font-size:13px;color:var(--text-dim);font-style:italic;margin-bottom:8px;">' + [meta, cap].filter(Boolean).join(' &middot; ') + '</div>' : '') +
         (ev.description ? '<div style="font-family:\'Crimson Pro\',serif;font-size:14px;color:var(--text);line-height:1.5;margin-bottom:10px;">' + ev.description + '</div>' : '') +
-        '<button class="moose-evt-btn" onclick="closeMooseSheet();openMooseEventSheet(\'' + safeId + '\')">RSVP &rarr;</button>' +
+        '<button class="moose-evt-btn" onclick="closeMooseSheet();openMooseEventSheet(\'' + safeId + '\')">' + (ev.interestOnly ? 'Interest \u2192' : 'Ink \u2192') + '</button>' +
       '</div>';
     });
   }
@@ -3526,7 +3543,16 @@ async function removeMooseMeal(monday, dayIdx, name, time) {
   }
 }
 
-// ── Event RSVP sheet ─────────────────────────────────────────────────────────
+// ── Event Ink sheet ───────────────────────────────────────────────────────────
+function setInkChoice(choice) {
+  _mooseInkChoice = choice;
+  document.querySelectorAll('.ink-choice').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('inkChoice_' + choice);
+  if (btn) btn.classList.add('active');
+  const submitBtn = document.getElementById('mooseEvtBtn');
+  if (submitBtn) submitBtn.textContent = choice === 'ink' ? 'Ink In \u2192' : 'Mark Interest \u2192';
+}
+
 function openMooseEventSheet(eventId) {
   const ev = (_mooseEvents || []).find(e => e.eventId === eventId);
   if (!ev) return;
@@ -3536,25 +3562,48 @@ function openMooseEventSheet(eventId) {
 
   const d = new Date(ev.date + 'T12:00:00');
   const dateStr = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-  const meta = [dateStr, ev.time, ev.location].filter(Boolean).join(' · ');
+  const meta = [dateStr, ev.time, ev.location].filter(Boolean).join(' \u00b7 ');
   const isFrozen = ev.freezeDate && Date.now() > new Date(ev.freezeDate).getTime();
-  const isFull = ev.capacity > 0 && ev.signupCount >= ev.capacity;
+  const isFull = !ev.interestOnly && ev.capacity > 0 && (ev.inkCount || 0) >= ev.capacity;
   const myName = (currentUser && currentUser.name) || '';
   let prefs = {};
   try { prefs = JSON.parse(localStorage.getItem('delphic_prefs') || '{}'); } catch(e) {}
 
-  let html = '<div class="moose-sheet-title">' + ev.title + '</div>' +
-    '<div class="moose-sheet-sub">' + meta + (ev.capacity > 0 ? ' &middot; ' + ev.signupCount + '/' + ev.capacity + ' signed up' : '') + '</div>';
+  // Reset ink choice
+  _mooseInkChoice = ev.interestOnly ? 'interest' : 'ink';
+
+  const safeId = eventId.replace(/'/g, "\\'");
+
+  let html = '<div class="moose-sheet-title">' + ev.title + '</div>';
+  html += '<div class="moose-sheet-sub">' + meta + '</div>';
+
+  // Ink / interest count bar
+  const inkC = ev.inkCount || 0, intC = ev.interestCount || 0;
+  const parts = [];
+  if (inkC > 0) parts.push('<strong>' + inkC + '</strong> inked in');
+  if (intC > 0) parts.push('<strong>' + intC + '</strong> interested');
+  if (ev.capacity > 0) parts.push('cap ' + ev.capacity);
+  if (parts.length) html += '<div class="ink-count-bar">' + parts.join(' &nbsp;&middot;&nbsp; ') + '</div>';
+
   if (ev.description) {
-    html += '<div style="font-family:\'Crimson Pro\',serif;font-size:15px;color:var(--text);line-height:1.6;padding:12px 16px;background:var(--surface2);border-radius:4px;border-left:2px solid #5B8DEF;margin-bottom:16px;">' + ev.description + '</div>';
+    html += '<div style="font-family:\'Crimson Pro\',serif;font-size:15px;color:var(--text);line-height:1.6;padding:12px 16px;background:var(--surface2);border-radius:6px;border-left:3px solid #5B8DEF;margin-bottom:16px;">' + ev.description + '</div>';
   }
 
   if (isFrozen) {
-    html += '<div style="font-family:\'Crimson Pro\',serif;font-size:15px;color:var(--text-dim);">RSVPs are closed for this event.</div>';
+    html += '<div style="font-family:\'Crimson Pro\',serif;font-size:15px;color:var(--text-dim);font-style:italic;">Sign-ups are closed for this event.</div>';
   } else if (isFull) {
     html += '<div style="font-family:\'Crimson Pro\',serif;font-size:15px;color:var(--red);">This event is full.</div>';
   } else {
-    html += '<div class="moose-sheet-sect">RSVP</div>';
+    // Ink / Interested toggle (only when not interestOnly)
+    if (!ev.interestOnly) {
+      html += '<div class="ink-choice-wrap">' +
+        '<button class="ink-choice active" id="inkChoice_ink" onclick="setInkChoice(\'ink\')">Ink In</button>' +
+        '<button class="ink-choice int-btn" id="inkChoice_interest" onclick="setInkChoice(\'interest\')">Interested</button>' +
+      '</div>';
+    } else {
+      html += '<div style="font-family:\'Crimson Pro\',serif;font-size:13px;font-style:italic;color:var(--text-dim);margin-bottom:16px;">No commitment needed — just mark your interest.</div>';
+    }
+
     html += '<div class="field"><label class="field-label">Name <span class="req">*</span></label>' +
       '<input type="text" id="mooseEvtName" value="' + myName.replace(/"/g,'&quot;') + '" placeholder="Your name"></div>';
     if (ev.collectGradYear) {
@@ -3571,8 +3620,9 @@ function openMooseEventSheet(eventId) {
       html += '</select></div>';
     }
     html += '<div class="field"><label class="field-label">Notes (optional)</label>' +
-      '<textarea id="mooseEvtNotes" rows="2" placeholder="Any notes&hellip;"></textarea></div>';
-    html += '<button class="btn btn-primary" id="mooseEvtBtn" onclick="submitMooseEventRsvp(\'' + eventId.replace(/'/g,"\\'") + '\')">Confirm RSVP</button>';
+      '<textarea id="mooseEvtNotes" rows="2" placeholder="Any notes\u2026"></textarea></div>';
+    const btnLabel = ev.interestOnly ? 'Mark Interest \u2192' : 'Ink In \u2192';
+    html += '<button class="btn btn-primary" id="mooseEvtBtn" onclick="submitMooseInk(\'' + safeId + '\')">' + btnLabel + '</button>';
     html += '<div id="mooseEvtErr" style="display:none;font-family:\'Crimson Pro\',serif;font-size:14px;color:var(--red);margin-top:8px;"></div>';
   }
 
@@ -3585,7 +3635,7 @@ function closeMooseEventSheet() {
   if (overlay) overlay.classList.remove('show');
 }
 
-async function submitMooseEventRsvp(eventId) {
+async function submitMooseInk(eventId) {
   const nameEl = document.getElementById('mooseEvtName');
   const name = nameEl ? nameEl.value.trim() : '';
   if (!name) {
@@ -3594,7 +3644,7 @@ async function submitMooseEventRsvp(eventId) {
     return;
   }
   const btn = document.getElementById('mooseEvtBtn');
-  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner" style="width:14px;height:14px;border-width:2px;display:inline-block;margin-right:6px;"></span>Submitting&hellip;'; }
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner" style="width:14px;height:14px;border-width:2px;display:inline-block;margin-right:6px;"></span>Submitting\u2026'; }
 
   const signup = {
     name,
@@ -3602,13 +3652,14 @@ async function submitMooseEventRsvp(eventId) {
     diet: (document.getElementById('mooseEvtDiet') || {}).value || '',
     notes: (document.getElementById('mooseEvtNotes') || {}).value || '',
     guests: '',
+    inkType: _mooseInkChoice,
   };
   try {
     await apiCall('addEventSignup', { eventId, signup });
     closeMooseEventSheet();
     const ev = (_mooseEvents || []).find(e => e.eventId === eventId);
-    showToast('RSVP confirmed' + (ev ? ' for ' + ev.title : '') + '!', 'var(--green)');
-    // Refresh events cache so signupCount updates
+    const label = _mooseInkChoice === 'ink' ? 'Inked in' : 'Interest marked';
+    showToast(label + (ev ? ' for ' + ev.title : '') + '!', 'var(--green)');
     apiCall('getEvents').then(r => {
       _mooseEvents = r.events || [];
       renderMooseUpcoming();
@@ -3616,8 +3667,9 @@ async function submitMooseEventRsvp(eventId) {
     }).catch(() => {});
   } catch(e) {
     const errEl = document.getElementById('mooseEvtErr');
-    if (errEl) { errEl.textContent = 'RSVP failed \u2014 please try again.'; errEl.style.display = 'block'; }
-    if (btn) { btn.disabled = false; btn.textContent = 'Confirm RSVP'; }
+    if (errEl) { errEl.textContent = 'Failed \u2014 please try again.'; errEl.style.display = 'block'; }
+    const label = _mooseInkChoice === 'ink' ? 'Ink In \u2192' : 'Mark Interest \u2192';
+    if (btn) { btn.disabled = false; btn.textContent = label; }
   }
 }
 </script>

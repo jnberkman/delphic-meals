@@ -398,8 +398,8 @@ function getEventsSheet() {
   var sheet = ss.getSheetByName('Events');
   if (!sheet) {
     sheet = ss.insertSheet('Events');
-    sheet.getRange('A1:J1').setValues([['eventId', 'title', 'date', 'time', 'location', 'description', 'capacity', 'collectGradYear', 'collectDiet', 'freezeDate']]);
-    sheet.getRange('A1:J1').setFontWeight('bold');
+    sheet.getRange('A1:K1').setValues([['eventId', 'title', 'date', 'time', 'location', 'description', 'capacity', 'collectGradYear', 'collectDiet', 'freezeDate', 'interestOnly']]);
+    sheet.getRange('A1:K1').setFontWeight('bold');
   }
   return sheet;
 }
@@ -410,8 +410,8 @@ function getEventSignupsSheet(eventId) {
   var sheet = ss.getSheetByName(name);
   if (!sheet) {
     sheet = ss.insertSheet(name);
-    sheet.getRange('A1:G1').setValues([['name', 'gradYear', 'diet', 'allergies', 'notes', 'timestamp', 'guests']]);
-    sheet.getRange('A1:G1').setFontWeight('bold');
+    sheet.getRange('A1:H1').setValues([['name', 'gradYear', 'diet', 'allergies', 'notes', 'timestamp', 'guests', 'inkType']]);
+    sheet.getRange('A1:H1').setFontWeight('bold');
   }
   return sheet;
 }
@@ -421,16 +421,20 @@ function getEvents() {
   var events = [];
   if (sheet.getLastRow() < 2) return { events: events };
 
-  var data = sheet.getRange(2, 1, sheet.getLastRow() - 1, 10).getValues();
+  var data = sheet.getRange(2, 1, sheet.getLastRow() - 1, 11).getValues();
   var ss = SpreadsheetApp.getActiveSpreadsheet();
 
   data.forEach(function(row) {
     if (!row[0]) return;
     var eventId = row[0].toString();
-    var signupCount = 0;
+    var inkCount = 0, interestCount = 0;
     var signupSheet = ss.getSheetByName('Event_' + eventId);
     if (signupSheet && signupSheet.getLastRow() > 1) {
-      signupCount = signupSheet.getLastRow() - 1;
+      var sData = signupSheet.getDataRange().getValues();
+      for (var s = 1; s < sData.length; s++) {
+        if (sData[s][7] === 'interest') interestCount++;
+        else inkCount++;
+      }
     }
     events.push({
       eventId: eventId,
@@ -443,7 +447,10 @@ function getEvents() {
       collectGradYear: row[7] === true || row[7] === 'true' || row[7] === 'TRUE',
       collectDiet: row[8] === true || row[8] === 'true' || row[8] === 'TRUE',
       freezeDate: row[9] || '',
-      signupCount: signupCount
+      interestOnly: row[10] === true || row[10] === 'true' || row[10] === 'TRUE',
+      signupCount: inkCount + interestCount,
+      inkCount: inkCount,
+      interestCount: interestCount
     });
   });
 
@@ -463,7 +470,8 @@ function createEvent(event) {
     event.capacity || 0,
     event.collectGradYear || false,
     event.collectDiet || false,
-    event.freezeDate || ''
+    event.freezeDate || '',
+    event.interestOnly || false
   ]);
   return { status: 'ok', eventId: eventId };
 }
@@ -483,6 +491,7 @@ function updateEvent(eventId, event) {
       sheet.getRange(r + 1, 8).setValue(event.collectGradYear || false);
       sheet.getRange(r + 1, 9).setValue(event.collectDiet || false);
       sheet.getRange(r + 1, 10).setValue(event.freezeDate || '');
+      sheet.getRange(r + 1, 11).setValue(event.interestOnly || false);
       return { status: 'ok' };
     }
   }
@@ -542,7 +551,8 @@ function addEventSignup(eventId, signup) {
     signup.allergies || '',
     signup.notes || '',
     new Date().toISOString(),
-    signup.guests || ''
+    signup.guests || '',
+    signup.inkType || 'ink'
   ]);
 
   return { status: 'ok', added: 1 };

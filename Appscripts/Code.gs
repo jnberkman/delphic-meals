@@ -973,16 +973,15 @@ function setWeekConfig(monday, config, caps, freezeDate) {
 
 function normalizeTime(val) {
   if (!val) return '';
-  var s = val.toString();
-  if (s === '12:00 PM' || s === '1:00 PM' || s === '7:30 PM') return s;
-  if (s.indexOf('1899') !== -1 || s.indexOf('GMT') !== -1 || val instanceof Date) {
+  // If it's a Date object or a Sheets date serial string, convert to readable time
+  if (val instanceof Date || (typeof val === 'string' && (val.indexOf('1899') !== -1 || val.indexOf('GMT') !== -1))) {
     try {
       var d = new Date(val); var h = d.getHours(); var m = d.getMinutes();
       var ampm = h >= 12 ? 'PM' : 'AM'; var hr = h > 12 ? h - 12 : (h === 0 ? 12 : h);
       return hr + ':' + (m < 10 ? '0' : '') + m + ' ' + ampm;
-    } catch(e) { return s; }
+    } catch(e) {}
   }
-  return s;
+  return val.toString();
 }
 
 function createWeekSheet(ss, monday, config, caps, freezeDate) {
@@ -1112,40 +1111,74 @@ function rebuildDisplaySheet(sheet, monday, signupsOverride) {
     var col = dayIdx + 3;
     var daySups = signups[dayIdx] || [];
     var meal = config[dayIdx] ? config[dayIdx].meal : 'Lunch';
-    var slots = getTimeSlotsForMeal(meal);
+    // Use custom slots from config when available; fall back to hardcoded defaults
+    var configDay = config[dayIdx] || {};
+    var slots = (configDay.slots && configDay.slots.length > 0)
+      ? configDay.slots.map(function(s) { return s.time || s; })
+      : getTimeSlotsForMeal(meal);
     var row = 10;
+    var shownNames = {};
+
+    function renderMember(m, r) {
+      var display = m.name;
+      var tags = [];
+      if (m.diet && m.diet !== 'No Dietary Restrictions') tags.push(m.diet.toLowerCase());
+      if (m.allergies) tags.push(m.allergies);
+      if (m.early) tags.push('early');
+      if (m.gradGasman) tags.push('Grad Gasman');
+      if (m.spotUpStatus === 'spotup') tags.push('SPOT UP');
+      if (m.spotUpStatus === 'claimed') tags.push('CLAIMED from ' + m.spotUpOrigName);
+      if (tags.length > 0) display += ' (' + tags.join(', ') + ')';
+      while (sheet.getMaxRows() < r) sheet.insertRowAfter(sheet.getMaxRows());
+      var cell = sheet.getRange(r, col);
+      cell.setValue(display);
+      var colors = CAT_COLORS[m.diet] || CAT_COLORS['No Dietary Restrictions'];
+      if (colors.font !== '#000000') cell.setFontColor(colors.font);
+      if (colors.bg) cell.setBackground(colors.bg);
+      if (m.early) { cell.setBackground('#E3F2FD'); cell.setFontColor('#1565C0'); }
+      if (m.allergies) { cell.setBackground('#F3E5F5'); cell.setFontColor('#4A148C'); cell.setFontWeight('bold'); }
+      if (m.gradGasman) { cell.setBackground('#FFF8E1'); cell.setFontColor('#8B6914'); cell.setFontWeight('bold'); }
+      if (m.spotUpStatus === 'spotup') { cell.setBackground('#FFF3E0'); cell.setFontColor('#E65100'); }
+      if (m.spotUpStatus === 'claimed') { cell.setBackground('#E8F5E9'); cell.setFontColor('#2E7D32'); }
+      if (m.servedStatus === 'served') { cell.setFontLine('line-through'); cell.setFontColor('#999999'); }
+    }
+
     slots.forEach(function(slot) {
       var slotLabel = slot === '12:00 PM' ? '12:00-1:00 PM' : slot === '1:00 PM' ? '1:00-2:00 PM' : slot;
       sheet.getRange(row, col).setValue(slotLabel).setFontWeight('bold').setFontSize(11).setBackground('#E3F2FD').setFontColor('#1565C0');
       row++;
       var slotMembers = daySups.filter(function(s) { return normalizeTime(s.time) === slot; });
-      slotMembers.sort(function(a, b) { return (b.early ? 1 : 0) - (a.early ? 1 : 0); }); // early plate first
+      slotMembers.sort(function(a, b) { return (b.early ? 1 : 0) - (a.early ? 1 : 0); });
       slotMembers.forEach(function(m) {
-        var display = m.name;
-        var tags = [];
-        if (m.diet && m.diet !== 'No Dietary Restrictions') tags.push(m.diet.toLowerCase());
-        if (m.allergies) tags.push(m.allergies);
-        if (m.early) tags.push('early');
-        if (m.gradGasman) tags.push('Grad Gasman');
-        if (m.spotUpStatus === 'spotup') tags.push('SPOT UP');
-        if (m.spotUpStatus === 'claimed') tags.push('CLAIMED from ' + m.spotUpOrigName);
-        if (tags.length > 0) display += ' (' + tags.join(', ') + ')';
-        while (sheet.getMaxRows() < row) sheet.insertRowAfter(sheet.getMaxRows());
-        var cell = sheet.getRange(row, col);
-        cell.setValue(display);
-        var colors = CAT_COLORS[m.diet] || CAT_COLORS['No Dietary Restrictions'];
-        if (colors.font !== '#000000') cell.setFontColor(colors.font);
-        if (colors.bg) cell.setBackground(colors.bg);
-        if (m.early) { cell.setBackground('#E3F2FD'); cell.setFontColor('#1565C0'); } // early plate — light blue
-        if (m.allergies) { cell.setBackground('#F3E5F5'); cell.setFontColor('#4A148C'); cell.setFontWeight('bold'); } // allergies — purple
-        if (m.gradGasman) { cell.setBackground('#FFF8E1'); cell.setFontColor('#8B6914'); cell.setFontWeight('bold'); } // grad gasman — gold (overrides allergies)
-        if (m.spotUpStatus === 'spotup') { cell.setBackground('#FFF3E0'); cell.setFontColor('#E65100'); }
-        if (m.spotUpStatus === 'claimed') { cell.setBackground('#E8F5E9'); cell.setFontColor('#2E7D32'); }
-        if (m.servedStatus === 'served') { cell.setFontLine('line-through'); cell.setFontColor('#999999'); }
+        shownNames[m.name.toLowerCase()] = true;
+        renderMember(m, row);
         row++;
       });
       row++;
     });
+
+    // Show any signups whose time doesn't match any current slot (e.g. time was changed after sign-up)
+    var orphans = daySups.filter(function(s) { return !shownNames[s.name.toLowerCase()]; });
+    if (orphans.length > 0) {
+      // Group orphans by their stored time
+      var orphanTimes = {};
+      orphans.forEach(function(m) {
+        var t = normalizeTime(m.time) || 'unknown';
+        if (!orphanTimes[t]) orphanTimes[t] = [];
+        orphanTimes[t].push(m);
+      });
+      Object.keys(orphanTimes).forEach(function(t) {
+        var label = t + ' (time updated)';
+        sheet.getRange(row, col).setValue(label).setFontWeight('bold').setFontSize(11).setBackground('#FFF8E1').setFontColor('#8B6914');
+        row++;
+        orphanTimes[t].forEach(function(m) {
+          renderMember(m, row);
+          row++;
+        });
+        row++;
+      });
+    }
+
     sheet.getRange(8, col).setValue(daySups.length);
   }
   var bRow = 10;

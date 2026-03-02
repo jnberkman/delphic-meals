@@ -311,6 +311,69 @@
     .vn-compact-claim { font-family: 'Jost', sans-serif; font-size: 9px; font-weight: 600; color: var(--green); background: none; border: 1px solid var(--green); border-radius: 2px; padding: 1px 7px; cursor: pointer; letter-spacing: .3px; display: inline-block; margin: 2px 0 1px; }
     .vn-compact-claim:hover { background: var(--green); color: #fff; }
   }
+
+  /* ── Moose Tab ─────────────────────────────────────────────────────────── */
+  .moose-sect-lbl { font-family: 'Jost', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 12px; }
+
+  /* Upcoming event cards */
+  .moose-upcoming { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; margin-bottom: 28px; }
+  .moose-evt-card { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid #5B8DEF; border-radius: 6px; padding: 16px 18px 14px; cursor: pointer; transition: box-shadow .15s; min-width: 0; }
+  .moose-evt-card:hover { box-shadow: 0 4px 14px rgba(0,0,0,.09); }
+  .moose-evt-title { font-family: 'Cormorant Garamond', serif; font-size: 19px; font-weight: 600; color: var(--text-bright); margin-bottom: 2px; }
+  .moose-evt-meta { font-family: 'Crimson Pro', serif; font-size: 13px; color: var(--text-dim); font-style: italic; margin-bottom: 8px; }
+  .moose-evt-desc { font-family: 'Crimson Pro', serif; font-size: 14px; color: var(--text); line-height: 1.5; margin-bottom: 12px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .moose-evt-btn { font-family: 'Jost', sans-serif; font-size: 10px; font-weight: 600; letter-spacing: .5px; color: #3B6BC4; background: #5B8DEF12; border: 1px solid #5B8DEF30; border-radius: 3px; padding: 5px 12px; cursor: pointer; transition: background .15s; }
+  .moose-evt-btn:hover { background: #5B8DEF25; }
+
+  /* Calendar */
+  .moose-cal-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; margin-bottom: 8px; }
+  .moose-cal-head { display: flex; align-items: center; gap: 8px; padding: 12px 14px; background: var(--surface2); border-bottom: 1px solid var(--border); }
+  .moose-cal-mlbl { font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 600; color: var(--text-bright); flex: 1; text-align: center; }
+  .moose-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); }
+  .moose-cal-dow { padding: 6px 2px; text-align: center; font-family: 'Jost', sans-serif; font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--text-dim); background: var(--surface2); border-bottom: 1px solid var(--border); }
+  .moose-cal-cell { padding: 5px 4px 5px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); min-height: 58px; box-sizing: border-box; overflow: hidden; min-width: 0; cursor: default; transition: background .12s; }
+  .moose-cal-cell:nth-child(7n) { border-right: none; }
+  .moose-cal-cell.mc-click { cursor: pointer; }
+  .moose-cal-cell.mc-click:hover { background: var(--accent-glow); }
+  .moose-cal-cell.mc-other { background: var(--surface2); opacity: .35; pointer-events: none; }
+  .moose-cal-cell.mc-past { pointer-events: none; }
+  .moose-cal-cell.mc-today .mc-num { background: var(--accent); color: #fff; border-radius: 50%; width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; }
+  .mc-num { font-family: 'Jost', sans-serif; font-size: 11px; font-weight: 600; color: var(--text-bright); line-height: 1; display: inline-block; margin-bottom: 3px; }
+  .moose-cal-cell.mc-weekend .mc-num { font-weight: 400; color: var(--text-dim); }
+  .mc-pill { display: block; font-family: 'Jost', sans-serif; font-size: 8px; font-weight: 700; letter-spacing: .2px; padding: 2px 5px; border-radius: 3px; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mc-pill.mp-mine { background: var(--accent-glow2); color: var(--accent); border: 1px solid #8B691428; }
+  .mc-pill.mp-open { background: var(--surface2); color: var(--text-dim); border: 1px solid var(--border); }
+  .mc-pill.mp-evt  { background: #5B8DEF15; color: #3B6BC4; border: 1px solid #5B8DEF28; }
+  .mc-pill.mp-past { opacity: .45; }
+  /* legend dots kept for the key at bottom */
+  .mc-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
+  .mc-dot.dm { background: var(--accent); }
+  .mc-dot.do { background: var(--border-light); }
+  .mc-dot.de { background: #5B8DEF; }
+
+  /* Bottom sheets */
+  .moose-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.42); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 500; opacity: 0; pointer-events: none; transition: opacity .22s; display: flex; align-items: flex-end; justify-content: center; }
+  .moose-overlay.show { opacity: 1; pointer-events: auto; }
+  .moose-sheet { background: var(--bg); border-radius: 14px 14px 0 0; border: 1px solid var(--border); border-bottom: none; width: 100%; max-width: 520px; max-height: 86vh; overflow-y: auto; padding: 10px 20px 36px; box-shadow: 0 -8px 40px rgba(0,0,0,.15); transform: translateY(20px); transition: transform .28s cubic-bezier(.36,.66,.04,1); }
+  .moose-overlay.show .moose-sheet { transform: translateY(0); }
+  .moose-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 16px; }
+  .moose-sheet-title { font-family: 'Cormorant Garamond', serif; font-size: 23px; font-weight: 600; color: var(--text-bright); margin-bottom: 2px; }
+  .moose-sheet-sub { font-family: 'Crimson Pro', serif; font-size: 14px; color: var(--text-dim); font-style: italic; margin-bottom: 6px; }
+  .moose-sheet-sect { font-family: 'Jost', sans-serif; font-size: 9px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-dim); margin: 18px 0 8px; }
+  .ink-choice-wrap { display: flex; gap: 10px; margin: 16px 0 20px; }
+  .ink-choice { flex: 1; padding: 13px 8px; border-radius: 8px; border: 2px solid var(--border); background: var(--surface2); font-family: 'Jost', sans-serif; font-weight: 600; font-size: 14px; cursor: pointer; transition: all .15s; color: var(--text-dim); text-align: center; }
+  .ink-choice.active { border-color: var(--accent); background: var(--accent-glow2); color: var(--accent); }
+  .ink-choice.active.int-btn { border-color: #5B8DEF; background: #5B8DEF15; color: #3B6BC4; }
+  .ink-count-bar { font-family: 'Jost', sans-serif; font-size: 11px; font-weight: 500; color: var(--text-dim); letter-spacing: .3px; margin-bottom: 14px; }
+  .moose-meal-box { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 14px 16px; }
+  .moose-meal-type { font-family: 'Jost', sans-serif; font-size: 9px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); margin-bottom: 2px; }
+  .moose-meal-menu { font-family: 'Crimson Pro', serif; font-size: 15px; font-style: italic; color: var(--text-dim); margin: 4px 0 12px; line-height: 1.5; }
+  .moose-meal-signed { font-family: 'Crimson Pro', serif; font-size: 15px; color: var(--green); font-weight: 600; margin-bottom: 12px; }
+  .moose-time-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  .moose-time-chip { font-family: 'Jost', sans-serif; font-size: 12px; font-weight: 500; padding: 9px 14px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); cursor: pointer; transition: all .15s; flex: 1; min-width: 0; text-align: center; }
+  .moose-time-chip.sel { border-color: var(--accent-muted); background: var(--accent-glow2); color: var(--accent); font-weight: 600; }
+  .moose-time-chip:disabled { opacity: .4; cursor: not-allowed; }
+  #mooseEventOverlay { z-index: 501; }
 </style>
 </head>
 <body>
@@ -371,6 +434,7 @@
     <button class="tab" data-tab="view">View Signups</button>
     <button class="tab" data-tab="calendar" style="display:none;">Calendar</button>
     <button class="tab" data-tab="events" id="eventsTabBtn" style="display:none;">Events</button>
+    <button class="tab" data-tab="moose" id="mooseTabBtn">Moose</button>
     <button class="tab" data-tab="admin" id="adminTabBtn" style="display:none;">Admin <span id="adminTabBadge" style="display:none;background:var(--red);color:#fff;font-size:9px;font-weight:700;border-radius:8px;padding:1px 6px;margin-left:3px;vertical-align:middle;letter-spacing:.3px;"></span></button>
   </div>
 
@@ -487,6 +551,32 @@
   <div id="tab-events" class="section" style="display:none!important;">
     <div id="eventsLoading" style="display:none;text-align:center;padding:24px;color:var(--text-dim);"><div class="spinner"></div> Loading events...</div>
     <div id="eventsList"></div>
+  </div>
+
+  <!-- ========== MOOSE ========== -->
+  <div id="tab-moose" class="section">
+    <div id="mooseLoading" style="text-align:center;padding:32px;color:var(--text-dim);">
+      <div class="spinner"></div>
+      <div style="margin-top:10px;font-family:'Crimson Pro',serif;font-size:14px;font-style:italic;">Loading&hellip;</div>
+    </div>
+    <div id="mooseContent" style="display:none;">
+      <div class="moose-sect-lbl" id="mooseEventsLbl" style="display:none;">Upcoming Events</div>
+      <div id="mooseUpcoming"></div>
+      <div class="moose-sect-lbl">Calendar</div>
+      <div class="moose-cal-wrap">
+        <div class="moose-cal-head">
+          <button class="btn btn-secondary" style="width:auto;padding:8px 14px;font-size:16px;" onclick="shiftMooseCal(-1)">&#8592;</button>
+          <div class="moose-cal-mlbl" id="mooseCalMonthLbl"></div>
+          <button class="btn btn-secondary" style="width:auto;padding:8px 14px;font-size:16px;" onclick="shiftMooseCal(1)">&#8594;</button>
+        </div>
+        <div id="mooseCalGrid"></div>
+      </div>
+      <div style="font-family:'Crimson Pro',serif;font-size:12px;color:var(--text-dim);text-align:center;padding:4px 0 16px;font-style:italic;">
+        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);margin-right:4px;vertical-align:middle;"></span>signed up&ensp;
+        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--border-light);margin-right:4px;vertical-align:middle;"></span>available&ensp;
+        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#5B8DEF;margin-right:4px;vertical-align:middle;"></span>event
+      </div>
+    </div>
   </div>
 
   <!-- ========== ADMIN ========== -->
@@ -663,9 +753,10 @@
               <input type="datetime-local" id="newEventFreeze">
             </div>
           </div>
-          <div style="display:flex;gap:12px;margin-bottom:14px;">
+          <div style="display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap;">
             <label class="option-pill"><input type="checkbox" id="newEventGradYear" checked><span class="pill-label" style="font-size:12px;">Collect Grad Year</span></label>
             <label class="option-pill"><input type="checkbox" id="newEventDiet"><span class="pill-label" style="font-size:12px;">Collect Dietary Info</span></label>
+            <label class="option-pill"><input type="checkbox" id="newEventInterestOnly"><span class="pill-label" style="font-size:12px;">Interest Only</span></label>
           </div>
           <button class="btn btn-primary" onclick="createNewEvent()">Create Event</button>
         </div>
@@ -698,6 +789,21 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- Moose: day detail sheet -->
+<div class="moose-overlay" id="mooseSheetOverlay" onclick="if(event.target===this)closeMooseSheet()">
+  <div class="moose-sheet">
+    <div class="moose-handle"></div>
+    <div id="mooseSheetBody"></div>
+  </div>
+</div>
+
+<!-- Moose: event RSVP sheet -->
+<div class="moose-overlay" id="mooseEventOverlay" onclick="if(event.target===this)closeMooseEventSheet()">
+  <div class="moose-sheet">
+    <div class="moose-handle"></div>
+    <div id="mooseEventBody"></div>
+  </div>
+</div>
 
 <script>
 // =============================================
@@ -1182,6 +1288,7 @@ document.querySelectorAll('.tab').forEach(t => {
       if (id === 'signup') loadWeekData();
       if (id === 'calendar') loadCalendar();
       if (id === 'events') loadEvents();
+      if (id === 'moose') loadMoose();
       if (id === 'admin') { switchAdminPanel('week'); loadAccessRequests(); }
     }
   });
@@ -2376,6 +2483,7 @@ async function loadEvents() {
   } catch (e) { if (!cachedEvents) allEvents = []; }
   document.getElementById('eventsLoading').style.display = 'none';
   renderEventsList();
+  // Events live in the Moose tab — don't show the legacy Events tab
 }
 
 function renderEventsList() {
@@ -2472,7 +2580,8 @@ async function createNewEvent() {
     capacity: parseInt(document.getElementById('newEventCap').value) || 0,
     collectGradYear: document.getElementById('newEventGradYear').checked,
     collectDiet: document.getElementById('newEventDiet').checked,
-    freezeDate: document.getElementById('newEventFreeze').value || ''
+    interestOnly: document.getElementById('newEventInterestOnly').checked,
+    freezeDate: document.getElementById('newEventFreeze').value ? new Date(document.getElementById('newEventFreeze').value).toISOString() : ''
   };
   try {
     await apiCall('createEvent', { event });
@@ -2651,16 +2760,105 @@ async function loadAdminEvents() {
     const result = await apiCall('getEvents');
     const events = (result.events || []).sort((a, b) => new Date(a.date) - new Date(b.date));
     let html = '';
-    events.forEach(evt => {
-      const dateStr = new Date(evt.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-      html += '<div style="border:1px solid var(--border);border-radius:4px;padding:12px 16px;margin-bottom:8px;background:var(--surface);display:flex;justify-content:space-between;align-items:center;">' +
-        '<div><strong style="font-family:\'Crimson Pro\',serif;font-size:15px;">' + evt.title + '</strong><div style="font-size:12px;color:var(--text-dim);">' + dateStr + ' &middot; ' + evt.signupCount + ' signed up</div></div>' +
-        '<button class="remove-btn" title="Delete event" onclick="deleteAdminEvent(\'' + evt.eventId + '\',\'' + evt.title.replace(/'/g, "\\'") + '\')">&#215;</button>' +
-      '</div>';
-    });
+    events.forEach(evt => { html += _adminEventRowHtml(evt); });
     if (events.length === 0) html = '<div style="color:var(--text-dim);font-size:13px;padding:8px 0;font-style:italic;">No events created yet.</div>';
     document.getElementById('adminEventsList').innerHTML = html;
   } catch (e) {}
+}
+
+function _adminEventRowHtml(evt) {
+  const dateStr = new Date(evt.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const safeId    = evt.eventId.replace(/'/g, "\\'");
+  const safeTitle = evt.title.replace(/'/g, "\\'");
+  return '<div id="adminEvtRow_' + evt.eventId + '" style="border:1px solid var(--border);border-radius:4px;padding:12px 16px;margin-bottom:8px;background:var(--surface);">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+      '<div style="min-width:0;">' +
+        '<strong style="font-family:\'Crimson Pro\',serif;font-size:15px;">' + evt.title + '</strong>' +
+        '<div style="font-size:12px;color:var(--text-dim);">' + dateStr + ' &middot; ' + evt.signupCount + ' signed up</div>' +
+      '</div>' +
+      '<div style="display:flex;gap:8px;flex-shrink:0;margin-left:12px;">' +
+        '<button class="btn btn-secondary" style="width:auto;padding:5px 12px;font-size:12px;" onclick="editAdminEvent(\'' + safeId + '\')">Edit</button>' +
+        '<button class="remove-btn" title="Delete" onclick="deleteAdminEvent(\'' + safeId + '\',\'' + safeTitle + '\')">&#215;</button>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+function editAdminEvent(eventId) {
+  apiCall('getEvents').then(r => {
+    const evt = (r.events || []).find(e => e.eventId === eventId);
+    if (!evt) return;
+    const row = document.getElementById('adminEvtRow_' + eventId);
+    if (!row) return;
+    const safeId = eventId.replace(/'/g, "\\'");
+    const freezeVal = evt.freezeDate
+      ? evt.freezeDate.slice(0, 16) // "YYYY-MM-DDTHH:MM" for datetime-local
+      : '';
+    row.innerHTML =
+      '<div style="font-family:\'Jost\',sans-serif;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);margin-bottom:12px;">Edit Event</div>' +
+      '<div class="field" style="margin-bottom:10px;"><label class="field-label">Title <span class="req">*</span></label>' +
+        '<input type="text" id="editEvtTitle_' + eventId + '" value="' + evt.title.replace(/"/g,'&quot;') + '"></div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">' +
+        '<div class="field" style="margin-bottom:10px;"><label class="field-label">Date <span class="req">*</span></label>' +
+          '<input type="date" id="editEvtDate_' + eventId + '" value="' + (evt.date||'') + '"></div>' +
+        '<div class="field" style="margin-bottom:10px;"><label class="field-label">Time</label>' +
+          '<input type="text" id="editEvtTime_' + eventId + '" value="' + (evt.time||'') + '" placeholder="e.g. 7:30 PM"></div>' +
+      '</div>' +
+      '<div class="field" style="margin-bottom:10px;"><label class="field-label">Location</label>' +
+        '<input type="text" id="editEvtLoc_' + eventId + '" value="' + (evt.location||'').replace(/"/g,'&quot;') + '"></div>' +
+      '<div class="field" style="margin-bottom:10px;"><label class="field-label">Description</label>' +
+        '<textarea id="editEvtDesc_' + eventId + '" rows="3">' + (evt.description||'') + '</textarea></div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">' +
+        '<div class="field" style="margin-bottom:10px;"><label class="field-label">Capacity <span style="font-size:10px;color:var(--text-dim);">(0&nbsp;=&nbsp;unlimited)</span></label>' +
+          '<input type="number" id="editEvtCap_' + eventId + '" value="' + (evt.capacity||0) + '" min="0"></div>' +
+        '<div class="field" style="margin-bottom:10px;"><label class="field-label">Sign-up Freeze</label>' +
+          '<input type="datetime-local" id="editEvtFreeze_' + eventId + '" value="' + freezeVal + '"></div>' +
+      '</div>' +
+      '<div style="display:flex;gap:16px;margin-bottom:14px;">' +
+        '<label class="option-pill"><input type="checkbox" id="editEvtGrad_' + eventId + '"' + (evt.collectGradYear ? ' checked' : '') + '><span class="pill-label" style="font-size:12px;">Collect Grad Year</span></label>' +
+        '<label class="option-pill"><input type="checkbox" id="editEvtDiet_' + eventId + '"' + (evt.collectDiet ? ' checked' : '') + '><span class="pill-label" style="font-size:12px;">Collect Dietary Info</span></label>' +
+        '<label class="option-pill"><input type="checkbox" id="editEvtInterestOnly_' + eventId + '"' + (evt.interestOnly ? ' checked' : '') + '><span class="pill-label" style="font-size:12px;">Interest Only</span></label>' +
+      '</div>' +
+      '<div style="display:flex;gap:10px;">' +
+        '<button class="btn btn-primary" style="width:auto;padding:9px 20px;font-size:13px;" onclick="saveAdminEvent(\'' + safeId + '\')">Save Changes</button>' +
+        '<button class="btn btn-secondary" style="width:auto;padding:9px 16px;font-size:13px;" onclick="loadAdminEvents()">Cancel</button>' +
+      '</div>' +
+      '<div id="editEvtErr_' + eventId + '" style="display:none;color:var(--red);font-size:13px;margin-top:8px;"></div>';
+  }).catch(() => showToast('Could not load event', 'var(--red)'));
+}
+
+async function saveAdminEvent(eventId) {
+  const title = (document.getElementById('editEvtTitle_' + eventId)||{}).value || '';
+  const date  = (document.getElementById('editEvtDate_'  + eventId)||{}).value || '';
+  if (!title.trim() || !date) {
+    const err = document.getElementById('editEvtErr_' + eventId);
+    if (err) { err.textContent = 'Title and date are required.'; err.style.display = 'block'; }
+    return;
+  }
+  const freezeRaw = (document.getElementById('editEvtFreeze_' + eventId)||{}).value || '';
+  const event = {
+    title:       title.trim(),
+    date,
+    time:        (document.getElementById('editEvtTime_' + eventId)||{}).value || '',
+    location:    (document.getElementById('editEvtLoc_'  + eventId)||{}).value || '',
+    description: (document.getElementById('editEvtDesc_' + eventId)||{}).value || '',
+    capacity:    parseInt((document.getElementById('editEvtCap_' + eventId)||{}).value||'0', 10)||0,
+    collectGradYear:  !!((document.getElementById('editEvtGrad_'         + eventId)||{}).checked),
+    collectDiet:      !!((document.getElementById('editEvtDiet_'         + eventId)||{}).checked),
+    interestOnly:     !!((document.getElementById('editEvtInterestOnly_' + eventId)||{}).checked),
+    freezeDate: freezeRaw ? new Date(freezeRaw).toISOString() : '',
+  };
+  try {
+    await apiCall('updateEvent', { eventId, event });
+    showToast('Event updated', 'var(--green)');
+    loadAdminEvents();
+    // Invalidate Moose events cache so it refreshes on next tab visit
+    _mooseEvents = null;
+    if (document.querySelector('.tab.active[data-tab="moose"]')) loadMoose();
+  } catch(e) {
+    const err = document.getElementById('editEvtErr_' + eventId);
+    if (err) { err.textContent = 'Save failed \u2014 please try again.'; err.style.display = 'block'; }
+  }
 }
 
 async function deleteAdminEvent(eventId, title) {
@@ -2908,6 +3106,568 @@ document.addEventListener('visibilitychange', () => {
     }).catch(() => {});
   }
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  MOOSE TAB
+// ═══════════════════════════════════════════════════════════════════════════
+let _mooseCalYear = null, _mooseCalMonth = null;
+let _mooseEvents = null;          // cached events array
+let _mooseLoadingWeeks = new Set(); // mondays currently being fetched
+let _mooseSelectedTime = null;    // selected time slot in the day sheet
+let _mooseInkChoice = 'ink';      // 'ink' or 'interest' for event sheet
+let _mooseSheetDate = null;       // currently open day sheet date
+let _mooseSheetMealData = null;   // data for the open meal row
+
+// ── Entry point ─────────────────────────────────────────────────────────────
+function loadMoose() {
+  if (_mooseCalYear === null) {
+    const n = new Date();
+    _mooseCalYear = n.getFullYear();
+    _mooseCalMonth = n.getMonth();
+  }
+  const loading = document.getElementById('mooseLoading');
+  const content = document.getElementById('mooseContent');
+  // Show content immediately if we have data, spinner otherwise
+  if (_mooseEvents && _mooseEvents.length >= 0) {
+    loading.style.display = 'none';
+    content.style.display = 'block';
+    renderMooseUpcoming();
+    renderMooseCalendar();
+  } else {
+    loading.style.display = 'block';
+    content.style.display = 'none';
+  }
+  _loadMooseData().then(() => {
+    loading.style.display = 'none';
+    content.style.display = 'block';
+    renderMooseUpcoming();
+    renderMooseCalendar();
+  }).catch(() => {
+    loading.style.display = 'none';
+    content.style.display = 'block';
+    renderMooseUpcoming();
+    renderMooseCalendar();
+  });
+}
+
+async function _loadMooseData() {
+  const promises = [];
+  // Events (shared with events tab, cache in _mooseEvents)
+  if (!_mooseEvents) {
+    promises.push(
+      apiCall('getEvents').then(r => { _mooseEvents = r.events || []; })
+        .catch(() => { if (!_mooseEvents) _mooseEvents = []; })
+    );
+  }
+  // Week meal data for all weeks visible in this calendar month
+  _getMooseMondaysForMonth(_mooseCalYear, _mooseCalMonth).forEach(mon => {
+    if (!weekCache[mon] && !_mooseLoadingWeeks.has(mon)) {
+      _mooseLoadingWeeks.add(mon);
+      promises.push(
+        apiCall('getWeek', { monday: mon })
+          .then(data => { weekCache[mon] = data; weekCacheTs[mon] = Date.now(); setCache('week_' + mon, data); })
+          .catch(() => {})
+          .finally(() => _mooseLoadingWeeks.delete(mon))
+      );
+    }
+  });
+  await Promise.all(promises);
+}
+
+// Get all Monday dates whose week overlaps the displayed calendar month
+function _getMooseMondaysForMonth(year, month) {
+  const result = [];
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  // Monday on or before firstDay
+  const start = new Date(firstDay);
+  const dow = start.getDay();
+  start.setDate(start.getDate() - (dow === 0 ? 6 : dow - 1));
+  let d = new Date(start);
+  while (d <= lastDay) {
+    result.push(d.toISOString().slice(0, 10));
+    d.setDate(d.getDate() + 7);
+  }
+  return result;
+}
+
+// ── Upcoming events strip ────────────────────────────────────────────────────
+function renderMooseUpcoming() {
+  const el = document.getElementById('mooseUpcoming');
+  const lbl = document.getElementById('mooseEventsLbl');
+  if (!el) return;
+  const now = new Date();
+  const upcoming = (_mooseEvents || [])
+    .filter(e => new Date(e.date + 'T23:59:00') >= now)
+    .sort((a, b) => a.date.localeCompare(b.date))
+    ; // show all upcoming
+  if (!upcoming.length) { el.innerHTML = ''; if (lbl) lbl.style.display = 'none'; return; }
+  if (lbl) lbl.style.display = 'block';
+  let html = '<div class="moose-upcoming">';
+  upcoming.forEach(ev => {
+    const d = new Date(ev.date + 'T12:00:00');
+    const dateStr = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+    const meta = [dateStr, ev.time, ev.location].filter(Boolean).join(' · ');
+    const inkC = ev.inkCount || 0, intC = ev.interestCount || 0;
+    const countStr = [
+      inkC > 0 ? inkC + ' inked' : '',
+      intC > 0 ? intC + ' interested' : '',
+      ev.capacity > 0 ? 'cap ' + ev.capacity : ''
+    ].filter(Boolean).join(' · ');
+    const safeId = ev.eventId.replace(/'/g, "\\'");
+    const btnLabel = ev.interestOnly ? 'Interest \u2192' : 'Ink \u2192';
+    html += '<div class="moose-evt-card" onclick="openMooseEventSheet(\'' + safeId + '\')">' +
+      '<div class="moose-evt-title">' + ev.title + '</div>' +
+      '<div class="moose-evt-meta">' + meta + '</div>' +
+      (countStr ? '<div class="moose-evt-meta" style="font-size:11px;margin-top:2px;">' + countStr + '</div>' : '') +
+      (ev.description ? '<div class="moose-evt-desc">' + ev.description + '</div>' : '') +
+      '<button class="moose-evt-btn">' + btnLabel + '</button>' +
+    '</div>';
+  });
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+// ── Calendar ────────────────────────────────────────────────────────────────
+function renderMooseCalendar() {
+  const el = document.getElementById('mooseCalGrid');
+  const lbl = document.getElementById('mooseCalMonthLbl');
+  if (!el || !lbl) return;
+
+  const MONTHS = ['January','February','March','April','May','June',
+                  'July','August','September','October','November','December'];
+  lbl.textContent = MONTHS[_mooseCalMonth] + ' ' + _mooseCalYear;
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const myName = (currentUser && currentUser.name && !currentUser.guest)
+    ? currentUser.name.toLowerCase().trim() : '';
+
+  // Index events by date
+  const evByDate = {};
+  (_mooseEvents || []).forEach(ev => {
+    if (!evByDate[ev.date]) evByDate[ev.date] = [];
+    evByDate[ev.date].push(ev);
+  });
+
+  // Calendar start: Monday on or before first of month
+  const firstDay = new Date(_mooseCalYear, _mooseCalMonth, 1);
+  const dow = firstDay.getDay();
+  const start = new Date(firstDay);
+  start.setDate(start.getDate() - (dow === 0 ? 6 : dow - 1));
+
+  // DOW headers
+  let html = '<div class="moose-cal-grid">';
+  ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].forEach(d =>
+    html += '<div class="moose-cal-dow">' + d + '</div>'
+  );
+
+  // Day cells — up to 6 rows × 7 = 42 cells
+  let d = new Date(start);
+  for (let i = 0; i < 42; i++) {
+    const dateStr = d.toISOString().slice(0, 10);
+    const inMonth = d.getMonth() === _mooseCalMonth;
+    const isToday = dateStr === todayStr;
+    const isPast = dateStr < todayStr;
+    const dayOfWeek = d.getDay(); // 0=Sun
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+    const dayIdx = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Mon=0...Sun=6
+
+    // Stop after all month days + complete last row
+    if (i > 27 && !inMonth && d.getDay() === 1) break;
+
+    // Meal data for weekdays
+    let meal = null;
+    if (!isWeekend && dayIdx <= 4) {
+      const mon = getMonday(dateStr);
+      const wd = weekCache[mon];
+      if (wd) {
+        const day = wd.config[dayIdx];
+        if (day && day.enabled) {
+          const daySups = wd.signups[dayIdx] || [];
+          const times = getDayTimes(day);
+          const maxTotal = times.reduce((s, t) => s + getCapForSlot(t, day), 0);
+          meal = {
+            label: day.meal,
+            isMine: myName && daySups.some(s => s.name && s.name.toLowerCase().trim() === myName),
+            isFull: daySups.length >= maxTotal,
+          };
+        }
+      }
+    }
+    const dayEvs = evByDate[dateStr] || [];
+    const hasContent = !!(meal || dayEvs.length > 0);
+    // Unloaded future weekdays are still tappable
+    const weekLoaded = !isWeekend && weekCache[getMonday(dateStr)];
+    const isTappableWeekday = !isWeekend && !isPast && inMonth && dayIdx <= 4;
+
+    let cls = 'moose-cal-cell';
+    if (!inMonth) cls += ' mc-other';
+    else if (isToday) cls += ' mc-today';
+    else if (isPast) cls += ' mc-past';
+    if (isWeekend) cls += ' mc-weekend';
+    if ((hasContent || isTappableWeekday) && !isPast && inMonth) cls += ' mc-click';
+
+    // Pills — meal + events, clearly labeled
+    let pillsHtml = '';
+    if (meal && inMonth) {
+      const pillCls = 'mc-pill ' + (meal.isMine ? 'mp-mine' : 'mp-open') + (isPast ? ' mp-past' : '');
+      const pillText = meal.isMine ? '&#10003; ' + meal.label : meal.label;
+      pillsHtml += '<span class="' + pillCls + '">' + pillText + '</span>';
+    }
+    dayEvs.forEach(ev => {
+      const short = ev.title.length > 11 ? ev.title.slice(0, 10) + '\u2026' : ev.title;
+      pillsHtml += '<span class="mc-pill mp-evt' + (isPast ? ' mp-past' : '') + '">' + short + '</span>';
+    });
+
+    const clickAttr = ((hasContent || isTappableWeekday) && !isPast && inMonth)
+      ? ' onclick="openMooseDaySheet(\'' + dateStr + '\')"' : '';
+
+    html += '<div class="' + cls + '"' + clickAttr + '>' +
+      '<span class="mc-num">' + d.getDate() + '</span>' +
+      pillsHtml +
+    '</div>';
+
+    d.setDate(d.getDate() + 1);
+  }
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function shiftMooseCal(dir) {
+  _mooseCalMonth += dir;
+  if (_mooseCalMonth > 11) { _mooseCalMonth = 0; _mooseCalYear++; }
+  if (_mooseCalMonth < 0) { _mooseCalMonth = 11; _mooseCalYear--; }
+  // Render immediately (show what's cached), then load missing weeks
+  renderMooseCalendar();
+  _loadMooseData().then(renderMooseCalendar).catch(() => {});
+}
+
+// ── Day sheet ────────────────────────────────────────────────────────────────
+function openMooseDaySheet(dateStr) {
+  _mooseSheetDate = dateStr;
+  _mooseSelectedTime = null;
+  _mooseSheetMealData = null;
+  const overlay = document.getElementById('mooseSheetOverlay');
+  const body = document.getElementById('mooseSheetBody');
+  if (!overlay || !body) return;
+
+  const d = new Date(dateStr + 'T12:00:00');
+  const dateLabel = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  const dayOfWeek = d.getDay();
+  const dayIdx = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  const monday = getMonday(dateStr);
+  const weekData = weekCache[monday];
+  const myName = (currentUser && currentUser.name && !currentUser.guest)
+    ? currentUser.name.toLowerCase().trim() : '';
+
+  let html = '<div class="moose-sheet-title">' + dateLabel + '</div>';
+
+  // ── Meal section ──
+  let mealHtml = '';
+  if (dayIdx <= 4) { // weekday
+    if (weekData) {
+      const day = weekData.config[dayIdx];
+      if (day && day.enabled) {
+        const daySups = weekData.signups[dayIdx] || [];
+        const times = getDayTimes(day);
+        const maxTotal = times.reduce((s, t) => s + getCapForSlot(t, day), 0);
+        const myEntry = myName ? daySups.find(s => s.name && s.name.toLowerCase().trim() === myName) : null;
+        const isFull = daySups.length >= maxTotal;
+        const isFrozen = weekData.freezeDate && Date.now() > new Date(weekData.freezeDate).getTime();
+        _mooseSheetMealData = { monday, dayIdx, day, weekData, myEntry };
+
+        mealHtml += '<div class="moose-sheet-sect">Meal</div><div class="moose-meal-box">' +
+          '<div class="moose-meal-type">' + day.meal + '</div>';
+        if (day.menu) mealHtml += '<div class="moose-meal-menu">' + day.menu + '</div>';
+
+        if (myEntry) {
+          const tl = myEntry.time === '12:00 PM' ? '12:00\u20131:00 PM'
+                   : myEntry.time === '1:00 PM' ? '1:00\u20132:00 PM' : (myEntry.time || '');
+          mealHtml += '<div class="moose-meal-signed">&#10003; You\'re signed up' + (tl ? ' &middot; ' + tl : '') + '</div>' +
+            '<button class="btn btn-secondary" style="width:auto;padding:8px 20px;font-size:13px;" ' +
+            'onclick="removeMooseMeal(\'' + monday + '\',' + dayIdx + ',\'' + myEntry.name.replace(/'/g,"\\'") + '\',\'' + (myEntry.time||'').replace(/'/g,"\\'") + '\')">Remove Sign-Up</button>';
+        } else if (isFrozen) {
+          mealHtml += '<div style="font-family:\'Crimson Pro\',serif;font-size:14px;color:var(--text-dim);">Sign-ups are closed for this week.</div>';
+        } else if (!currentUser || (!currentUser.name && !currentUser.openAccess)) {
+          mealHtml += '<div style="font-family:\'Crimson Pro\',serif;font-size:14px;color:var(--text-dim);">Sign in to sign up for this meal.</div>';
+        } else if (!myName && currentUser.openAccess) {
+          mealHtml += '<div style="font-family:\'Crimson Pro\',serif;font-size:14px;color:var(--text-dim);">Fill in your name on the Sign Up tab first.</div>';
+        } else if (isFull) {
+          mealHtml += '<div style="font-family:\'Crimson Pro\',serif;font-size:14px;color:var(--red);">This meal is full.</div>';
+        } else {
+          // Time selection
+          if (times.length > 1) {
+            mealHtml += '<div style="font-family:\'Jost\',sans-serif;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px;">Select Time</div>';
+            mealHtml += '<div class="moose-time-row">';
+            times.forEach(t => {
+              const tl = t === '12:00 PM' ? '12:00\u20131:00 PM' : t === '1:00 PM' ? '1:00\u20132:00 PM' : t;
+              const slotFull = daySups.filter(s => s.time === t).length >= getCapForSlot(t, day);
+              const chipId = 'mchip_' + t.replace(/[: ]/g, '_');
+              mealHtml += '<button class="moose-time-chip" id="' + chipId + '"' +
+                (slotFull ? ' disabled style="opacity:.4;cursor:not-allowed;"' : ' onclick="selectMooseTime(\'' + t.replace(/'/g,"\\'") + '\')"') + '>' +
+                tl + (slotFull ? ' (full)' : '') + '</button>';
+            });
+            mealHtml += '</div>';
+          } else {
+            _mooseSelectedTime = times[0]; // auto-select single slot
+          }
+          mealHtml += '<button class="btn btn-primary" id="mooseMealBtn" style="width:auto;padding:10px 24px;font-size:14px;" ' +
+            'onclick="submitMooseMeal()">Sign Up for ' + day.meal + '</button>';
+        }
+        mealHtml += '</div>';
+      } else if (day && !day.enabled) {
+        mealHtml += '<div class="moose-sheet-sect">Meal</div>' +
+          '<div style="font-family:\'Crimson Pro\',serif;font-size:14px;color:var(--text-dim);padding:4px 0;">No meal scheduled for this day.</div>';
+      }
+    } else {
+      // Week not loaded yet — show spinner and load in background
+      mealHtml += '<div class="moose-sheet-sect">Meal</div>' +
+        '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;"><div class="spinner" style="width:16px;height:16px;border-width:2px;"></div>' +
+        '<span style="font-family:\'Crimson Pro\',serif;font-size:14px;color:var(--text-dim);">Loading meal info&hellip;</span></div>';
+      if (!_mooseLoadingWeeks.has(monday)) {
+        _mooseLoadingWeeks.add(monday);
+        apiCall('getWeek', { monday })
+          .then(data => {
+            weekCache[monday] = data; weekCacheTs[monday] = Date.now(); setCache('week_' + monday, data);
+            _mooseLoadingWeeks.delete(monday);
+            if (_mooseSheetDate === dateStr) openMooseDaySheet(dateStr); // refresh
+            renderMooseCalendar();
+          }).catch(() => _mooseLoadingWeeks.delete(monday));
+      }
+    }
+  }
+
+  // ── Events section ──
+  const dayEvs = (_mooseEvents || []).filter(e => e.date === dateStr);
+  let eventsHtml = '';
+  if (dayEvs.length > 0) {
+    eventsHtml += '<div class="moose-sheet-sect">Events</div>';
+    dayEvs.forEach(ev => {
+      const meta = [ev.time, ev.location].filter(Boolean).join(' · ');
+      const cap = ev.capacity > 0 ? ev.signupCount + '/' + ev.capacity + ' signed up' : '';
+      const safeId = ev.eventId.replace(/'/g, "\\'");
+      eventsHtml += '<div style="background:var(--surface);border:1px solid var(--border);border-left:3px solid #5B8DEF;border-radius:6px;padding:14px 16px;margin-bottom:10px;">' +
+        '<div style="font-family:\'Cormorant Garamond\',serif;font-size:19px;font-weight:600;color:var(--text-bright);margin-bottom:2px;">' + ev.title + '</div>' +
+        (meta || cap ? '<div style="font-family:\'Crimson Pro\',serif;font-size:13px;color:var(--text-dim);font-style:italic;margin-bottom:8px;">' + [meta, cap].filter(Boolean).join(' &middot; ') + '</div>' : '') +
+        (ev.description ? '<div style="font-family:\'Crimson Pro\',serif;font-size:14px;color:var(--text);line-height:1.5;margin-bottom:10px;">' + ev.description + '</div>' : '') +
+        '<button class="moose-evt-btn" onclick="closeMooseSheet();openMooseEventSheet(\'' + safeId + '\')">' + (ev.interestOnly ? 'Interest \u2192' : 'Ink \u2192') + '</button>' +
+      '</div>';
+    });
+  }
+
+  if (!mealHtml && !eventsHtml) {
+    html += '<div style="font-family:\'Crimson Pro\',serif;font-size:15px;color:var(--text-dim);padding:8px 0;">Nothing scheduled for this day.</div>';
+  } else {
+    html += mealHtml + eventsHtml;
+  }
+
+  body.innerHTML = html;
+  overlay.classList.add('show');
+}
+
+function closeMooseSheet() {
+  const overlay = document.getElementById('mooseSheetOverlay');
+  if (overlay) overlay.classList.remove('show');
+  _mooseSheetDate = null;
+  _mooseSheetMealData = null;
+}
+
+function selectMooseTime(time) {
+  _mooseSelectedTime = time;
+  document.querySelectorAll('.moose-time-chip').forEach(el => el.classList.remove('sel'));
+  const id = 'mchip_' + time.replace(/[: ]/g, '_');
+  const chip = document.getElementById(id);
+  if (chip) chip.classList.add('sel');
+}
+
+async function submitMooseMeal() {
+  if (!_mooseSheetMealData) return;
+  const { monday, dayIdx, day, weekData } = _mooseSheetMealData;
+  const times = getDayTimes(day);
+  const time = times.length === 1 ? times[0] : _mooseSelectedTime;
+  if (!time) { showToast('Please select a time slot', 'var(--orange)'); return; }
+
+  const myName = currentUser && currentUser.name;
+  if (!myName) { showToast('Please add your name on the Sign Up tab first', 'var(--orange)'); return; }
+
+  // Pre-fill preferences from localStorage
+  let prefs = {};
+  try { prefs = JSON.parse(localStorage.getItem('delphic_prefs') || '{}'); } catch(e) {}
+
+  const entry = {
+    dayIndex: dayIdx, day: day.day, date: day.date, meal: day.meal, time,
+    name: myName,
+    diet: prefs.diet || 'No Dietary Restrictions',
+    allergies: prefs.allergies || '',
+    early: false, notes: '',
+    gradGasman: !!(prefs.gradGasman),
+  };
+
+  const btn = document.getElementById('mooseMealBtn');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner" style="width:14px;height:14px;border-width:2px;display:inline-block;margin-right:6px;"></span>Signing up&hellip;'; }
+
+  try {
+    const wCaps = (weekData.caps) || {};
+    await apiCall('addSignups', { monday, entries: [entry], caps: wCaps });
+    // Refresh cache
+    delete weekCache[monday]; delete weekCacheTs[monday];
+    const fresh = await apiCall('getWeek', { monday });
+    weekCache[monday] = fresh; weekCacheTs[monday] = Date.now(); setCache('week_' + monday, fresh);
+    // Sync main signup tab if it's showing the same week
+    if (currentWeekData && currentWeekData.monday === monday) { currentWeekData = fresh; renderDayCards(); }
+    closeMooseSheet();
+    renderMooseCalendar();
+    showToast('Signed up for ' + day.day + ' ' + day.meal + '!', 'var(--green)');
+  } catch(e) {
+    showToast('Sign-up failed \u2014 please try again', 'var(--red)');
+    if (btn) { btn.disabled = false; btn.textContent = 'Sign Up for ' + day.meal; }
+  }
+}
+
+async function removeMooseMeal(monday, dayIdx, name, time) {
+  closeMooseSheet();
+  try {
+    await apiCall('removeSignup', { monday, dayIndex: dayIdx, name, time });
+    delete weekCache[monday]; delete weekCacheTs[monday];
+    const fresh = await apiCall('getWeek', { monday });
+    weekCache[monday] = fresh; weekCacheTs[monday] = Date.now(); setCache('week_' + monday, fresh);
+    if (currentWeekData && currentWeekData.monday === monday) { currentWeekData = fresh; renderDayCards(); }
+    renderMooseCalendar();
+    showToast('Sign-up removed', '#4A4A4A');
+  } catch(e) {
+    showToast('Could not remove \u2014 please try again', 'var(--red)');
+  }
+}
+
+// ── Event Ink sheet ───────────────────────────────────────────────────────────
+function setInkChoice(choice) {
+  _mooseInkChoice = choice;
+  document.querySelectorAll('.ink-choice').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('inkChoice_' + choice);
+  if (btn) btn.classList.add('active');
+  const submitBtn = document.getElementById('mooseEvtBtn');
+  if (submitBtn) submitBtn.textContent = choice === 'ink' ? 'Ink In \u2192' : 'Mark Interest \u2192';
+}
+
+function openMooseEventSheet(eventId) {
+  const ev = (_mooseEvents || []).find(e => e.eventId === eventId);
+  if (!ev) return;
+  const overlay = document.getElementById('mooseEventOverlay');
+  const body = document.getElementById('mooseEventBody');
+  if (!overlay || !body) return;
+
+  const d = new Date(ev.date + 'T12:00:00');
+  const dateStr = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  const meta = [dateStr, ev.time, ev.location].filter(Boolean).join(' \u00b7 ');
+  const isFrozen = ev.freezeDate && Date.now() > new Date(ev.freezeDate).getTime();
+  const isFull = !ev.interestOnly && ev.capacity > 0 && (ev.inkCount || 0) >= ev.capacity;
+  const myName = (currentUser && currentUser.name) || '';
+  let prefs = {};
+  try { prefs = JSON.parse(localStorage.getItem('delphic_prefs') || '{}'); } catch(e) {}
+
+  // Reset ink choice
+  _mooseInkChoice = ev.interestOnly ? 'interest' : 'ink';
+
+  const safeId = eventId.replace(/'/g, "\\'");
+
+  let html = '<div class="moose-sheet-title">' + ev.title + '</div>';
+  html += '<div class="moose-sheet-sub">' + meta + '</div>';
+
+  // Ink / interest count bar
+  const inkC = ev.inkCount || 0, intC = ev.interestCount || 0;
+  const parts = [];
+  if (inkC > 0) parts.push('<strong>' + inkC + '</strong> inked in');
+  if (intC > 0) parts.push('<strong>' + intC + '</strong> interested');
+  if (ev.capacity > 0) parts.push('cap ' + ev.capacity);
+  if (parts.length) html += '<div class="ink-count-bar">' + parts.join(' &nbsp;&middot;&nbsp; ') + '</div>';
+
+  if (ev.description) {
+    html += '<div style="font-family:\'Crimson Pro\',serif;font-size:15px;color:var(--text);line-height:1.6;padding:12px 16px;background:var(--surface2);border-radius:6px;border-left:3px solid #5B8DEF;margin-bottom:16px;">' + ev.description + '</div>';
+  }
+
+  if (isFrozen) {
+    html += '<div style="font-family:\'Crimson Pro\',serif;font-size:15px;color:var(--text-dim);font-style:italic;">Sign-ups are closed for this event.</div>';
+  } else if (isFull) {
+    html += '<div style="font-family:\'Crimson Pro\',serif;font-size:15px;color:var(--red);">This event is full.</div>';
+  } else {
+    // Ink / Interested toggle (only when not interestOnly)
+    if (!ev.interestOnly) {
+      html += '<div class="ink-choice-wrap">' +
+        '<button class="ink-choice active" id="inkChoice_ink" onclick="setInkChoice(\'ink\')">Ink In</button>' +
+        '<button class="ink-choice int-btn" id="inkChoice_interest" onclick="setInkChoice(\'interest\')">Interested</button>' +
+      '</div>';
+    } else {
+      html += '<div style="font-family:\'Crimson Pro\',serif;font-size:13px;font-style:italic;color:var(--text-dim);margin-bottom:16px;">No commitment needed — just mark your interest.</div>';
+    }
+
+    html += '<div class="field"><label class="field-label">Name <span class="req">*</span></label>' +
+      '<input type="text" id="mooseEvtName" value="' + myName.replace(/"/g,'&quot;') + '" placeholder="Your name"></div>';
+    if (ev.collectGradYear) {
+      html += '<div class="field"><label class="field-label">Year</label><select id="mooseEvtGrad"><option value="">—</option>';
+      const yr = new Date().getFullYear();
+      for (let y = yr; y <= yr + 6; y++) html += '<option>' + y + '</option>';
+      html += '</select></div>';
+    }
+    if (ev.collectDiet) {
+      html += '<div class="field"><label class="field-label">Dietary Preference</label><select id="mooseEvtDiet">';
+      ['No Dietary Restrictions','Vegan','Vegetarian','Gluten-Free','No Pork','No Beef'].forEach(opt => {
+        html += '<option' + (prefs.diet === opt ? ' selected' : '') + '>' + opt + '</option>';
+      });
+      html += '</select></div>';
+    }
+    html += '<div class="field"><label class="field-label">Notes (optional)</label>' +
+      '<textarea id="mooseEvtNotes" rows="2" placeholder="Any notes\u2026"></textarea></div>';
+    const btnLabel = ev.interestOnly ? 'Mark Interest \u2192' : 'Ink In \u2192';
+    html += '<button class="btn btn-primary" id="mooseEvtBtn" onclick="submitMooseInk(\'' + safeId + '\')">' + btnLabel + '</button>';
+    html += '<div id="mooseEvtErr" style="display:none;font-family:\'Crimson Pro\',serif;font-size:14px;color:var(--red);margin-top:8px;"></div>';
+  }
+
+  body.innerHTML = html;
+  overlay.classList.add('show');
+}
+
+function closeMooseEventSheet() {
+  const overlay = document.getElementById('mooseEventOverlay');
+  if (overlay) overlay.classList.remove('show');
+}
+
+async function submitMooseInk(eventId) {
+  const nameEl = document.getElementById('mooseEvtName');
+  const name = nameEl ? nameEl.value.trim() : '';
+  if (!name) {
+    const errEl = document.getElementById('mooseEvtErr');
+    if (errEl) { errEl.textContent = 'Please enter your name.'; errEl.style.display = 'block'; }
+    return;
+  }
+  const btn = document.getElementById('mooseEvtBtn');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner" style="width:14px;height:14px;border-width:2px;display:inline-block;margin-right:6px;"></span>Submitting\u2026'; }
+
+  const signup = {
+    name,
+    gradYear: (document.getElementById('mooseEvtGrad') || {}).value || '',
+    diet: (document.getElementById('mooseEvtDiet') || {}).value || '',
+    notes: (document.getElementById('mooseEvtNotes') || {}).value || '',
+    guests: '',
+    inkType: _mooseInkChoice,
+  };
+  try {
+    await apiCall('addEventSignup', { eventId, signup });
+    closeMooseEventSheet();
+    const ev = (_mooseEvents || []).find(e => e.eventId === eventId);
+    const label = _mooseInkChoice === 'ink' ? 'Inked in' : 'Interest marked';
+    showToast(label + (ev ? ' for ' + ev.title : '') + '!', 'var(--green)');
+    apiCall('getEvents').then(r => {
+      _mooseEvents = r.events || [];
+      renderMooseUpcoming();
+      renderMooseCalendar();
+    }).catch(() => {});
+  } catch(e) {
+    const errEl = document.getElementById('mooseEvtErr');
+    if (errEl) { errEl.textContent = 'Failed \u2014 please try again.'; errEl.style.display = 'block'; }
+    const label = _mooseInkChoice === 'ink' ? 'Ink In \u2192' : 'Mark Interest \u2192';
+    if (btn) { btn.disabled = false; btn.textContent = label; }
+  }
+}
 </script>
 </body>
 </html>

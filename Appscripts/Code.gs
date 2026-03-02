@@ -398,8 +398,8 @@ function getEventsSheet() {
   var sheet = ss.getSheetByName('Events');
   if (!sheet) {
     sheet = ss.insertSheet('Events');
-    sheet.getRange('A1:J1').setValues([['eventId', 'title', 'date', 'time', 'location', 'description', 'capacity', 'collectGradYear', 'collectDiet', 'freezeDate']]);
-    sheet.getRange('A1:J1').setFontWeight('bold');
+    sheet.getRange('A1:K1').setValues([['eventId', 'title', 'date', 'time', 'location', 'description', 'capacity', 'collectGradYear', 'collectDiet', 'freezeDate', 'interestOnly']]);
+    sheet.getRange('A1:K1').setFontWeight('bold');
   }
   return sheet;
 }
@@ -410,8 +410,8 @@ function getEventSignupsSheet(eventId) {
   var sheet = ss.getSheetByName(name);
   if (!sheet) {
     sheet = ss.insertSheet(name);
-    sheet.getRange('A1:G1').setValues([['name', 'gradYear', 'diet', 'allergies', 'notes', 'timestamp', 'guests']]);
-    sheet.getRange('A1:G1').setFontWeight('bold');
+    sheet.getRange('A1:H1').setValues([['name', 'gradYear', 'diet', 'allergies', 'notes', 'timestamp', 'guests', 'inkType']]);
+    sheet.getRange('A1:H1').setFontWeight('bold');
   }
   return sheet;
 }
@@ -421,16 +421,20 @@ function getEvents() {
   var events = [];
   if (sheet.getLastRow() < 2) return { events: events };
 
-  var data = sheet.getRange(2, 1, sheet.getLastRow() - 1, 10).getValues();
+  var data = sheet.getRange(2, 1, sheet.getLastRow() - 1, 11).getValues();
   var ss = SpreadsheetApp.getActiveSpreadsheet();
 
   data.forEach(function(row) {
     if (!row[0]) return;
     var eventId = row[0].toString();
-    var signupCount = 0;
+    var inkCount = 0, interestCount = 0;
     var signupSheet = ss.getSheetByName('Event_' + eventId);
     if (signupSheet && signupSheet.getLastRow() > 1) {
-      signupCount = signupSheet.getLastRow() - 1;
+      var sData = signupSheet.getDataRange().getValues();
+      for (var s = 1; s < sData.length; s++) {
+        if (sData[s][7] === 'interest') interestCount++;
+        else inkCount++;
+      }
     }
     events.push({
       eventId: eventId,
@@ -443,7 +447,10 @@ function getEvents() {
       collectGradYear: row[7] === true || row[7] === 'true' || row[7] === 'TRUE',
       collectDiet: row[8] === true || row[8] === 'true' || row[8] === 'TRUE',
       freezeDate: row[9] || '',
-      signupCount: signupCount
+      interestOnly: row[10] === true || row[10] === 'true' || row[10] === 'TRUE',
+      signupCount: inkCount + interestCount,
+      inkCount: inkCount,
+      interestCount: interestCount
     });
   });
 
@@ -463,7 +470,8 @@ function createEvent(event) {
     event.capacity || 0,
     event.collectGradYear || false,
     event.collectDiet || false,
-    event.freezeDate || ''
+    event.freezeDate || '',
+    event.interestOnly || false
   ]);
   return { status: 'ok', eventId: eventId };
 }
@@ -483,6 +491,7 @@ function updateEvent(eventId, event) {
       sheet.getRange(r + 1, 8).setValue(event.collectGradYear || false);
       sheet.getRange(r + 1, 9).setValue(event.collectDiet || false);
       sheet.getRange(r + 1, 10).setValue(event.freezeDate || '');
+      sheet.getRange(r + 1, 11).setValue(event.interestOnly || false);
       return { status: 'ok' };
     }
   }
@@ -542,7 +551,8 @@ function addEventSignup(eventId, signup) {
     signup.allergies || '',
     signup.notes || '',
     new Date().toISOString(),
-    signup.guests || ''
+    signup.guests || '',
+    signup.inkType || 'ink'
   ]);
 
   return { status: 'ok', added: 1 };
@@ -963,16 +973,15 @@ function setWeekConfig(monday, config, caps, freezeDate) {
 
 function normalizeTime(val) {
   if (!val) return '';
-  var s = val.toString();
-  if (s === '12:00 PM' || s === '1:00 PM' || s === '7:30 PM') return s;
-  if (s.indexOf('1899') !== -1 || s.indexOf('GMT') !== -1 || val instanceof Date) {
+  // If it's a Date object or a Sheets date serial string, convert to readable time
+  if (val instanceof Date || (typeof val === 'string' && (val.indexOf('1899') !== -1 || val.indexOf('GMT') !== -1))) {
     try {
       var d = new Date(val); var h = d.getHours(); var m = d.getMinutes();
       var ampm = h >= 12 ? 'PM' : 'AM'; var hr = h > 12 ? h - 12 : (h === 0 ? 12 : h);
       return hr + ':' + (m < 10 ? '0' : '') + m + ' ' + ampm;
-    } catch(e) { return s; }
+    } catch(e) {}
   }
-  return s;
+  return val.toString();
 }
 
 function createWeekSheet(ss, monday, config, caps, freezeDate) {
@@ -1102,40 +1111,74 @@ function rebuildDisplaySheet(sheet, monday, signupsOverride) {
     var col = dayIdx + 3;
     var daySups = signups[dayIdx] || [];
     var meal = config[dayIdx] ? config[dayIdx].meal : 'Lunch';
-    var slots = getTimeSlotsForMeal(meal);
+    // Use custom slots from config when available; fall back to hardcoded defaults
+    var configDay = config[dayIdx] || {};
+    var slots = (configDay.slots && configDay.slots.length > 0)
+      ? configDay.slots.map(function(s) { return s.time || s; })
+      : getTimeSlotsForMeal(meal);
     var row = 10;
+    var shownNames = {};
+
+    function renderMember(m, r) {
+      var display = m.name;
+      var tags = [];
+      if (m.diet && m.diet !== 'No Dietary Restrictions') tags.push(m.diet.toLowerCase());
+      if (m.allergies) tags.push(m.allergies);
+      if (m.early) tags.push('early');
+      if (m.gradGasman) tags.push('Grad Gasman');
+      if (m.spotUpStatus === 'spotup') tags.push('SPOT UP');
+      if (m.spotUpStatus === 'claimed') tags.push('CLAIMED from ' + m.spotUpOrigName);
+      if (tags.length > 0) display += ' (' + tags.join(', ') + ')';
+      while (sheet.getMaxRows() < r) sheet.insertRowAfter(sheet.getMaxRows());
+      var cell = sheet.getRange(r, col);
+      cell.setValue(display);
+      var colors = CAT_COLORS[m.diet] || CAT_COLORS['No Dietary Restrictions'];
+      if (colors.font !== '#000000') cell.setFontColor(colors.font);
+      if (colors.bg) cell.setBackground(colors.bg);
+      if (m.early) { cell.setBackground('#E3F2FD'); cell.setFontColor('#1565C0'); }
+      if (m.allergies) { cell.setBackground('#F3E5F5'); cell.setFontColor('#4A148C'); cell.setFontWeight('bold'); }
+      if (m.gradGasman) { cell.setBackground('#FFF8E1'); cell.setFontColor('#8B6914'); cell.setFontWeight('bold'); }
+      if (m.spotUpStatus === 'spotup') { cell.setBackground('#FFF3E0'); cell.setFontColor('#E65100'); }
+      if (m.spotUpStatus === 'claimed') { cell.setBackground('#E8F5E9'); cell.setFontColor('#2E7D32'); }
+      if (m.servedStatus === 'served') { cell.setFontLine('line-through'); cell.setFontColor('#999999'); }
+    }
+
     slots.forEach(function(slot) {
       var slotLabel = slot === '12:00 PM' ? '12:00-1:00 PM' : slot === '1:00 PM' ? '1:00-2:00 PM' : slot;
       sheet.getRange(row, col).setValue(slotLabel).setFontWeight('bold').setFontSize(11).setBackground('#E3F2FD').setFontColor('#1565C0');
       row++;
       var slotMembers = daySups.filter(function(s) { return normalizeTime(s.time) === slot; });
-      slotMembers.sort(function(a, b) { return (b.early ? 1 : 0) - (a.early ? 1 : 0); }); // early plate first
+      slotMembers.sort(function(a, b) { return (b.early ? 1 : 0) - (a.early ? 1 : 0); });
       slotMembers.forEach(function(m) {
-        var display = m.name;
-        var tags = [];
-        if (m.diet && m.diet !== 'No Dietary Restrictions') tags.push(m.diet.toLowerCase());
-        if (m.allergies) tags.push(m.allergies);
-        if (m.early) tags.push('early');
-        if (m.gradGasman) tags.push('Grad Gasman');
-        if (m.spotUpStatus === 'spotup') tags.push('SPOT UP');
-        if (m.spotUpStatus === 'claimed') tags.push('CLAIMED from ' + m.spotUpOrigName);
-        if (tags.length > 0) display += ' (' + tags.join(', ') + ')';
-        while (sheet.getMaxRows() < row) sheet.insertRowAfter(sheet.getMaxRows());
-        var cell = sheet.getRange(row, col);
-        cell.setValue(display);
-        var colors = CAT_COLORS[m.diet] || CAT_COLORS['No Dietary Restrictions'];
-        if (colors.font !== '#000000') cell.setFontColor(colors.font);
-        if (colors.bg) cell.setBackground(colors.bg);
-        if (m.early) { cell.setBackground('#E3F2FD'); cell.setFontColor('#1565C0'); } // early plate — light blue
-        if (m.allergies) { cell.setBackground('#F3E5F5'); cell.setFontColor('#4A148C'); cell.setFontWeight('bold'); } // allergies — purple
-        if (m.gradGasman) { cell.setBackground('#FFF8E1'); cell.setFontColor('#8B6914'); cell.setFontWeight('bold'); } // grad gasman — gold (overrides allergies)
-        if (m.spotUpStatus === 'spotup') { cell.setBackground('#FFF3E0'); cell.setFontColor('#E65100'); }
-        if (m.spotUpStatus === 'claimed') { cell.setBackground('#E8F5E9'); cell.setFontColor('#2E7D32'); }
-        if (m.servedStatus === 'served') { cell.setFontLine('line-through'); cell.setFontColor('#999999'); }
+        shownNames[m.name.toLowerCase()] = true;
+        renderMember(m, row);
         row++;
       });
       row++;
     });
+
+    // Show any signups whose time doesn't match any current slot (e.g. time was changed after sign-up)
+    var orphans = daySups.filter(function(s) { return !shownNames[s.name.toLowerCase()]; });
+    if (orphans.length > 0) {
+      // Group orphans by their stored time
+      var orphanTimes = {};
+      orphans.forEach(function(m) {
+        var t = normalizeTime(m.time) || 'unknown';
+        if (!orphanTimes[t]) orphanTimes[t] = [];
+        orphanTimes[t].push(m);
+      });
+      Object.keys(orphanTimes).forEach(function(t) {
+        var label = t + ' (time updated)';
+        sheet.getRange(row, col).setValue(label).setFontWeight('bold').setFontSize(11).setBackground('#FFF8E1').setFontColor('#8B6914');
+        row++;
+        orphanTimes[t].forEach(function(m) {
+          renderMember(m, row);
+          row++;
+        });
+        row++;
+      });
+    }
+
     sheet.getRange(8, col).setValue(daySups.length);
   }
   var bRow = 10;

@@ -10,7 +10,7 @@ A meal sign-up web application for the Delphic Club. Members sign up for weekly 
 
 **Backend (dual)**:
 - **Legacy — Google Apps Script** (`Appscripts/Code.gs`, ~1350 lines): Deployed as a web app. Uses Google Sheets as the database.
-- **New — Node.js + Express + PostgreSQL** (`server/`): Deployed on **Railway**. All 24 API actions ported with identical request/response contracts. Optionally syncs mutations back to Google Sheets (fire-and-forget, gracefully no-ops without credentials).
+- **New — Node.js + Express + PostgreSQL** (`server/`): Deployed on **Railway**. All 27 API actions ported with identical request/response contracts. Optionally syncs mutations back to Google Sheets (fire-and-forget, gracefully no-ops without credentials).
 
 **Frontend auto-detection**: `apiCall()` inspects `SCRIPT_URL` — if it contains `script.google.com`, uses GET with `?payload=` query param; otherwise POSTs JSON to `/api`. Currently `SCRIPT_URL` still points to Apps Script; swap to the Railway URL when ready to cut over.
 
@@ -18,6 +18,16 @@ A meal sign-up web application for the Delphic Club. Members sign up for weekly 
 - **Frontend**: Push to `main` → GitHub Pages auto-deploys
 - **Apps Script backend**: `clasp push` + `clasp deploy` (or `watch.js` auto-deploy watcher)
 - **Express backend**: Push to Railway via `railway up` from `server/`. Migrations run automatically on deploy (`npx knex migrate:latest && node src/index.js`)
+
+## Quick Start
+
+```bash
+# Frontend (no build step)
+open index.html   # or push to main for GitHub Pages deploy
+
+# Express backend local dev
+cd server && npm install && npm run migrate && npm start
+```
 
 ## File Structure
 
@@ -96,7 +106,7 @@ server/                     # New backend — Node.js + Express + PostgreSQL
 
 ### API Actions (both backends)
 
-`getWeek`, `addSignups`, `removeSignup`, `setWeekConfig`, `spotUp`, `claimSpotUp`, `unclaimSpotUp`, `cancelSpotUp`, `markServed`, `checkMember`, `getMembers`, `addMember`, `removeMember`, `requestAccess`, `getAccessRequests`, `approveAccessRequest`, `denyAccessRequest`, `getSettings`, `setSettings`, `setNotifyEmail`, `getEvents`, `createEvent`, `updateEvent`, `deleteEvent`, `addEventSignup`, `removeEventSignup`
+`ping`, `getWeek`, `addSignups`, `removeSignup`, `setWeekConfig`, `spotUp`, `claimSpotUp`, `unclaimSpotUp`, `cancelSpotUp`, `markServed`, `checkMember`, `getMembers`, `addMember`, `removeMember`, `requestAccess`, `getAccessRequests`, `approveAccessRequest`, `denyAccessRequest`, `getSettings`, `setSettings`, `setNotifyEmail`, `getEvents`, `createEvent`, `updateEvent`, `deleteEvent`, `addEventSignup`, `removeEventSignup`
 
 ## Development Workflow
 

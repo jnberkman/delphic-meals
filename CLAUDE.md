@@ -98,7 +98,7 @@ server/                     # New backend — Node.js + Express + PostgreSQL
 ### Backend — Express (server/)
 
 - **Entry point**: `server/src/index.js` — mounts `/api`, `/claim`, `/health` routes
-- **Action dispatch**: `server/src/routes/api.js` maps `data.action` to handler functions (same 24 actions as Apps Script)
+- **Action dispatch**: `server/src/routes/api.js` maps `data.action` to handler functions (same 27 actions as Apps Script)
 - **Database**: PostgreSQL via Knex query builder. 8 tables defined in `server/migrations/001_initial_schema.js`
 - **Sheets sync**: `server/src/services/sheetsSync.js` — optional fire-and-forget sync to Google Sheets on every mutation. No-ops gracefully if `GOOGLE_SERVICE_ACCOUNT_KEY` is not set
 - **Email**: Nodemailer (`server/src/services/email.js`) with HTML templates (`emailTemplates.js`)

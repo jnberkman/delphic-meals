@@ -14,7 +14,7 @@
 const { google } = require('googleapis');
 const config = require('../config');
 const db = require('../db/knex');
-const { normalizeTime, getTimeSlotsForMeal } = require('../utils/time');
+const { normalizeTime, getTimeSlotsForMeal, getTimeLabel } = require('../utils/time');
 const { CATEGORIES, CAT_COLORS, buildDefaultConfig } = require('../utils/weekHelpers');
 
 let sheetsApi = null;
@@ -84,6 +84,101 @@ async function ensureSheet(sheetName) {
     }
   });
   return resp.data.replies[0].addSheet.properties.sheetId;
+}
+
+// ── Display Sheet Helpers ──
+
+/**
+ * Build Sheets API requests to write header values (rows 3-7) for columns C-G.
+ * Mirrors the header-update logic in Code.gs setWeekConfig() lines 955-961.
+ */
+function buildHeaderValueRequests(sheetId, config_) {
+  const requests = [];
+  for (let dayIdx = 0; dayIdx < 5; dayIdx++) {
+    const col = dayIdx + 2; // columns C-G = indices 2-6
+    const cfg = config_[dayIdx] || {};
+    const rows = [
+      { values: [buildCell(cfg.date || '', { bg: '#f3f3f3' })] },
+      { values: [buildCell(cfg.day || '', { bg: '#f3f3f3' })] },
+      { values: [buildCell(cfg.meal || '', { bg: '#f3f3f3' })] },
+      { values: [buildCell(cfg.menu || '', { bg: '#f3f3f3', wrap: true })] },
+      { values: [buildCell(getTimeLabel(cfg.meal || 'Lunch'), { bg: '#f3f3f3' })] },
+    ];
+    requests.push({
+      updateCells: {
+        range: { sheetId, startRowIndex: 2, startColumnIndex: col, endRowIndex: 7, endColumnIndex: col + 1 },
+        rows,
+        fields: 'userEnteredValue,userEnteredFormat'
+      }
+    });
+  }
+  return requests;
+}
+
+/**
+ * Create the display sheet with full header structure.
+ * Mirrors Code.gs createWeekSheet() lines 987-1016.
+ */
+async function createDisplaySheet(sheetName, config_) {
+  const sheetId = await ensureSheet(sheetName);
+  const requests = [
+    // Title: B1
+    {
+      updateCells: {
+        range: { sheetId, startRowIndex: 0, startColumnIndex: 1, endRowIndex: 1, endColumnIndex: 2 },
+        rows: [{ values: [buildCell('Delphic Club Lunch/Dinner Sign-Ups', { bold: true, fontSize: 14 })] }],
+        fields: 'userEnteredValue,userEnteredFormat'
+      }
+    },
+    // Header labels: B3-B8
+    {
+      updateCells: {
+        range: { sheetId, startRowIndex: 2, startColumnIndex: 1, endRowIndex: 8, endColumnIndex: 2 },
+        rows: ['Date', 'Day', 'Meal', 'Menu', 'Time', 'Headcount'].map(label => ({
+          values: [buildCell(label, { bold: true, bg: '#f3f3f3' })]
+        })),
+        fields: 'userEnteredValue,userEnteredFormat'
+      }
+    },
+    // Header values: C3-G7
+    ...buildHeaderValueRequests(sheetId, config_),
+    // Headcount initial values: C8-G8
+    ...config_.map((cfg, i) => ({
+      updateCells: {
+        range: { sheetId, startRowIndex: 7, startColumnIndex: i + 2, endRowIndex: 8, endColumnIndex: i + 3 },
+        rows: [{ values: [{ userEnteredValue: { numberValue: 0 }, userEnteredFormat: { backgroundColor: hexToRgb('#f3f3f3') } }] }],
+        fields: 'userEnteredValue,userEnteredFormat'
+      }
+    })),
+    // Column widths: A=30, B=180, C-G=250
+    {
+      updateDimensionProperties: {
+        range: { sheetId, dimension: 'COLUMNS', startIndex: 0, endIndex: 1 },
+        properties: { pixelSize: 30 },
+        fields: 'pixelSize'
+      }
+    },
+    {
+      updateDimensionProperties: {
+        range: { sheetId, dimension: 'COLUMNS', startIndex: 1, endIndex: 2 },
+        properties: { pixelSize: 180 },
+        fields: 'pixelSize'
+      }
+    },
+    {
+      updateDimensionProperties: {
+        range: { sheetId, dimension: 'COLUMNS', startIndex: 2, endIndex: 7 },
+        properties: { pixelSize: 250 },
+        fields: 'pixelSize'
+      }
+    }
+  ];
+
+  await sheetsApi.spreadsheets.batchUpdate({
+    spreadsheetId: SPREADSHEET_ID(),
+    requestBody: { requests }
+  });
+  return sheetId;
 }
 
 // ── Sync Functions ──
@@ -169,10 +264,12 @@ async function syncWeek(monday) {
  */
 async function rebuildDisplaySheet(monday, signups, weekCfg) {
   const sheetName = `Week_${monday}`;
-  const sheetId = await getSheetId(sheetName);
-  if (sheetId === null) return; // Display sheet doesn't exist yet
-
   const config_ = weekCfg ? weekCfg.config : buildDefaultConfig(monday);
+
+  let sheetId = await getSheetId(sheetName);
+  if (sheetId === null) {
+    sheetId = await createDisplaySheet(sheetName, config_);
+  }
 
   // Group signups by day
   const byDay = {};
@@ -193,6 +290,9 @@ async function rebuildDisplaySheet(monday, signups, weekCfg) {
       fields: 'userEnteredValue,userEnteredFormat'
     }
   });
+
+  // Update header rows 3-7 with current config values
+  requests.push(...buildHeaderValueRequests(sheetId, config_));
 
   // Update headcounts in row 8 (index 7)
   for (let dayIdx = 0; dayIdx < 5; dayIdx++) {
@@ -352,6 +452,9 @@ function buildCell(text, fmt = {}) {
   if (fmt.strikethrough) {
     f.textFormat = { ...f.textFormat, strikethrough: true };
   }
+  if (fmt.wrap) {
+    f.wrapStrategy = 'WRAP';
+  }
   return cell;
 }
 
@@ -395,7 +498,36 @@ async function syncEventSignups(eventId) {
   await updateValues(`${sheetName}!A1`, [...header, ...rows]);
 }
 
+async function syncDeleteEventSheet(eventId) {
+  if (!isConfigured()) return;
+  const sheetName = `Event_${eventId}`;
+  const sheetId = await getSheetId(sheetName);
+  if (sheetId === null) return;
+  await sheetsApi.spreadsheets.batchUpdate({
+    spreadsheetId: SPREADSHEET_ID(),
+    requestBody: {
+      requests: [{ deleteSheet: { sheetId } }]
+    }
+  });
+}
+
+// ── Claim tokens sync ──
+
+async function syncClaimTokens() {
+  if (!isConfigured()) return;
+  const tokens = await db('claim_tokens').select('*').orderBy('created_at');
+  await ensureSheet('ClaimTokens');
+  const header = [['token', 'monday', 'dayIdx', 'origName', 'time', 'recipientEmail', 'used', 'createdAt']];
+  const rows = tokens.map(t => [
+    t.token, t.monday, t.day_idx, t.orig_name, t.time,
+    t.recipient_email, t.used, t.created_at ? t.created_at.toISOString() : ''
+  ]);
+  await clearRange('ClaimTokens!A:H');
+  await updateValues('ClaimTokens!A1', [...header, ...rows]);
+}
+
 module.exports = {
   syncMembers, syncSettings, syncAccessRequests,
-  syncWeek, syncEvents, syncEventSignups
+  syncWeek, syncEvents, syncEventSignups,
+  syncDeleteEventSheet, syncClaimTokens
 };

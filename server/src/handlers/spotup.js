@@ -21,11 +21,12 @@ async function spotUp(monday, dayIndex, name, time) {
 
   sheetsSync.syncWeek(monday).catch(e => console.error('Sheets sync error (week):', e.message));
 
-  // Send email notifications
+  // Send email notifications (also creates claim tokens in DB)
   try {
     const weekCfg = await weeksDb.getConfig(monday);
     const config = weekCfg ? weekCfg.config : null;
     await emailService.sendSpotUpEmails(monday, dayIndex, name, timeNorm, config);
+    sheetsSync.syncClaimTokens().catch(e => console.error('Sheets sync error (claim tokens):', e.message));
   } catch (e) {
     console.error('Spot-up email error:', e.message);
   }

@@ -66,6 +66,7 @@ async function claimViaToken(token) {
       .update({ used: true });
 
     sheetsSync.syncWeek(monday).catch(e => console.error('Sheets sync error (claim):', e.message));
+    sheetsSync.syncClaimTokens().catch(e => console.error('Sheets sync error (claim tokens):', e.message));
 
     return { status: 'ok', claimerName, origName, monday, dayIdx };
   });

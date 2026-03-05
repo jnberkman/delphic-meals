@@ -67,6 +67,7 @@ async function deleteEvent(eventId) {
   const deleted = await eventsDb.remove(eventId);
   if (!deleted) return { error: 'Event not found' };
   sheetsSync.syncEvents().catch(e => console.error('Sheets sync error (events):', e.message));
+  sheetsSync.syncDeleteEventSheet(eventId).catch(e => console.error('Sheets sync error (delete event sheet):', e.message));
   return { status: 'ok' };
 }
 

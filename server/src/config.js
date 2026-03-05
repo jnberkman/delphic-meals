@@ -1,0 +1,22 @@
+require('dotenv').config();
+
+module.exports = {
+  port: process.env.PORT || 3000,
+  nodeEnv: process.env.NODE_ENV || 'development',
+  databaseUrl: process.env.DATABASE_URL,
+  frontendUrl: process.env.FRONTEND_URL || 'https://rmeek-robot.github.io',
+  backendUrl: process.env.BACKEND_URL || 'http://localhost:3000',
+
+  // Google Sheets sync
+  googleServiceAccountKey: process.env.GOOGLE_SERVICE_ACCOUNT_KEY || '',
+  googleSpreadsheetId: process.env.GOOGLE_SPREADSHEET_ID || '',
+
+  // Email
+  smtp: {
+    host: process.env.SMTP_HOST || '',
+    port: parseInt(process.env.SMTP_PORT || '465', 10),
+    user: process.env.SMTP_USER || '',
+    pass: process.env.SMTP_PASS || ''
+  },
+  emailFrom: process.env.EMAIL_FROM || 'Delphic Club <noreply@delphicclub.com>'
+};

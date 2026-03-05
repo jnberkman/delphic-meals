@@ -807,11 +807,12 @@
 
 <script>
 // =============================================
-//  HARDCODED APPS SCRIPT URL
+//  BACKEND API URL
 //  This is the single source of truth.
 //  Every visitor (any browser, incognito, any device) uses this same URL.
 //  To change it, update this line and re-upload to GitHub.
 // =============================================
+// TODO: Replace with your Railway deployment URL (e.g. 'https://delphic-meals-api-production.up.railway.app')
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz9cIYGawV81WL26gK6Sq66tGgUZ29v6iMZjMC1wstX40nTdm98-2oPJ8zWTeiXa1Gxiw/exec';
 
 // =============================================
@@ -1245,15 +1246,26 @@ function saveCaps() {
 }
 
 // =============================================
-//  GOOGLE SHEETS API (via Apps Script)
+//  API LAYER
 // =============================================
 async function apiCall(action, data = {}) {
   try {
-    const payload = encodeURIComponent(JSON.stringify({ action, ...data }));
-    const resp = await fetch(SCRIPT_URL + '?payload=' + payload, {
-      method: 'GET',
-      redirect: 'follow'
-    });
+    // Detect whether backend is Express (has /api path) or Apps Script (legacy GET)
+    const isExpress = !SCRIPT_URL.includes('script.google.com');
+    let resp;
+    if (isExpress) {
+      resp = await fetch(SCRIPT_URL + '/api', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, ...data })
+      });
+    } else {
+      const payload = encodeURIComponent(JSON.stringify({ action, ...data }));
+      resp = await fetch(SCRIPT_URL + '?payload=' + payload, {
+        method: 'GET',
+        redirect: 'follow'
+      });
+    }
     const text = await resp.text();
     let result;
     try { result = JSON.parse(text); } catch(pe) {

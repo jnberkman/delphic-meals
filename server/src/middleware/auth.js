@@ -1,6 +1,7 @@
 const { OAuth2Client } = require('google-auth-library');
 
-const GOOGLE_CLIENT_ID = '343675266881-9qqpec1ftisitj7lhdffmbpooljub4t5.apps.googleusercontent.com';
+const config = require('../config');
+const GOOGLE_CLIENT_ID = config.googleClientId;
 const client = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 // Actions that require no authentication

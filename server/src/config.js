@@ -21,5 +21,8 @@ module.exports = {
   emailFrom: process.env.EMAIL_FROM || 'Delphic Club <noreply@delphicclub.com>',
 
   // Guest access code
-  accessCode: process.env.ACCESS_CODE || ''
+  accessCode: process.env.ACCESS_CODE || '',
+
+  // Google OAuth client ID (must match frontend)
+  googleClientId: process.env.GOOGLE_CLIENT_ID || '343675266881-9qqpec1ftisitj7lhdffmbpooljub4t5.apps.googleusercontent.com'
 };

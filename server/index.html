@@ -151,6 +151,8 @@
   .tag-red { background: #B1424212; color: var(--red); }
 
   .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(0,0,0,.15); border-top-color: var(--accent); border-radius: 50%; animation: spin .6s linear infinite; }
+  .spinner-sm { width: 14px; height: 14px; border-width: 2px; }
+  .spinner-lg { width: 22px; height: 22px; border-width: 3px; }
   .btn-primary .spinner { border-color: rgba(0,0,0,.18); border-top-color: rgba(0,0,0,.65); }
   .btn-primary:disabled { opacity: .75; cursor: not-allowed; }
   @keyframes spin { to { transform: rotate(360deg); } }
@@ -383,7 +385,7 @@
 <!-- App-level loading screen (shown until session check completes) -->
 <div id="appLoading">
   <div class="app-loading-logo">Delphic Club<br>Meal Sign-Ups</div>
-  <div class="spinner" style="width:22px;height:22px;border-width:3px;border-top-color:var(--accent);border-color:rgba(0,0,0,.12);border-top-color:var(--accent);"></div>
+  <div class="spinner spinner-lg"></div>
   <div class="app-loading-sub">Loading&hellip;</div>
 </div>
 
@@ -483,7 +485,7 @@
         </div>
         <div style="text-align:right;margin-top:4px;"><a href="#" onclick="document.getElementById('weekSelect').value=getSignupMonday();loadWeekData();return false;" style="font-family:'Crimson Pro',serif;font-size:13px;font-style:italic;color:var(--accent);text-decoration:none;border-bottom:1px solid transparent;transition:border-color .15s;" onmouseover="this.style.borderBottomColor='var(--accent)'" onmouseout="this.style.borderBottomColor='transparent'">This week</a></div>
       </div>
-      <div id="loadingDays" style="display:none;text-align:center;padding:24px;color:var(--text-dim);"><div class="spinner"></div> Loading meals...</div>
+      <div id="loadingDays" style="display:none;text-align:center;padding:24px;color:var(--text-dim);" aria-live="polite"><div class="spinner"></div><div style="margin-top:10px;font-family:'Crimson Pro',serif;font-size:14px;font-style:italic;">Loading meals&hellip;</div></div>
       <div id="mySignupsSummary"></div>
       <div id="dayCards" class="day-grid"></div>
     </div>
@@ -524,7 +526,7 @@
       <div id="viewDayLabel" style="flex:1;text-align:center;font-family:'Cormorant Garamond',serif;font-size:19px;font-weight:600;color:var(--text-bright);"></div>
       <button id="viewNextDay" class="btn btn-secondary" style="width:auto;padding:8px 14px;font-size:16px;" onclick="changeViewDay(1)">&#8594;</button>
     </div>
-    <div id="viewLoading" style="display:none;text-align:center;padding:24px;color:var(--text-dim);"><div class="spinner"></div> Loading signups...</div>
+    <div id="viewLoading" style="display:none;text-align:center;padding:24px;color:var(--text-dim);" aria-live="polite"><div class="spinner"></div><div style="margin-top:10px;font-family:'Crimson Pro',serif;font-size:14px;font-style:italic;">Loading signups&hellip;</div></div>
     <div id="viewContent"></div>
   </div>
 
@@ -542,7 +544,7 @@
         </div>
       </div>
     </div>
-    <div id="calLoading" style="display:none;text-align:center;padding:24px;color:var(--text-dim);"><div class="spinner"></div> Loading...</div>
+    <div id="calLoading" style="display:none;text-align:center;padding:24px;color:var(--text-dim);" aria-live="polite"><div class="spinner"></div><div style="margin-top:10px;font-family:'Crimson Pro',serif;font-size:14px;font-style:italic;">Loading calendar&hellip;</div></div>
     <div id="calendarGrid"></div>
     <div id="calEventsList" style="margin-top:24px;"></div>
   </div>
@@ -550,7 +552,7 @@
   <!-- ========== EVENTS ========== -->
   <!-- ========== EVENTS (hidden) ========== -->
   <div id="tab-events" class="section" style="display:none!important;">
-    <div id="eventsLoading" style="display:none;text-align:center;padding:24px;color:var(--text-dim);"><div class="spinner"></div> Loading events...</div>
+    <div id="eventsLoading" style="display:none;text-align:center;padding:24px;color:var(--text-dim);" aria-live="polite"><div class="spinner"></div><div style="margin-top:10px;font-family:'Crimson Pro',serif;font-size:14px;font-style:italic;">Loading events&hellip;</div></div>
     <div id="eventsList"></div>
   </div>
 
@@ -1281,11 +1283,11 @@ async function apiCall(action, data = {}) {
       console.error('Non-JSON response:', text.substring(0, 300));
       throw new Error('Server returned invalid response');
     }
-    if (result.error) { showToast('Error: ' + result.error, 'var(--red)'); throw new Error(result.error); }
+    if (result.error) { showToast('Error: ' + result.error, 'var(--red)'); const err = new Error(result.error); err._toastShown = true; throw err; }
     return result;
   } catch (e) {
     console.error('API error:', e);
-    showToast('Connection error — try refreshing the page', 'var(--red)');
+    if (!e._toastShown) showToast('Connection error — try refreshing the page', 'var(--red)');
     throw e;
   }
 }
@@ -1440,7 +1442,7 @@ function renderDayCards() {
       '<div class="day-spots ' + spotsClass + '">' + spotsText + '</div>' +
     '</div>';
   });
-  document.getElementById('dayCards').innerHTML = html || '<div class="info-banner">No meals configured for this week.</div>';
+  document.getElementById('dayCards').innerHTML = html || '<div class="info-banner">No meals configured for this week. Try selecting a different week.</div>';
   renderMySignupsSummary();
 }
 
@@ -1546,7 +1548,7 @@ async function submitSignup() {
 
   const btn = document.getElementById('submitBtn');
   btn.disabled = true;
-  btn.innerHTML = '<div class="spinner"></div> Submitting...';
+  btn.innerHTML = '<span class="spinner spinner-sm"></span> Submitting...';
 
   const entries = [];
   for (const dayIdx of selectedDays) {
@@ -1619,7 +1621,7 @@ function _applyViewData(data, preserveIdx) {
     .filter(d => d.day.enabled);
 
   if (newEnabled.length === 0) {
-    document.getElementById('viewContent').innerHTML = '<div class="info-banner">No meals configured for this week.</div>';
+    document.getElementById('viewContent').innerHTML = '<div class="info-banner">No meals configured for this week. Try selecting a different week.</div>';
     nav.style.display = 'none';
     viewEnabledDays = [];
     return;
@@ -1652,7 +1654,7 @@ async function loadViewData() {
   const weekInput = document.getElementById('viewWeekSelect').value;
   const nav = document.getElementById('viewDayNav');
   if (!weekInput) {
-    document.getElementById('viewContent').innerHTML = '<div class="info-banner">Select a week to view signups.</div>';
+    document.getElementById('viewContent').innerHTML = '<div class="info-banner">Select a week above to view signups.</div>';
     nav.style.display = 'none';
     return;
   }
@@ -1724,7 +1726,7 @@ function renderViewDay(idx) {
   if (day.menu) html += '<div class="menu-display"><strong>Menu:</strong> ' + day.menu + '</div>';
 
   if (sups.length === 0) {
-    html += '<div style="color:var(--text-dim);font-size:13px;padding:12px 0;">No signups yet.</div>';
+    html += '<div style="color:var(--text-dim);font-size:13px;padding:12px 0;">No signups yet \u2014 be the first!</div>';
   } else {
     times.forEach(slot => {
       const slotLabel = slot === '12:00 PM' ? '12:00\u20131:00 PM' : slot === '1:00 PM' ? '1:00\u20132:00 PM' : slot;
@@ -2687,7 +2689,7 @@ async function loadAccessRequests() {
     card.style.display = '';
     if (requests.length === 0) {
       badge.style.display = 'none';
-      list.innerHTML = '<div style="color:var(--text-dim);font-size:13px;padding:8px 0;">No pending requests.</div>';
+      list.innerHTML = '<div style="color:var(--text-dim);font-size:13px;padding:8px 0;">No pending access requests. All caught up!</div>';
       return;
     }
     badge.textContent = requests.length;
@@ -2782,7 +2784,7 @@ async function loadAdminEvents() {
     const events = (result.events || []).sort((a, b) => new Date(a.date) - new Date(b.date));
     let html = '';
     events.forEach(evt => { html += _adminEventRowHtml(evt); });
-    if (events.length === 0) html = '<div style="color:var(--text-dim);font-size:13px;padding:8px 0;font-style:italic;">No events created yet.</div>';
+    if (events.length === 0) html = '<div style="color:var(--text-dim);font-size:13px;padding:8px 0;font-style:italic;">No events yet. Use the form below to create one.</div>';
     document.getElementById('adminEventsList').innerHTML = html;
   } catch (e) {}
 }
@@ -3525,7 +3527,7 @@ async function submitMooseMeal() {
   };
 
   const btn = document.getElementById('mooseMealBtn');
-  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner" style="width:14px;height:14px;border-width:2px;display:inline-block;margin-right:6px;"></span>Signing up&hellip;'; }
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner spinner-sm" style="margin-right:6px;"></span>Signing up&hellip;'; }
 
   try {
     const wCaps = (weekData.caps) || {};
@@ -3661,7 +3663,7 @@ async function submitMooseInk(eventId) {
     return;
   }
   const btn = document.getElementById('mooseEvtBtn');
-  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner" style="width:14px;height:14px;border-width:2px;display:inline-block;margin-right:6px;"></span>Submitting\u2026'; }
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner spinner-sm" style="margin-right:6px;"></span>Submitting\u2026'; }
 
   const signup = {
     name,

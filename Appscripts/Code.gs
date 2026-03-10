@@ -887,46 +887,53 @@ function getWeek(monday) {
 }
 
 function addSignups(monday, entries, caps) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheetName = 'Week_' + monday;
-  var sheet = ss.getSheetByName(sheetName);
-  if (!sheet) sheet = createWeekSheet(ss, monday, buildDefaultConfig(monday), caps, "");
-  var existing = readSheetData(sheet, monday);
-  var added = 0, updated = 0, full = 0;
-  if (existing.freezeDate) {
-    if (Date.now() > new Date(existing.freezeDate).getTime()) return { added: 0, duplicates: 0, full: 0, error: 'Sign-ups are closed for this week' };
-  }
-  var capSlot12 = caps.slot12 || 50, capSlot1 = caps.slot1 || 50, capDinner = caps.dinner || 50;
-  entries.forEach(function(entry) {
-    var dayIdx = entry.dayIndex;
-    var daySups = existing.signups[dayIdx] || [];
-    var dataSheet = ss.getSheetByName(sheetName + '_data');
-    if (dataSheet && dataSheet.getLastRow() > 1) {
-      var rows = dataSheet.getDataRange().getValues();
-      for (var r = rows.length - 1; r >= 1; r--) {
-        if (rows[r][0] == dayIdx && rows[r][1].toString().toLowerCase() === entry.name.toLowerCase()) {
-          dataSheet.deleteRow(r + 1);
-          daySups = daySups.filter(function(s) { return s.name.toLowerCase() !== entry.name.toLowerCase(); });
-          existing.signups[dayIdx] = daySups;
-          updated++;
-          break;
+  // Acquire a script-level lock to prevent concurrent submissions (e.g. two tabs)
+  // from both passing the duplicate check and writing two rows for the same person/day.
+  var lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheetName = 'Week_' + monday;
+    var sheet = ss.getSheetByName(sheetName);
+    if (!sheet) sheet = createWeekSheet(ss, monday, buildDefaultConfig(monday), caps, "");
+    var existing = readSheetData(sheet, monday);
+    var added = 0, updated = 0, full = 0;
+    if (existing.freezeDate) {
+      if (Date.now() > new Date(existing.freezeDate).getTime()) return { added: 0, duplicates: 0, full: 0, error: 'Sign-ups are closed for this week' };
+    }
+    var capSlot12 = caps.slot12 || 50, capSlot1 = caps.slot1 || 50, capDinner = caps.dinner || 50;
+    entries.forEach(function(entry) {
+      var dayIdx = entry.dayIndex;
+      var daySups = existing.signups[dayIdx] || [];
+      var dataSheet = ss.getSheetByName(sheetName + '_data');
+      if (dataSheet && dataSheet.getLastRow() > 1) {
+        var rows = dataSheet.getDataRange().getValues();
+        for (var r = rows.length - 1; r >= 1; r--) {
+          if (rows[r][0] == dayIdx && rows[r][1].toString().toLowerCase() === entry.name.toLowerCase()) {
+            dataSheet.deleteRow(r + 1);
+            daySups = daySups.filter(function(s) { return s.name.toLowerCase() !== entry.name.toLowerCase(); });
+            existing.signups[dayIdx] = daySups;
+            updated++;
+            break;
+          }
         }
       }
-    }
-    var timeStr = normalizeTime(entry.time);
-    var timeCount = daySups.filter(function(s) { return normalizeTime(s.time) === timeStr; }).length;
-    var cap = capSlot12;
-    if (timeStr === '1:00 PM') cap = capSlot1;
-    else if (timeStr === '7:30 PM') cap = capDinner;
-    if (timeCount >= cap) { full++; return; }
-    // *** BUG FIX: was "dayIndex" (undefined), now correctly "dayIdx" ***
-    appendSignupToData(ss, monday, dayIdx, entry);
-    if (!existing.signups[dayIdx]) existing.signups[dayIdx] = [];
-    existing.signups[dayIdx].push(entry);
-    added++;
-  });
-  rebuildDisplaySheet(sheet, monday);
-  return { added: added, updated: updated, full: full };
+      var timeStr = normalizeTime(entry.time);
+      var timeCount = daySups.filter(function(s) { return normalizeTime(s.time) === timeStr; }).length;
+      // Use dinner cap for any dinner-meal day (not just hardcoded '7:30 PM')
+      var isDinner = existing.config && existing.config[dayIdx] && existing.config[dayIdx].meal === 'Dinner';
+      var cap = isDinner ? capDinner : (timeStr === '1:00 PM' ? capSlot1 : capSlot12);
+      if (timeCount >= cap) { full++; return; }
+      appendSignupToData(ss, monday, dayIdx, entry);
+      if (!existing.signups[dayIdx]) existing.signups[dayIdx] = [];
+      existing.signups[dayIdx].push(entry);
+      added++;
+    });
+    rebuildDisplaySheet(sheet, monday);
+    return { added: added, updated: updated, full: full };
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 function removeSignup(monday, dayIndex, name, time) {

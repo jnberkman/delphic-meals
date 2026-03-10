@@ -16,6 +16,9 @@ app.use('/health', require('./routes/health'));
 app.get('/', (req, res) => {
   res.sendFile(path.resolve(__dirname, '../index.html'));
 });
+app.get('/favicon.ico', (req, res) => {
+  res.sendFile(path.resolve(__dirname, '../favicon.ico'));
+});
 
 app.use(require('./middleware/errorHandler'));
 

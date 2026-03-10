@@ -8,7 +8,7 @@ const app = express();
 app.use(require('./middleware/cors'));
 app.use(express.json({ limit: '1mb' }));
 
-app.use('/api', require('./routes/api'));
+app.use('/api', require('./middleware/auth'), require('./routes/api'));
 app.use('/claim', require('./routes/claim'));
 app.use('/health', require('./routes/health'));
 

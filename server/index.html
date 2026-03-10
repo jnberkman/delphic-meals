@@ -844,7 +844,7 @@ if (isInAppBrowser()) {
   if (gsi) gsi.style.display = 'none';
 }
 
-const GOOGLE_CLIENT_ID = '1069648806215-40s3q129olr1dmohnhfeb4g1gpnmrlbh.apps.googleusercontent.com';
+const GOOGLE_CLIENT_ID = '343675266881-9qqpec1ftisitj7lhdffmbpooljub4t5.apps.googleusercontent.com';
 
 // Redirect-based Google sign-in — no popup, works on all mobile browsers.
 // Returns the ID token in the URL fragment (#id_token=...) which is never
@@ -884,6 +884,7 @@ async function _handleGoogleRedirectReturn() {
       return false;
     }
   } catch(e) { return false; }
+  sessionStorage.setItem('delphic_id_token', idToken);
   await handleGoogleSignIn({ credential: idToken });
   return true;
 }
@@ -1258,9 +1259,12 @@ async function apiCall(action, data = {}) {
     const isExpress = !SCRIPT_URL.includes('script.google.com');
     let resp;
     if (isExpress) {
+      const headers = { 'Content-Type': 'application/json' };
+      const idToken = sessionStorage.getItem('delphic_id_token');
+      if (idToken) headers['Authorization'] = 'Bearer ' + idToken;
       resp = await fetch(SCRIPT_URL + '/api', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ action, ...data })
       });
     } else {

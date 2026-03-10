@@ -183,40 +183,10 @@ async function createDisplaySheet(sheetName, config_) {
 
 // ── Sync Functions ──
 
-async function syncMembers() {
-  if (!isConfigured()) return;
-  const members = await db('members').select('*').orderBy('id');
-  const sheetId = await ensureSheet('Members');
-  const header = [['email', 'isAdmin', 'name', 'notifyEmail']];
-  const rows = members.map(m => [m.email, m.is_admin, m.name || '', m.notify_email]);
-  await clearRange('Members!A:D');
-  await updateValues('Members!A1', [...header, ...rows]);
-}
-
-async function syncSettings() {
-  if (!isConfigured()) return;
-  const settings = await db('settings').select('*');
-  const sheetId = await ensureSheet('Settings');
-  const header = [['key', 'value']];
-  const rows = settings.map(s => [s.key, s.value]);
-  await clearRange('Settings!A:B');
-  await updateValues('Settings!A1', [...header, ...rows]);
-}
-
-async function syncAccessRequests() {
-  if (!isConfigured()) return;
-  const requests = await db('access_requests').select('*').orderBy('requested_at');
-  const sheetId = await ensureSheet('AccessRequests');
-  const header = [['email', 'name', 'requestedAt', 'status']];
-  const rows = requests.map(r => [
-    r.email,
-    r.name || '',
-    r.requested_at ? r.requested_at.toISOString() : '',
-    r.status
-  ]);
-  await clearRange('AccessRequests!A:D');
-  await updateValues('AccessRequests!A1', [...header, ...rows]);
-}
+// No-ops: only the chef-facing Week display sheet is synced
+async function syncMembers() {}
+async function syncSettings() {}
+async function syncAccessRequests() {}
 
 /**
  * Sync week data and rebuild the display sheet.
@@ -469,62 +439,15 @@ function hexToRgb(hex) {
 
 // ── Events sync ──
 
-async function syncEvents() {
-  if (!isConfigured()) return;
-  const events = await db('events').select('*').orderBy('date');
-  await ensureSheet('Events');
-  const header = [['eventId', 'title', 'date', 'time', 'location', 'description', 'capacity', 'collectGradYear', 'collectDiet', 'freezeDate', 'interestOnly']];
-  const rows = events.map(e => [
-    e.event_id, e.title || '', e.date || '', e.time || '', e.location || '',
-    e.description || '', e.capacity || 0, e.collect_grad_year, e.collect_diet,
-    e.freeze_date || '', e.interest_only
-  ]);
-  await clearRange('Events!A:K');
-  await updateValues('Events!A1', [...header, ...rows]);
-}
-
-async function syncEventSignups(eventId) {
-  if (!isConfigured()) return;
-  const sheetName = `Event_${eventId}`;
-  await ensureSheet(sheetName);
-  const signups = await db('event_signups').where('event_id', eventId).orderBy('id');
-  const header = [['name', 'gradYear', 'diet', 'allergies', 'notes', 'timestamp', 'guests', 'inkType']];
-  const rows = signups.map(s => [
-    s.name || '', s.grad_year || '', s.diet || '', s.allergies || '',
-    s.notes || '', s.timestamp ? s.timestamp.toISOString() : '',
-    s.guests || '', s.ink_type || 'ink'
-  ]);
-  await clearRange(`${sheetName}!A:H`);
-  await updateValues(`${sheetName}!A1`, [...header, ...rows]);
-}
-
-async function syncDeleteEventSheet(eventId) {
-  if (!isConfigured()) return;
-  const sheetName = `Event_${eventId}`;
-  const sheetId = await getSheetId(sheetName);
-  if (sheetId === null) return;
-  await sheetsApi.spreadsheets.batchUpdate({
-    spreadsheetId: SPREADSHEET_ID(),
-    requestBody: {
-      requests: [{ deleteSheet: { sheetId } }]
-    }
-  });
-}
+// No-ops: only the chef-facing Week display sheet is synced
+async function syncEvents() {}
+async function syncEventSignups(eventId) {}
+async function syncDeleteEventSheet(eventId) {}
 
 // ── Claim tokens sync ──
 
-async function syncClaimTokens() {
-  if (!isConfigured()) return;
-  const tokens = await db('claim_tokens').select('*').orderBy('created_at');
-  await ensureSheet('ClaimTokens');
-  const header = [['token', 'monday', 'dayIdx', 'origName', 'time', 'recipientEmail', 'used', 'createdAt']];
-  const rows = tokens.map(t => [
-    t.token, t.monday, t.day_idx, t.orig_name, t.time,
-    t.recipient_email, t.used, t.created_at ? t.created_at.toISOString() : ''
-  ]);
-  await clearRange('ClaimTokens!A:H');
-  await updateValues('ClaimTokens!A1', [...header, ...rows]);
-}
+// No-op: only the chef-facing Week display sheet is synced
+async function syncClaimTokens() {}
 
 module.exports = {
   syncMembers, syncSettings, syncAccessRequests,

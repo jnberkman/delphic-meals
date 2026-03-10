@@ -891,7 +891,6 @@ async function _handleGoogleRedirectReturn() {
 let currentUser = null;
 let pendingEmail = null;
 let pendingName = null;
-const ACCESS_CODE = 'Linden';
 
 function grantAccess(user) {
   currentUser = user;
@@ -975,13 +974,19 @@ async function submitAccessRequest() {
   }
 }
 
-function submitAccessCode() {
+async function submitAccessCode() {
   const code = document.getElementById('accessCodeInput').value.trim();
   const errEl = document.getElementById('signinError');
-  if (code === ACCESS_CODE) {
-    grantAccess({ name: '', isAdmin: false, guest: true });
-  } else {
-    errEl.textContent = 'Incorrect access code.';
+  try {
+    const result = await apiCall('checkAccessCode', { code });
+    if (result.valid) {
+      grantAccess({ name: '', isAdmin: false, guest: true });
+    } else {
+      errEl.textContent = 'Incorrect access code.';
+      errEl.style.display = 'block';
+    }
+  } catch (e) {
+    errEl.textContent = 'Could not verify code — try again.';
     errEl.style.display = 'block';
   }
 }

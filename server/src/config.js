@@ -18,5 +18,8 @@ module.exports = {
     user: process.env.SMTP_USER || '',
     pass: process.env.SMTP_PASS || ''
   },
-  emailFrom: process.env.EMAIL_FROM || 'Delphic Club <noreply@delphicclub.com>'
+  emailFrom: process.env.EMAIL_FROM || 'Delphic Club <noreply@delphicclub.com>',
+
+  // Guest access code
+  accessCode: process.env.ACCESS_CODE || ''
 };

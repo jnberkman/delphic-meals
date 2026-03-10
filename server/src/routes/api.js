@@ -8,8 +8,11 @@ const accessHandler = require('../handlers/access');
 const settingsHandler = require('../handlers/settings');
 const eventsHandler = require('../handlers/events');
 
+const config = require('../config');
+
 const handlers = {
   ping:               () => ({ status: 'ok' }),
+  checkAccessCode:    (d) => ({ valid: !!(config.accessCode && d.code === config.accessCode) }),
   // Meals
   getWeek:            (d) => mealsHandler.getWeek(d.monday),
   addSignups:         (d) => mealsHandler.addSignups(d.monday, d.entries, d.caps || {}),

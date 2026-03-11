@@ -6,9 +6,11 @@ A meal sign-up web application for the Delphic Club. Members sign up for weekly 
 
 ## Architecture
 
-**Frontend**: Single-file static site (`server/index.html`, ~3700 lines) served by Express on **Railway** at `meals.delphicclub.org`. Contains all HTML, CSS, and vanilla JavaScript in one file — no build step, no framework, no bundler.
+**Frontend**: Single-file static site (`server/index.html`, ~3850 lines) served by Express on **Railway** at `meals.delphicclub.org`. Contains all HTML, CSS, and vanilla JavaScript in one file — no build step, no framework, no bundler.
 
 **Backend**: Node.js + Express + PostgreSQL (`server/`), deployed on **Railway**. 28 API actions. Syncs chef-facing week display sheets to Google Sheets (fire-and-forget, no-ops without credentials).
+
+**GroupMe Bot**: Posts spot-up notifications to the club GroupMe chat. Members reply "claim" to claim spots (first reply within 2 hours wins). Uses sender's real GroupMe name (not group nickname). Fire-and-forget — no-ops without `GROUPME_BOT_ID`.
 
 **Legacy backend**: Google Apps Script (`Appscripts/Code.gs`) — still exists but is no longer the active backend. `SCRIPT_URL` in the frontend points to Railway.
 
@@ -41,6 +43,7 @@ server/                     # Backend + frontend — Node.js + Express + Postgre
   .env.example              # Required environment variables
   migrations/
     001_initial_schema.js   # 8 tables: members, settings, access_requests, week_configs, signups, events, event_signups, claim_tokens
+    002_add_spotted_up_at.js # Add spotted_up_at timestamp to signups (for GroupMe 2-hour claim window)
   scripts/
     migrate-from-sheets.js  # One-time data import from Google Sheets to PostgreSQL
   src/
@@ -49,6 +52,7 @@ server/                     # Backend + frontend — Node.js + Express + Postgre
     routes/
       api.js                # Action-dispatch router (POST /api + GET /api?payload=)
       claim.js              # Email claim link handler (/claim?token=)
+      groupme.js            # GroupMe bot callback (POST /groupme/callback/:secret)
       health.js             # GET /health
     handlers/               # meals.js, spotup.js, members.js, access.js, settings.js, events.js
     db/
@@ -57,7 +61,8 @@ server/                     # Backend + frontend — Node.js + Express + Postgre
     services/
       email.js              # Nodemailer wrapper
       emailTemplates.js     # 3 HTML email templates (spot-up notify, claim, access request)
-      sheetsSync.js         # Fire-and-forget sync of chef-facing week sheets to Google Sheets
+      groupme.js            # GroupMe API wrapper (post messages, member name lookup)
+      sheetsSync.js         # Fire-and-forget sync of chef-facing week display sheets to Google Sheets
     utils/
       time.js               # Timezone helpers (America/New_York)
       weekHelpers.js        # Monday-date key utilities
@@ -85,7 +90,7 @@ server/                     # Backend + frontend — Node.js + Express + Postgre
 
 ### Backend — Express (server/)
 
-- **Entry point**: `server/src/index.js` — mounts `/api`, `/claim`, `/health` routes, serves frontend and favicon
+- **Entry point**: `server/src/index.js` — mounts `/api`, `/claim`, `/health`, `/groupme` routes, serves frontend and favicon
 - **Action dispatch**: `server/src/routes/api.js` maps `data.action` to handler functions (28 actions)
 - **Database**: PostgreSQL via Knex query builder. 8 tables defined in `server/migrations/001_initial_schema.js`
 - **Auth middleware**: `server/src/middleware/auth.js` — verifies Google `id_token` via `google-auth-library`. Public actions (ping, checkAccessCode, checkMember, requestAccess, getSettings, getWeek, getEvents) pass through. Admin actions require verified token + `is_admin` flag in members table
@@ -125,16 +130,20 @@ server/                     # Backend + frontend — Node.js + Express + Postgre
 | `EMAIL_FROM` | Sender address for emails |
 | `GOOGLE_SERVICE_ACCOUNT_KEY` | Optional — base64-encoded JSON key for Sheets sync |
 | `GOOGLE_SPREADSHEET_ID` | Optional — spreadsheet ID for Sheets sync |
+| `GROUPME_BOT_ID` | Optional — GroupMe bot ID for spot-up notifications |
+| `GROUPME_ACCESS_TOKEN` | Optional — GroupMe API token for member name lookup |
+| `GROUPME_GROUP_ID` | Optional — GroupMe group ID for member lookup |
+| `GROUPME_CALLBACK_SECRET` | Optional — secret in callback URL for GroupMe message validation |
 
 ## Important Notes
 
 - The entire frontend is a single HTML file — when making changes, be mindful of the file size and keep related code near existing patterns
 - Week data uses Monday dates as keys (ISO format: `YYYY-MM-DD`)
-- "Spot Up" = a member gives up their meal spot; others can claim it via in-app button or email link
+- "Spot Up" = a member gives up their meal spot; others can claim it via in-app button, email link, or GroupMe "claim" reply (3 claim methods, all use row-level locking)
 - "Ink" (formerly RSVP) = interest/attendance tracking on events
 - The Moose tab shows special events with calendar-style pills
 - Admin features are gated by `isAdmin` flag from the members table, enforced server-side
 - `interestOnly` admin setting controls whether events show full signup or just interest tracking
-- **Sheets sync constraint**: Do NOT modify the live Google Sheet directly — the sync service writes chef-facing week sheets as a mirror, not as a source of truth
+- **Sheets sync constraint**: Do NOT modify the live Google Sheet directly — the sync service only writes chef-facing display sheets (`Week_YYYY-MM-DD`). Postgres is the source of truth
 - **Data migration**: `server/scripts/migrate-from-sheets.js` imports existing data from Google Sheets to PostgreSQL (one-time, requires credentials)
 - **Constants shared with backend**: `DAYS`, `DEFAULT_MEALS`, `CATEGORIES` are duplicated in both `index.html` and `Code.gs` — keep them in sync if modifying the legacy backend

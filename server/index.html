@@ -877,6 +877,7 @@ async function _handleGoogleRedirectReturn() {
     }
   } catch(e) { return false; }
   sessionStorage.setItem('delphic_id_token', idToken);
+  localStorage.setItem('delphic_id_token', idToken);
   await handleGoogleSignIn({ credential: idToken });
   return true;
 }
@@ -896,6 +897,9 @@ function grantAccess(user) {
     } catch(e) {}
   }
   sessionStorage.setItem('delphic_user', JSON.stringify(currentUser));
+  if (!currentUser.guest && !currentUser.openAccess) {
+    localStorage.setItem('delphic_user', JSON.stringify(currentUser));
+  }
   document.getElementById('signinOverlay').style.display = 'none';
   restorePreferences();
   if (currentUser.name) prefillName(currentUser.name);
@@ -1032,14 +1036,59 @@ function restorePreferences() {
 }
 
 // ── Open Access & Session Restore ──
+
+function _isTokenValid(token) {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.exp && payload.exp * 1000 > Date.now() + 60000; // 1 min buffer
+  } catch(e) { return false; }
+}
+
+function _silentReauth() {
+  const nonce = crypto.getRandomValues(new Uint32Array(4)).join('');
+  sessionStorage.setItem('google_nonce', nonce);
+  sessionStorage.setItem('delphic_silent_reauth', '1');
+  const redirectUri = location.origin + location.pathname;
+  const params = new URLSearchParams({
+    client_id: GOOGLE_CLIENT_ID,
+    redirect_uri: redirectUri,
+    response_type: 'id_token',
+    scope: 'openid email profile',
+    nonce: nonce,
+    prompt: 'none',
+  });
+  location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + params;
+}
+
+function clearPersistedSession() {
+  localStorage.removeItem('delphic_id_token');
+  localStorage.removeItem('delphic_user');
+  sessionStorage.removeItem('delphic_id_token');
+  sessionStorage.removeItem('delphic_user');
+  sessionStorage.removeItem('delphic_access_code');
+}
+
 (async function() {
   try {
+    // Handle silent re-auth failure (Google redirects back with #error=)
+    if (location.hash && sessionStorage.getItem('delphic_silent_reauth')) {
+      sessionStorage.removeItem('delphic_silent_reauth');
+      const params = new URLSearchParams(location.hash.slice(1));
+      if (params.get('error')) {
+        history.replaceState(null, '', location.pathname);
+        clearPersistedSession();
+        // Fall through to open access / sign-in screen
+      }
+    }
+    sessionStorage.removeItem('delphic_silent_reauth');
+
     // Handle return from Google OAuth redirect (loading overlay stays up during API call)
     if (await _handleGoogleRedirectReturn()) return;
 
     // Check if already signed in this session
     const stored = sessionStorage.getItem('delphic_user');
-    if (stored) {
+    const sessionToken = sessionStorage.getItem('delphic_id_token');
+    if (stored && sessionToken && _isTokenValid(sessionToken)) {
       currentUser = JSON.parse(stored);
       document.getElementById('signinOverlay').style.display = 'none';
       restorePreferences();
@@ -1049,6 +1098,29 @@ function restorePreferences() {
       }
       return;
     }
+
+    // Try restoring from localStorage (persisted across tabs/sessions)
+    const persistedToken = localStorage.getItem('delphic_id_token');
+    const persistedUser = localStorage.getItem('delphic_user');
+    if (persistedToken && persistedUser) {
+      if (_isTokenValid(persistedToken)) {
+        // Token still valid — restore session
+        sessionStorage.setItem('delphic_id_token', persistedToken);
+        sessionStorage.setItem('delphic_user', persistedUser);
+        currentUser = JSON.parse(persistedUser);
+        document.getElementById('signinOverlay').style.display = 'none';
+        restorePreferences();
+        if (currentUser.name) prefillName(currentUser.name);
+        if (currentUser.isAdmin) {
+          document.getElementById('adminTabBtn').style.display = '';
+        }
+        return;
+      }
+      // Token expired — attempt silent re-auth
+      _silentReauth();
+      return; // page will redirect
+    }
+
     // Check open access setting (cached 5 min)
     let settings = getCache('settings');
     if (!settings) {

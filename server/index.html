@@ -122,7 +122,7 @@
   .btn-secondary:hover { border-color: var(--border-light); background: var(--surface2); }
   .btn:disabled { opacity: .35; cursor: not-allowed; }
 
-  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--green); color: #fff; padding: 12px 24px; border-radius: 3px; font-weight: 500; font-size: 13px; z-index: 999; transition: transform .4s cubic-bezier(.36,.66,.04,1); pointer-events: none; white-space: nowrap; }
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--green); color: #fff; padding: 12px 24px; border-radius: 3px; font-weight: 500; font-size: 13px; z-index: 999; transition: transform .4s cubic-bezier(.36,.66,.04,1); pointer-events: none; white-space: nowrap; max-width: calc(100vw - 32px); overflow: hidden; text-overflow: ellipsis; }
   .toast.show { transform: translateX(-50%) translateY(0); pointer-events: auto; }
   .toast-undo { background: none; border: 1px solid rgba(255,255,255,.5); color: #fff; font-family: 'Jost', sans-serif; font-size: 11px; font-weight: 500; letter-spacing: .5px; padding: 3px 10px; border-radius: 2px; cursor: pointer; margin-left: 14px; vertical-align: middle; transition: background .15s; }
   .toast-undo:hover { background: rgba(255,255,255,.15); }
@@ -157,12 +157,6 @@
   .btn-primary:disabled { opacity: .75; cursor: not-allowed; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  .connection-status { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 4px; font-size: 12px; font-weight: 500; letter-spacing: .5px; margin-bottom: 20px; }
-  .connection-status.connected { background: #3D7A4E10; color: var(--green); border: 1px solid #3D7A4E25; }
-  .connection-status.disconnected { background: #B1424210; color: var(--red); border: 1px solid #B1424225; }
-  .status-dot { width: 6px; height: 6px; border-radius: 50%; }
-  .connected .status-dot { background: var(--green); }
-  .disconnected .status-dot { background: var(--red); }
 
   /* Calendar */
   .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-bottom: 8px; }
@@ -236,7 +230,7 @@
   .app-loading-logo { font-family: 'Cormorant Garamond', serif; font-size: 38px; font-weight: 600; color: var(--text-bright); line-height: 1.1; text-align: center; }
   .app-loading-sub { font-family: 'Crimson Pro', serif; font-size: 13px; color: var(--text-dim); font-style: italic; }
   /* Sign-in overlay */
-  .signin-overlay { position: fixed; inset: 0; background: var(--bg); z-index: 2000; display: flex; align-items: center; justify-content: center; overflow-y: auto; }
+  .signin-overlay { position: fixed; inset: 0; background: var(--bg); z-index: 2000; display: flex; align-items: safe center; justify-content: center; overflow-y: auto; }
   .signin-modal { text-align: center; padding: 48px 40px; max-width: 400px; width: 90%; }
   .signin-logo { font-family: 'Cormorant Garamond', serif; font-size: 42px; font-weight: 600; color: var(--text-bright); margin-bottom: 12px; line-height: 1.1; }
   .signin-sub { font-family: 'Crimson Pro', serif; font-size: 15px; color: var(--text-dim); font-style: italic; margin-bottom: 32px; line-height: 1.5; }
@@ -252,7 +246,7 @@
   .inapp-warn-steps { font-family: 'Jost', sans-serif; font-size: 12px; font-weight: 500; color: #5A3D00; background: #FFE88A; border-radius: 4px; padding: 8px 12px; margin-top: 10px; text-align: center; letter-spacing: .2px; }
 
   /* Admin inner nav */
-  .admin-nav { display: flex; gap: 2px; margin-bottom: 20px; border-bottom: 2px solid var(--border); }
+  .admin-nav { display: flex; gap: 2px; margin-bottom: 20px; border-bottom: 2px solid var(--border); overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .admin-nav-btn { background: none; border: none; font-family: 'Jost', sans-serif; font-size: 13px; font-weight: 500; color: var(--text-dim); cursor: pointer; padding: 9px 18px; border-radius: 4px 4px 0 0; letter-spacing: .3px; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: color .15s; white-space: nowrap; }
   .admin-nav-btn:hover { color: var(--text); background: var(--surface2); }
   .admin-nav-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
@@ -585,11 +579,6 @@
   <!-- ========== ADMIN ========== -->
   <div id="tab-admin" class="section">
 
-    <div id="connectionStatus" class="connection-status connected">
-      <div class="status-dot"></div>
-      <span id="statusText">Connected to Google Sheets</span>
-    </div>
-
     <!-- Admin inner navigation -->
     <div class="admin-nav">
       <button class="admin-nav-btn active" data-panel="week" onclick="switchAdminPanel('week')">This Week</button>
@@ -881,7 +870,7 @@ async function _handleGoogleRedirectReturn() {
   sessionStorage.removeItem('google_nonce');
   try {
     const payload = JSON.parse(atob(idToken.split('.')[1]));
-    if (storedNonce && payload.nonce !== storedNonce) {
+    if (!storedNonce || payload.nonce !== storedNonce) {
       document.getElementById('signinError').textContent = 'Sign-in failed (nonce mismatch). Please try again.';
       document.getElementById('signinError').style.display = 'block';
       return false;
@@ -959,18 +948,17 @@ async function submitAccessRequest() {
     const result = await apiCall('requestAccess', { email: pendingEmail, name });
     document.getElementById('requestAccessSection').style.display = 'none';
     document.getElementById('signinError').style.display = 'none';
-    statusEl.style.color = 'var(--green)';
-    statusEl.textContent = 'Request sent! You\'ll receive an email when your account is approved.';
-    statusEl.style.display = 'block';
     if (result.alreadyMember) {
       statusEl.style.color = 'var(--text-dim)';
       statusEl.textContent = 'This email is already on the member list — try signing in again.';
-      statusEl.style.display = 'block';
     } else if (result.alreadyPending) {
       statusEl.style.color = 'var(--text-dim)';
       statusEl.textContent = 'You already have a pending request. An admin will review it soon.';
-      statusEl.style.display = 'block';
+    } else {
+      statusEl.style.color = 'var(--green)';
+      statusEl.textContent = 'Request sent! You\'ll receive an email when your account is approved.';
     }
+    statusEl.style.display = 'block';
   } catch(e) {
     statusEl.style.color = 'var(--red)';
     statusEl.textContent = 'Could not send request — try again.';
@@ -998,6 +986,16 @@ async function submitAccessCode() {
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Enter' && document.getElementById('accessCodeInput') === document.activeElement) {
     submitAccessCode();
+  }
+  if (e.key === 'Escape') {
+    const confirm = document.getElementById('confirmOverlay');
+    if (confirm && confirm.classList.contains('show')) { closeConfirm(); return; }
+    const spotup = document.getElementById('spotupOverlay');
+    if (spotup && spotup.classList.contains('show')) { closeSpotUpModal(); return; }
+    const mooseEvt = document.getElementById('mooseEventOverlay');
+    if (mooseEvt && mooseEvt.classList.contains('show')) { closeMooseEventSheet(); return; }
+    const mooseSheet = document.getElementById('mooseSheetOverlay');
+    if (mooseSheet && mooseSheet.classList.contains('show')) { closeMooseSheet(); return; }
   }
 });
 
@@ -1111,6 +1109,15 @@ const DEFAULT_TIMES = { Lunch: ['12:00 PM','1:00 PM'], Dinner: ['7:30 PM'], Brun
 // =============================================
 //  HELPERS
 // =============================================
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+let _scrollLockCount = 0;
+function lockScroll() { _scrollLockCount++; document.body.style.overflow = 'hidden'; }
+function unlockScroll() { _scrollLockCount = Math.max(0, _scrollLockCount - 1); if (_scrollLockCount === 0) document.body.style.overflow = ''; }
+
 function getMonday(dateStr) {
   const d = new Date(dateStr + 'T12:00:00');
   const day = d.getDay();
@@ -1157,12 +1164,12 @@ function showConfirmation(name, daysList, count, wasUpdate, isEvent) {
   }
 
   overlay.classList.add('show');
-  document.body.style.overflow = 'hidden';
+  lockScroll();
 }
 
 function closeConfirm() {
   document.getElementById('confirmOverlay').classList.remove('show');
-  document.body.style.overflow = '';
+  unlockScroll();
 }
 
 function renderMySignupsSummary() {
@@ -1225,7 +1232,7 @@ function cancelMySignup(monday, dayIdx, name, time) {
       renderMySignupsSummary();
       showToast('Could not remove \u2014 please try again', 'var(--red)');
     }
-  }, 3600);
+  }, 3400);
 }
 
 function getDayTimes(day) {
@@ -1469,7 +1476,7 @@ function updateTimeSection() {
     const guestsAllowed = day.guestsAllowed || false;
     html += '<div style="margin-bottom:20px;padding:16px;background:var(--surface2);border-radius:4px;border:1px solid var(--border);">' +
       '<div style="font-family:\'Cormorant Garamond\',serif;font-weight:600;font-size:18px;color:var(--text-bright);margin-bottom:12px;">' + day.day + ' — ' + day.meal + '</div>';
-    if (day.menu) html += '<div class="menu-display"><strong>Menu:</strong> ' + day.menu + '</div>';
+    if (day.menu) html += '<div class="menu-display"><strong>Menu:</strong> ' + escapeHtml(day.menu) + '</div>';
 
     if (times.length > 1) {
       html += '<div style="font-family:\'Jost\',sans-serif;font-size:11px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px;">Time Slot <span style="color:var(--red);">*</span></div>';
@@ -1574,7 +1581,6 @@ async function submitSignup() {
   // Build day summary BEFORE clearing selections
   const confirmedDays = entries.map(e => e.day + ' ' + e.meal).join('  ·  ');
   const memberNameVal = name;
-  const wasUpdate = false;
 
   try {
     const result = await apiCall('addSignups', { monday, entries, caps });
@@ -1723,7 +1729,7 @@ function renderViewDay(idx) {
     '<span class="tag ' + (sups.length >= maxTotal ? 'tag-red' : sups.length > maxTotal * 0.8 ? 'tag-orange' : 'tag-green') + '">' + (sups.length >= maxTotal ? 'FULL' : 'OPEN') + '</span>' +
   '</div>';
 
-  if (day.menu) html += '<div class="menu-display"><strong>Menu:</strong> ' + day.menu + '</div>';
+  if (day.menu) html += '<div class="menu-display"><strong>Menu:</strong> ' + escapeHtml(day.menu) + '</div>';
 
   if (sups.length === 0) {
     html += '<div style="color:var(--text-dim);font-size:13px;padding:12px 0;">No signups yet \u2014 be the first!</div>';
@@ -1823,7 +1829,7 @@ function renderHorizontalView() {
       '<div class="view-day-col-meal">' + day.meal + '</div>' +
       '<div class="view-day-col-date">' + new Date(day.date + 'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}) + '</div>' +
       '<span class="view-day-col-count" style="background:' + countBg + ';color:' + countColor + ';">' + sups.length + '&thinsp;/&thinsp;' + maxTotal + '</span>' +
-      (day.menu ? '<div class="view-day-col-menu" title="' + day.menu.replace(/"/g,'&quot;') + '">' + day.menu + '</div>' : '') +
+      (day.menu ? '<div class="view-day-col-menu" title="' + escapeHtml(day.menu) + '">' + escapeHtml(day.menu) + '</div>' : '') +
     '</div>';
 
     // Column body
@@ -1920,10 +1926,10 @@ function renderHorizontalName(s, monday, dayIdx, slot, myName, isAdmin) {
   let html = '<div class="' + wrapCls + '" ' + rowClick + '>';
   html += '<div class="' + cls + '" style="' + nameColor + '">';
   html += servedCb;
-  html += '<span class="vn">' + displayName + '</span>';
+  html += '<span class="vn">' + escapeHtml(displayName) + '</span>';
   if (tags) html += '<span class="vtag">' + tags + '</span>';
   if (isAdmin && s.allergies) {
-    html += '<span class="vn-admin-note">\u26A0\uFE0F ' + s.allergies.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</span>';
+    html += '<span class="vn-admin-note">\u26A0\uFE0F ' + escapeHtml(s.allergies) + '</span>';
   }
   html += '</div>';
 
@@ -1933,7 +1939,7 @@ function renderHorizontalName(s, monday, dayIdx, slot, myName, isAdmin) {
   }
 
   if (isAdmin && s.notes) {
-    html += '<div class="vn-admin-notes-text">' + s.notes.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div>';
+    html += '<div class="vn-admin-notes-text">' + escapeHtml(s.notes) + '</div>';
   }
   html += '</div>';
   return html;
@@ -1972,7 +1978,7 @@ function renderSignupItem(s, monday, dayIdx, slot) {
   // Allergy badge — visible to admin (all rows) or to the user on their own row
   const isMyRow = !!myName && s.name.toLowerCase().trim() === myName;
   const allergyBadge = ((isAdmin || isMyRow) && s.allergies)
-    ? '<span style="display:inline-block;font-size:9px;font-weight:700;color:#4A148C;background:#F3E5F5;padding:1px 7px;border-radius:2px;letter-spacing:.5px;border:1px solid #CE93D8;margin-left:6px;vertical-align:middle;">\u26A0 ' + s.allergies.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</span>'
+    ? '<span style="display:inline-block;font-size:9px;font-weight:700;color:#4A148C;background:#F3E5F5;padding:1px 7px;border-radius:2px;letter-spacing:.5px;border:1px solid #CE93D8;margin-left:6px;vertical-align:middle;">\u26A0 ' + escapeHtml(s.allergies) + '</span>'
     : '';
 
   // Early plate — light blue row for everyone
@@ -2000,13 +2006,13 @@ function renderSignupItem(s, monday, dayIdx, slot) {
       : '';
     const adminClass = isAdmin ? 'can-spotup' : '';
     // Render claimed rows to show the swap, but without user-facing buttons
-    let nameHtml = '<span class="name" style="' + gradNameStyle + '">' + display + '</span>' + allergyBadge;
-    let metaHtml = s.notes ? '<div class="meta">' + s.notes + '</div>' : '';
+    let nameHtml = '<span class="name" style="' + gradNameStyle + '">' + escapeHtml(display) + '</span>' + allergyBadge;
+    let metaHtml = s.notes ? '<div class="meta">' + escapeHtml(s.notes) + '</div>' : '';
     if (spotStatus === 'claimed') {
-      nameHtml = '<span class="name" style="color:var(--green);font-weight:700;">' + s.name + '</span><span class="spotup-claimed-badge">SWAPPED</span>' + allergyBadge;
-      metaHtml = '<div class="meta" style="color:var(--green);">Was: ' + origName + '</div>' + metaHtml;
+      nameHtml = '<span class="name" style="color:var(--green);font-weight:700;">' + escapeHtml(s.name) + '</span><span class="spotup-claimed-badge">SWAPPED</span>' + allergyBadge;
+      metaHtml = '<div class="meta" style="color:var(--green);">Was: ' + escapeHtml(origName) + '</div>' + metaHtml;
     } else if (spotStatus === 'spotup') {
-      nameHtml = '<span class="name" style="color:#E65100;text-decoration:line-through;opacity:.7;">' + display + '</span><span class="spotup-badge">SPOT UP</span>' + allergyBadge;
+      nameHtml = '<span class="name" style="color:#E65100;text-decoration:line-through;opacity:.7;">' + escapeHtml(display) + '</span><span class="spotup-badge">SPOT UP</span>' + allergyBadge;
       metaHtml = '<div class="meta" style="color:#E65100;">Pending admin reassignment</div>';
     }
     return '<div class="signup-item ' + adminClass + (isServed ? ' served-item' : '') + '" ' + adminClick + ' style="display:flex;align-items:center;' + gradStyle + earlyRowStyle + '">' +
@@ -2075,7 +2081,7 @@ async function toggleServed(monday, dayIdx, name, time, served) {
     await apiCall('markServed', { monday, dayIndex: dayIdx, name, time, served });
     loadViewData();
   } catch(e) {
-    showToast('Could not update served status', true);
+    showToast('Could not update served status', 'var(--red)');
   }
 }
 
@@ -2088,7 +2094,7 @@ function openSpotUpModal(monday, dayIdx, name, time) {
     '<button class="btn btn-secondary" onclick="closeSpotUpModal()">Cancel</button>' +
     '<button class="btn btn-primary" style="background:#E65100;" onclick="doSpotUp(\'' + monday + '\',' + dayIdx + ',\'' + name.replace(/'/g, "\\'") + '\',\'' + time.replace(/'/g, "\\'") + '\')">Spot Up</button>';
   overlay.classList.add('show');
-  document.body.style.overflow = 'hidden';
+  lockScroll();
 }
 
 function openClaimModal(monday, dayIdx, origName, time) {
@@ -2105,13 +2111,13 @@ function openClaimModal(monday, dayIdx, origName, time) {
     '<button class="btn btn-secondary" onclick="closeSpotUpModal()">Cancel</button>' +
     '<button class="btn btn-primary" onclick="doClaimSpotUp(\'' + monday + '\',' + dayIdx + ',\'' + origName.replace(/'/g, "\\'") + '\',\'' + time.replace(/'/g, "\\'") + '\')">Claim Spot</button>';
   overlay.classList.add('show');
-  document.body.style.overflow = 'hidden';
+  lockScroll();
   setTimeout(() => { const el = document.getElementById('claimNameInput'); if (el) el.focus(); }, 400);
 }
 
 function closeSpotUpModal() {
   document.getElementById('spotupOverlay').classList.remove('show');
-  document.body.style.overflow = '';
+  unlockScroll();
 }
 
 async function doSpotUp(monday, dayIdx, name, time) {
@@ -2164,6 +2170,7 @@ async function reSpotUpAction(monday, dayIdx, origName, time) {
     const result = await apiCall('unclaimSpotUp', { monday, dayIndex: dayIdx, originalName: origName, time });
     if (result.status === 'ok') {
       showToast('Spot is back up under ' + origName);
+      delete weekCacheTs[monday];
       await loadViewData();
     }
   } catch (e) {}
@@ -2202,7 +2209,7 @@ function openAdminSwapModal(monday, dayIdx, name, time, spotStatus, origName) {
   document.getElementById('spotupModalActions').innerHTML = actionsHtml;
 
   overlay.classList.add('show');
-  document.body.style.overflow = 'hidden';
+  lockScroll();
   setTimeout(() => { const el = document.getElementById('adminSwapNameInput'); if (el) el.focus(); }, 200);
 }
 
@@ -2469,6 +2476,7 @@ async function pushWeekConfig() {
     await apiCall('setWeekConfig', { monday: adminWeekData.monday, config: adminWeekData.config, caps, freezeDate: adminWeekData.freezeDate || '' });
     showToast('Week config saved!');
     delete weekCache[adminWeekData.monday];
+    delete weekCacheTs[adminWeekData.monday];
     currentWeekData = null;
     const signupWeek = document.getElementById('weekSelect').value;
     if (signupWeek && getMonday(signupWeek) === adminWeekData.monday) {
@@ -2522,11 +2530,11 @@ function renderEventsList() {
 
     html += '<div class="event-card">' +
       '<div style="display:flex;justify-content:space-between;align-items:start;">' +
-        '<div class="event-title">' + evt.title + '</div>' +
+        '<div class="event-title">' + escapeHtml(evt.title) + '</div>' +
         '<span class="tag ' + (isFull ? 'tag-red' : 'tag-green') + '">' + (isFull ? 'FULL' : 'OPEN') + '</span>' +
       '</div>' +
-      '<div class="event-meta">' + dateStr + (evt.time ? ' at ' + evt.time : '') + (evt.location ? ' &middot; ' + evt.location : '') + ' &middot; ' + spotsText + '</div>';
-    if (evt.description) html += '<div class="event-desc">' + evt.description + '</div>';
+      '<div class="event-meta">' + dateStr + (evt.time ? ' at ' + escapeHtml(evt.time) : '') + (evt.location ? ' &middot; ' + escapeHtml(evt.location) : '') + ' &middot; ' + spotsText + '</div>';
+    if (evt.description) html += '<div class="event-desc">' + escapeHtml(evt.description) + '</div>';
     if (isFrozen) {
       html += '<div style="background:#B1424210;border:1px solid #B1424230;border-radius:4px;padding:10px 14px;font-family:\'Crimson Pro\',serif;font-size:13px;color:var(--red);margin-bottom:12px;">Sign-ups for this event are closed.</div>';
     } else if (!isFull) {
@@ -2796,7 +2804,7 @@ function _adminEventRowHtml(evt) {
   return '<div id="adminEvtRow_' + evt.eventId + '" style="border:1px solid var(--border);border-radius:4px;padding:12px 16px;margin-bottom:8px;background:var(--surface);">' +
     '<div style="display:flex;justify-content:space-between;align-items:center;">' +
       '<div style="min-width:0;">' +
-        '<strong style="font-family:\'Crimson Pro\',serif;font-size:15px;">' + evt.title + '</strong>' +
+        '<strong style="font-family:\'Crimson Pro\',serif;font-size:15px;">' + escapeHtml(evt.title) + '</strong>' +
         '<div style="font-size:12px;color:var(--text-dim);">' + dateStr + ' &middot; ' + evt.signupCount + ' signed up</div>' +
       '</div>' +
       '<div style="display:flex;gap:8px;flex-shrink:0;margin-left:12px;">' +
@@ -2944,7 +2952,7 @@ async function loadCalendar() {
     d.setDate(d.getDate() + 7);
   }
 
-  for (const mon of mondays) {
+  await Promise.all(mondays.map(async mon => {
     try {
       const week = await apiCall('getWeek', { monday: mon });
       if (week && week.config) {
@@ -2955,7 +2963,7 @@ async function loadCalendar() {
         });
       }
     } catch (e) {}
-  }
+  }));
 
   document.getElementById('calLoading').style.display = 'none';
   renderCalendar(mealDays, events);
@@ -2995,7 +3003,7 @@ function renderCalendar(mealDays, events) {
     // Event indicators
     events.forEach(evt => {
       if (evt.date === dateStr) {
-        html += '<div class="cal-tag event-tag" onclick="showEventFromCal(\'' + evt.eventId + '\')" title="' + evt.title + '">' + evt.title + '</div>';
+        html += '<div class="cal-tag event-tag" onclick="showEventFromCal(\'' + evt.eventId + '\')" title="' + escapeHtml(evt.title) + '">' + escapeHtml(evt.title) + '</div>';
       }
     });
 
@@ -3026,7 +3034,7 @@ function renderCalendar(mealDays, events) {
       const spotsText = evt.capacity > 0 ? (evt.signupCount + '/' + evt.capacity) : evt.signupCount + ' signed up';
       evtHtml += '<div style="border:1px solid var(--border);border-radius:4px;padding:12px 16px;margin-bottom:8px;background:var(--surface);cursor:pointer;border-left:3px solid #5B8DEF;" onclick="showEventFromCal(\'' + evt.eventId + '\')">' +
         '<div style="display:flex;justify-content:space-between;align-items:center;">' +
-          '<div><strong style="font-family:\'Crimson Pro\',serif;font-size:15px;color:var(--text-bright);">' + evt.title + '</strong>' +
+          '<div><strong style="font-family:\'Crimson Pro\',serif;font-size:15px;color:var(--text-bright);">' + escapeHtml(evt.title) + '</strong>' +
           '<div style="font-size:12px;color:var(--text-dim);">' + dateStr + (evt.time ? ' at ' + evt.time : '') + '</div></div>' +
           '<span style="font-size:11px;color:var(--text-dim);">' + spotsText + '</span>' +
         '</div></div>';
@@ -3037,12 +3045,17 @@ function renderCalendar(mealDays, events) {
 }
 
 function showEventFromCal(eventId) {
-  // Switch to events tab and scroll to event
+  // Switch to moose tab and open the event sheet
   document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
-  document.querySelector('[data-tab="events"]').classList.add('active');
+  document.querySelector('[data-tab="moose"]').classList.add('active');
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-  document.getElementById('tab-events').classList.add('active');
-  loadEvents();
+  document.getElementById('tab-moose').classList.add('active');
+  loadMoose().then(() => {
+    if (_mooseEvents) {
+      const ev = _mooseEvents.find(e => e.eventId === eventId || e.id === eventId);
+      if (ev) openMooseEventSheet(ev.eventId || ev.id);
+    }
+  });
 }
 
 // =============================================
@@ -3240,10 +3253,10 @@ function renderMooseUpcoming() {
     const safeId = ev.eventId.replace(/'/g, "\\'");
     const btnLabel = ev.interestOnly ? 'Interest \u2192' : 'Ink \u2192';
     html += '<div class="moose-evt-card" onclick="openMooseEventSheet(\'' + safeId + '\')">' +
-      '<div class="moose-evt-title">' + ev.title + '</div>' +
-      '<div class="moose-evt-meta">' + meta + '</div>' +
+      '<div class="moose-evt-title">' + escapeHtml(ev.title) + '</div>' +
+      '<div class="moose-evt-meta">' + escapeHtml(meta) + '</div>' +
       (countStr ? '<div class="moose-evt-meta" style="font-size:11px;margin-top:2px;">' + countStr + '</div>' : '') +
-      (ev.description ? '<div class="moose-evt-desc">' + ev.description + '</div>' : '') +
+      (ev.description ? '<div class="moose-evt-desc">' + escapeHtml(ev.description) + '</div>' : '') +
       '<button class="moose-evt-btn">' + btnLabel + '</button>' +
     '</div>';
   });
@@ -3339,7 +3352,7 @@ function renderMooseCalendar() {
     }
     dayEvs.forEach(ev => {
       const short = ev.title.length > 11 ? ev.title.slice(0, 10) + '\u2026' : ev.title;
-      pillsHtml += '<span class="mc-pill mp-evt' + (isPast ? ' mp-past' : '') + '">' + short + '</span>';
+      pillsHtml += '<span class="mc-pill mp-evt' + (isPast ? ' mp-past' : '') + '">' + escapeHtml(short) + '</span>';
     });
 
     const clickAttr = ((hasContent || isTappableWeekday) && !isPast && inMonth)
@@ -3401,7 +3414,7 @@ function openMooseDaySheet(dateStr) {
 
         mealHtml += '<div class="moose-sheet-sect">Meal</div><div class="moose-meal-box">' +
           '<div class="moose-meal-type">' + day.meal + '</div>';
-        if (day.menu) mealHtml += '<div class="moose-meal-menu">' + day.menu + '</div>';
+        if (day.menu) mealHtml += '<div class="moose-meal-menu">' + escapeHtml(day.menu) + '</div>';
 
         if (myEntry) {
           const tl = myEntry.time === '12:00 PM' ? '12:00\u20131:00 PM'
@@ -3470,9 +3483,9 @@ function openMooseDaySheet(dateStr) {
       const cap = ev.capacity > 0 ? ev.signupCount + '/' + ev.capacity + ' signed up' : '';
       const safeId = ev.eventId.replace(/'/g, "\\'");
       eventsHtml += '<div style="background:var(--surface);border:1px solid var(--border);border-left:3px solid #5B8DEF;border-radius:6px;padding:14px 16px;margin-bottom:10px;">' +
-        '<div style="font-family:\'Cormorant Garamond\',serif;font-size:19px;font-weight:600;color:var(--text-bright);margin-bottom:2px;">' + ev.title + '</div>' +
-        (meta || cap ? '<div style="font-family:\'Crimson Pro\',serif;font-size:13px;color:var(--text-dim);font-style:italic;margin-bottom:8px;">' + [meta, cap].filter(Boolean).join(' &middot; ') + '</div>' : '') +
-        (ev.description ? '<div style="font-family:\'Crimson Pro\',serif;font-size:14px;color:var(--text);line-height:1.5;margin-bottom:10px;">' + ev.description + '</div>' : '') +
+        '<div style="font-family:\'Cormorant Garamond\',serif;font-size:19px;font-weight:600;color:var(--text-bright);margin-bottom:2px;">' + escapeHtml(ev.title) + '</div>' +
+        (meta || cap ? '<div style="font-family:\'Crimson Pro\',serif;font-size:13px;color:var(--text-dim);font-style:italic;margin-bottom:8px;">' + escapeHtml([meta, cap].filter(Boolean).join(' · ')) + '</div>' : '') +
+        (ev.description ? '<div style="font-family:\'Crimson Pro\',serif;font-size:14px;color:var(--text);line-height:1.5;margin-bottom:10px;">' + escapeHtml(ev.description) + '</div>' : '') +
         '<button class="moose-evt-btn" onclick="closeMooseSheet();openMooseEventSheet(\'' + safeId + '\')">' + (ev.interestOnly ? 'Interest \u2192' : 'Ink \u2192') + '</button>' +
       '</div>';
     });
@@ -3593,8 +3606,8 @@ function openMooseEventSheet(eventId) {
 
   const safeId = eventId.replace(/'/g, "\\'");
 
-  let html = '<div class="moose-sheet-title">' + ev.title + '</div>';
-  html += '<div class="moose-sheet-sub">' + meta + '</div>';
+  let html = '<div class="moose-sheet-title">' + escapeHtml(ev.title) + '</div>';
+  html += '<div class="moose-sheet-sub">' + escapeHtml(meta) + '</div>';
 
   // Ink / interest count bar
   const inkC = ev.inkCount || 0, intC = ev.interestCount || 0;
@@ -3605,7 +3618,7 @@ function openMooseEventSheet(eventId) {
   if (parts.length) html += '<div class="ink-count-bar">' + parts.join(' &nbsp;&middot;&nbsp; ') + '</div>';
 
   if (ev.description) {
-    html += '<div style="font-family:\'Crimson Pro\',serif;font-size:15px;color:var(--text);line-height:1.6;padding:12px 16px;background:var(--surface2);border-radius:6px;border-left:3px solid #5B8DEF;margin-bottom:16px;">' + ev.description + '</div>';
+    html += '<div style="font-family:\'Crimson Pro\',serif;font-size:15px;color:var(--text);line-height:1.6;padding:12px 16px;background:var(--surface2);border-radius:6px;border-left:3px solid #5B8DEF;margin-bottom:16px;">' + escapeHtml(ev.description) + '</div>';
   }
 
   if (isFrozen) {

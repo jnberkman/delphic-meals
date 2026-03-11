@@ -2021,9 +2021,9 @@ function renderHorizontalName(s, monday, dayIdx, slot, myName, isAdmin) {
   // Spot-up state: show compact action buttons
   if (spotUpEnabled && spotStatus === 'spotup') {
     html += '<div style="display:flex;gap:4px;align-items:center;margin-top:2px;">';
-    html += '<button class="vn-compact-claim" onclick="event.stopPropagation();openClaimModal(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')">Claim</button>';
+    html += '<button class="spotup-action-btn" style="font-size:11px;padding:2px 6px;color:var(--green);border-color:var(--green);margin-left:0;" onclick="event.stopPropagation();openClaimModal(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')">Claim</button>';
     if (canCancelSpotUp) {
-      html += '<button class="vn-compact-claim" style="color:var(--orange);border-color:var(--orange);" onclick="event.stopPropagation();cancelSpotUpAction(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')" title="Cancel spot up">Cancel</button>';
+      html += '<button class="spotup-action-btn" style="font-size:11px;padding:2px 6px;" onclick="event.stopPropagation();cancelSpotUpAction(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')" title="Cancel spot up">Cancel</button>';
     }
     html += '</div>';
   }

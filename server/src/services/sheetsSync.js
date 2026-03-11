@@ -102,7 +102,7 @@ function buildHeaderValueRequests(sheetId, config_) {
       { values: [buildCell(cfg.day || '', { bg: '#f3f3f3' })] },
       { values: [buildCell(cfg.meal || '', { bg: '#f3f3f3' })] },
       { values: [buildCell(cfg.menu || '', { bg: '#f3f3f3', wrap: true })] },
-      { values: [buildCell(getTimeLabel(cfg.meal || 'Lunch'), { bg: '#f3f3f3' })] },
+      { values: [buildCell(getTimeLabel(cfg.functionsAs || cfg.meal || 'Lunch'), { bg: '#f3f3f3' })] },
     ];
     requests.push({
       updateCells: {
@@ -281,7 +281,7 @@ async function rebuildDisplaySheet(monday, signups, weekCfg) {
   for (let dayIdx = 0; dayIdx < 5; dayIdx++) {
     const col = dayIdx + 2;
     const daySups = byDay[dayIdx] || [];
-    const meal = config_[dayIdx] ? config_[dayIdx].meal : 'Lunch';
+    const meal = config_[dayIdx] ? (config_[dayIdx].functionsAs || config_[dayIdx].meal) : 'Lunch';
     const configDay = config_[dayIdx] || {};
     const slots = (configDay.slots && configDay.slots.length > 0)
       ? configDay.slots.map(s => s.time || s)

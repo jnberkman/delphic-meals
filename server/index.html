@@ -1240,7 +1240,9 @@ function getDayTimes(day) {
     const times = day.slots.map(s => s.time).filter(t => t && t.trim());
     if (times.length > 0) return times;
   }
-  return DEFAULT_TIMES[day.meal] || ['12:00 PM'];
+  var key = day.meal;
+  if (!DEFAULT_TIMES[key] && day.functionsAs) key = day.functionsAs;
+  return DEFAULT_TIMES[key] || ['12:00 PM'];
 }
 
 function getCapForSlot(slot, dayConfig) {
@@ -2398,13 +2400,18 @@ function switchAdminPanel(panel) {
 
 function handleMealTypeChange(sel, i) {
   const customInput = document.getElementById('customMeal' + i);
+  const functionsAsSelect = document.getElementById('functionsAs' + i);
   if (sel.value === '__custom__') {
     customInput.style.display = 'inline-block';
+    functionsAsSelect.style.display = 'inline-block';
     customInput.focus();
     adminWeekData.config[i].meal = customInput.value || '';
+    adminWeekData.config[i].functionsAs = functionsAsSelect.value;
   } else {
     customInput.style.display = 'none';
+    functionsAsSelect.style.display = 'none';
     adminWeekData.config[i].meal = sel.value;
+    delete adminWeekData.config[i].functionsAs;
   }
 }
 
@@ -2470,7 +2477,13 @@ function renderAdminWeekHTML() {
             '<input type="text" class="admin-custom-meal" id="customMeal' + i + '" ' +
               'style="font-size:12px;padding:5px 8px;width:100px;display:' + (isCustom ? 'inline-block' : 'none') + ';" ' +
               'placeholder="e.g. BBQ" value="' + (isCustom ? day.meal.replace(/"/g,'&quot;') : '') + '" ' +
-              'oninput="adminWeekData.config[' + i + '].meal=this.value">';
+              'oninput="adminWeekData.config[' + i + '].meal=this.value">' +
+            '<select id="functionsAs' + i + '" style="font-size:12px;padding:5px 30px 5px 8px;width:auto;display:' + (isCustom ? 'inline-block' : 'none') + ';" ' +
+              'onchange="adminWeekData.config[' + i + '].functionsAs=this.value">' +
+              '<option value="Lunch"' + ((day.functionsAs || 'Lunch') === 'Lunch' ? ' selected' : '') + '>Functions as Lunch</option>' +
+              '<option value="Dinner"' + (day.functionsAs === 'Dinner' ? ' selected' : '') + '>Functions as Dinner</option>' +
+              '<option value="Brunch"' + (day.functionsAs === 'Brunch' ? ' selected' : '') + '>Functions as Brunch</option>' +
+            '</select>';
           })() +
           '<label class="option-pill" style="margin:0;">' +
             '<input type="checkbox" ' + (isEnabled ? 'checked' : '') + ' onchange="adminWeekData.config[' + i + '].enabled=this.checked;renderAdminWeekHTML()">' +

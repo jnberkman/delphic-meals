@@ -2116,6 +2116,7 @@ function renderSignupItem(s, monday, dayIdx, slot) {
       '<div style="display:flex;gap:4px;align-items:center;">' +
         '<button class="spotup-claim-btn" onclick="openClaimModal(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')">Claim</button>' +
         (canCancelSpotUp ? '<button class="spotup-action-btn" onclick="event.stopPropagation();cancelSpotUpAction(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')" title="Cancel spot up">\u2715</button>' : '') +
+        (isAdmin ? '<button class="remove-btn" title="Remove" onclick="event.stopPropagation();removeSignup(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')">&#215;</button>' : '') +
       '</div>' +
     '</div>';
   }

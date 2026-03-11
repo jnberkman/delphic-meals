@@ -2017,6 +2017,11 @@ function renderHorizontalName(s, monday, dayIdx, slot, myName, isAdmin) {
     html += '<button class="vn-compact-claim" onclick="event.stopPropagation();openClaimModal(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')">Claim</button>';
   }
 
+  // Admin remove button
+  if (isAdmin) {
+    html += '<button class="remove-btn" style="margin-left:auto;font-size:14px;" title="Remove" onclick="event.stopPropagation();removeSignup(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')">&#215;</button>';
+  }
+
   if (isAdmin && s.notes) {
     html += '<div class="vn-admin-notes-text">' + escapeHtml(s.notes) + '</div>';
   }

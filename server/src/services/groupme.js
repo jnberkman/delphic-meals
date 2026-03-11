@@ -8,7 +8,9 @@ const GROUPME_API = 'https://api.groupme.com/v3';
 const NICKNAME_MAP = (() => {
   if (!config.groupmeNicknameMap) return {};
   try {
-    const raw = JSON.parse(config.groupmeNicknameMap);
+    let raw = JSON.parse(config.groupmeNicknameMap);
+    // Handle double-encoded JSON (env var wrapped in extra quotes)
+    if (typeof raw === 'string') raw = JSON.parse(raw);
     const map = {};
     for (const [nick, real] of Object.entries(raw)) {
       map[nick.toLowerCase().trim()] = real;

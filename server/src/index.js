@@ -11,6 +11,7 @@ app.use(express.json({ limit: '1mb' }));
 app.use('/api', require('./middleware/auth'), require('./routes/api'));
 app.use('/claim', require('./routes/claim'));
 app.use('/health', require('./routes/health'));
+app.use('/groupme', require('./routes/groupme'));
 
 // Serve frontend
 app.get('/', (req, res) => {

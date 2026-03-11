@@ -24,5 +24,11 @@ module.exports = {
   accessCode: process.env.ACCESS_CODE || '',
 
   // Google OAuth client ID (must match frontend)
-  googleClientId: process.env.GOOGLE_CLIENT_ID || '343675266881-9qqpec1ftisitj7lhdffmbpooljub4t5.apps.googleusercontent.com'
+  googleClientId: process.env.GOOGLE_CLIENT_ID || '343675266881-9qqpec1ftisitj7lhdffmbpooljub4t5.apps.googleusercontent.com',
+
+  // GroupMe bot
+  groupmeBotId: process.env.GROUPME_BOT_ID || '',
+  groupmeAccessToken: process.env.GROUPME_ACCESS_TOKEN || '',
+  groupmeGroupId: process.env.GROUPME_GROUP_ID || '',
+  groupmeCallbackSecret: process.env.GROUPME_CALLBACK_SECRET || ''
 };

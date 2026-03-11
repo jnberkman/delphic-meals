@@ -147,6 +147,31 @@ async function cancelSpotUp(monday, dayIndex, name, time) {
   });
 
   sheetsSync.syncWeek(monday).catch(e => console.error('Sheets sync error (week):', e.message));
+
+  // Notify GroupMe so stale "claim #" numbers don't confuse people
+  try {
+    const weekCfg = await weeksDb.getConfig(monday);
+    const cfg = weekCfg ? weekCfg.config : null;
+    const dayInfo = cfg && cfg[dayIndex] ? cfg[dayIndex] : {};
+    let dayMeal = 'a meal';
+    if (dayInfo.day && dayInfo.meal) {
+      let datePart = '';
+      if (dayInfo.date) {
+        const [, mm, dd] = dayInfo.date.split('-');
+        datePart = ` (${parseInt(mm)}/${parseInt(dd)})`;
+      }
+      dayMeal = `${dayInfo.day} ${dayInfo.meal}${datePart}`;
+    }
+    const remaining = await signupsDb.findAllAvailableSpotUps().then(s => s.length).catch(() => 0);
+    if (remaining > 0) {
+      groupme.postMessage(`${name}'s ${dayMeal} spot-up was cancelled (${remaining} spot${remaining > 1 ? 's' : ''} remaining, "spots" to refresh)`);
+    } else {
+      groupme.postMessage(`${name}'s ${dayMeal} spot-up was cancelled — no spots available`);
+    }
+  } catch (e) {
+    // fire-and-forget
+  }
+
   return { status: 'ok' };
 }
 

@@ -129,7 +129,12 @@ router.post('/callback/:secret', async (req, res) => {
     if (!claimMatch) return;
 
     const claimNum = claimMatch[1] ? parseInt(claimMatch[1], 10) : null;
-    const claimerName = await groupme.resolveNickname(senderId, msg.name) || msg.name;
+    const claimerName = await groupme.resolveNickname(senderId, msg.name);
+
+    if (!claimerName) {
+      groupme.postMessage(`${msg.name}, set your name first: reply "name First Last"`);
+      return;
+    }
 
     await executeClaim(claimerName, claimNum);
   } catch (e) {

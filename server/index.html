@@ -2367,7 +2367,7 @@ function renderAdminWeekHTML() {
             '<span style="font-family:\'Cormorant Garamond\',serif;font-size:17px;font-weight:600;color:var(--text-bright);">' + day.day + '</span>' +
             '<span style="font-size:12px;color:var(--text-dim);margin-left:6px;">' + dateLabel + '</span>' +
           '</div>' +
-          '<select style="font-size:12px;padding:5px 8px;width:auto;" onchange="adminWeekData.config[' + i + '].meal=this.value">' +
+          '<select style="font-size:12px;padding:5px 30px 5px 8px;width:auto;" onchange="adminWeekData.config[' + i + '].meal=this.value">' +
             '<option ' + (day.meal === 'Lunch' ? 'selected' : '') + '>Lunch</option>' +
             '<option ' + (day.meal === 'Dinner' ? 'selected' : '') + '>Dinner</option>' +
             '<option ' + (day.meal === 'Brunch' ? 'selected' : '') + '>Brunch</option>' +

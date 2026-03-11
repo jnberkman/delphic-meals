@@ -5,7 +5,7 @@ const claimTokensDb = require('../db/queries/claimTokens');
 const membersDb = require('../db/queries/members');
 const templates = require('./emailTemplates');
 
-const SITE_URL = 'https://rmeek-robot.github.io/delphic-meals/';
+const SITE_URL = () => config.frontendUrl;
 
 let transporter = null;
 
@@ -65,12 +65,12 @@ async function sendSpotUpEmails(monday, dayIdx, origName, time, weekConfig) {
 }
 
 async function sendAccessRequestEmail(requesterName, requesterEmail, adminName, adminEmail) {
-  const html = templates.buildAccessRequestEmail(requesterName, requesterEmail, adminName, SITE_URL);
+  const html = templates.buildAccessRequestEmail(requesterName, requesterEmail, adminName, SITE_URL());
   await sendMail(adminEmail, `Access Request \u2014 ${requesterName} \u2014 Delphic Meals`, html);
 }
 
 async function sendApprovalEmail(recipientEmail, recipientName) {
-  const html = templates.buildApprovalEmail(recipientName, SITE_URL);
+  const html = templates.buildApprovalEmail(recipientName, SITE_URL());
   await sendMail(recipientEmail, 'You\'ve been approved \u2014 Delphic Meals', html);
 }
 

@@ -1,5 +1,5 @@
 const config = require('../config');
-const SITE_URL = 'https://rmeek-robot.github.io/delphic-meals/';
+const SITE_URL = () => config.frontendUrl;
 
 /**
  * Port of buildClaimResultPage() from Code.gs:64-85.
@@ -22,7 +22,7 @@ function buildClaimResultPage(success, title, message, name) {
     `<div class="title">${title}</div>` +
     `<div class="msg">${message}</div>` +
     (name ? `<div class="claimer">Claimed by: <strong>${name}</strong></div>` : '') +
-    `<a href="${SITE_URL}" class="btn">Open Meal Sign-Ups</a>` +
+    `<a href="${SITE_URL()}" class="btn">Open Meal Sign-Ups</a>` +
     '<div class="footer">Delphic Club</div>' +
     '</div></body></html>';
 }

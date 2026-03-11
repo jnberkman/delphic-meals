@@ -4,7 +4,7 @@ module.exports = {
   port: process.env.PORT || 3000,
   nodeEnv: process.env.NODE_ENV || 'development',
   databaseUrl: process.env.DATABASE_URL,
-  frontendUrl: process.env.FRONTEND_URL || 'https://rmeek-robot.github.io',
+  frontendUrl: process.env.FRONTEND_URL || 'https://meals.delphicclub.org',
   backendUrl: process.env.BACKEND_URL || 'http://localhost:3000',
 
   // Google Sheets sync

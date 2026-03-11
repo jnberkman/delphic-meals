@@ -53,7 +53,15 @@ router.post('/callback/:secret', async (req, res) => {
     const weekCfg = await weeksDb.getConfig(result.monday);
     const cfg = weekCfg ? weekCfg.config : null;
     const dayInfo = cfg && cfg[result.day_index] ? cfg[result.day_index] : {};
-    const dayMeal = (dayInfo.day && dayInfo.meal) ? `${dayInfo.day} ${dayInfo.meal}` : 'meal';
+    let dayMeal = 'meal';
+    if (dayInfo.day && dayInfo.meal) {
+      let datePart = '';
+      if (dayInfo.date) {
+        const [, mm, dd] = dayInfo.date.split('-');
+        datePart = ` (${parseInt(mm)}/${parseInt(dd)})`;
+      }
+      dayMeal = `${dayInfo.day} ${dayInfo.meal}${datePart}`;
+    }
 
     groupme.postMessage(`${claimerName} claimed ${result.spot_up_orig_name}'s ${dayMeal} spot`);
     sheetsSync.syncWeek(result.monday).catch(e => console.error('Sheets sync error (week):', e.message));

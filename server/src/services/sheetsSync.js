@@ -195,35 +195,10 @@ async function syncAccessRequests() {}
 async function syncWeek(monday) {
   if (!isConfigured()) return;
 
-  // Sync config sheet
   const weekCfg = await db('week_configs').where('monday', monday).first();
-  if (weekCfg) {
-    const cfgSheetName = `Week_${monday}_config`;
-    await ensureSheet(cfgSheetName);
-    const cfgJson = JSON.stringify({
-      config: weekCfg.config,
-      caps: weekCfg.caps,
-      freezeDate: weekCfg.freeze_date || ''
-    });
-    await updateValues(`${cfgSheetName}!A1`, [[cfgJson]]);
-  }
-
-  // Sync data sheet
   const signups = await db('signups').where('monday', monday).orderBy('id');
-  const dataSheetName = `Week_${monday}_data`;
-  await ensureSheet(dataSheetName);
-  const header = [['dayIndex', 'name', 'diet', 'allergies', 'time', 'early', 'notes', 'timestamp', 'gradGasman', 'spotUpStatus', 'spotUpOrigName', 'spotUpClaimedBy', 'servedStatus']];
-  const rows = signups.map(s => [
-    s.day_index, s.name, s.diet || '', s.allergies || '', s.time || '',
-    s.early, s.notes || '',
-    s.timestamp ? s.timestamp.toISOString() : '',
-    s.grad_gasman, s.spot_up_status || '', s.spot_up_orig_name || '',
-    s.spot_up_claimed_by || '', s.served_status || ''
-  ]);
-  await clearRange(`${dataSheetName}!A:M`);
-  await updateValues(`${dataSheetName}!A1`, [...header, ...rows]);
 
-  // Rebuild display sheet
+  // Only write the chef-facing display sheet (Week_YYYY-MM-DD)
   await rebuildDisplaySheet(monday, signups, weekCfg);
 }
 

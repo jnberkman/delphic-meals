@@ -4,6 +4,7 @@ const weeksDb = require('../db/queries/weeks');
 const { normalizeTime } = require('../utils/time');
 const sheetsSync = require('../services/sheetsSync');
 const emailService = require('../services/email');
+const groupme = require('../services/groupme');
 
 /**
  * Port of spotUp() from Code.gs:212-242.
@@ -16,20 +17,29 @@ async function spotUp(monday, dayIndex, name, time) {
   await signupsDb.update(signup.id, {
     spot_up_status: 'spotup',
     spot_up_orig_name: name,
-    spot_up_claimed_by: ''
+    spot_up_claimed_by: '',
+    spotted_up_at: new Date()
   });
 
   sheetsSync.syncWeek(monday).catch(e => console.error('Sheets sync error (week):', e.message));
 
-  // Send email notifications (also creates claim tokens in DB)
+  // Get week config for day/meal context (used by both email and GroupMe)
+  let dayMeal = 'a meal';
   try {
     const weekCfg = await weeksDb.getConfig(monday);
-    const config = weekCfg ? weekCfg.config : null;
-    await emailService.sendSpotUpEmails(monday, dayIndex, name, timeNorm, config);
+    const weekConfig = weekCfg ? weekCfg.config : null;
+    const dayName = weekConfig && weekConfig[dayIndex] ? (weekConfig[dayIndex].day || '') : '';
+    const mealType = weekConfig && weekConfig[dayIndex] ? (weekConfig[dayIndex].meal || '') : '';
+    if (dayName && mealType) dayMeal = `${dayName} ${mealType}`;
+
+    await emailService.sendSpotUpEmails(monday, dayIndex, name, timeNorm, weekConfig);
     sheetsSync.syncClaimTokens().catch(e => console.error('Sheets sync error (claim tokens):', e.message));
   } catch (e) {
     console.error('Spot-up email error:', e.message);
   }
+
+  // Post to GroupMe (fire-and-forget)
+  groupme.postMessage(`${name} spotted up for ${dayMeal}`);
 
   return { status: 'ok' };
 }
@@ -70,10 +80,19 @@ async function unclaimSpotUp(monday, dayIndex, originalName, time) {
     await trx('signups').where('id', signup.id).update({
       name: signup.spot_up_orig_name,
       spot_up_status: 'spotup',
-      spot_up_claimed_by: ''
+      spot_up_claimed_by: '',
+      spotted_up_at: new Date()
     });
 
     sheetsSync.syncWeek(monday).catch(e => console.error('Sheets sync error (week):', e.message));
+
+    // Re-notify GroupMe that the spot is available again
+    const weekCfg = await weeksDb.getConfig(monday);
+    const cfg = weekCfg ? weekCfg.config : null;
+    const dayInfo = cfg && cfg[dayIndex] ? cfg[dayIndex] : {};
+    const dayMeal = (dayInfo.day && dayInfo.meal) ? `${dayInfo.day} ${dayInfo.meal}` : 'a meal';
+    groupme.postMessage(`${signup.spot_up_orig_name}'s ${dayMeal} spot is available again`);
+
     return { status: 'ok' };
   });
 }
@@ -91,7 +110,8 @@ async function cancelSpotUp(monday, dayIndex, name, time) {
   await signupsDb.update(signup.id, {
     spot_up_status: '',
     spot_up_orig_name: '',
-    spot_up_claimed_by: ''
+    spot_up_claimed_by: '',
+    spotted_up_at: null
   });
 
   sheetsSync.syncWeek(monday).catch(e => console.error('Sheets sync error (week):', e.message));

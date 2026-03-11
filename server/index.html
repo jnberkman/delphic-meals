@@ -1833,14 +1833,9 @@ function renderViewDay(idx) {
         const mySignups = myName ? slotSups.filter(s => s.name && s.name.toLowerCase().trim() === myName) : [];
         const others = myName ? slotSups.filter(s => !s.name || s.name.toLowerCase().trim() !== myName) : slotSups;
 
+        const viewIsAdmin = !!(currentUser && currentUser.isAdmin);
         const earlyMembers = others.filter(s => s.early);
         const nonEarlyMembers = others.filter(s => !s.early);
-        const grouped = {};
-        CATEGORIES.forEach(c => grouped[c] = []);
-        nonEarlyMembers.forEach(s => {
-          const cat = CATEGORIES.includes(s.diet) ? s.diet : 'No Dietary Restrictions';
-          grouped[cat].push(s);
-        });
 
         html += '<div class="signup-list">';
         if (mySignups.length > 0) {
@@ -1852,17 +1847,29 @@ function renderViewDay(idx) {
           html += '<div style="font-size:11px;font-weight:600;color:#1565C0;text-transform:uppercase;letter-spacing:1px;margin:8px 0 4px;">Early Plate</div>';
           earlyMembers.forEach(s => { html += renderSignupItem(s, viewMonday, i, slot); });
         }
-        CATEGORIES.forEach(cat => {
-          if (grouped[cat].length === 0) return;
-          let catColor = 'var(--text-dim)';
-          if (cat === 'Vegan') catColor = '#4CAF50';
-          if (cat === 'Vegetarian') catColor = '#8BC34A';
-          if (cat === 'Gluten-Free') catColor = '#E89B3E';
-          if (cat === 'No Pork' || cat === 'No Beef') catColor = '#AB47BC';
-          if (cat === 'Allergies') catColor = '#E05555';
-          html += '<div style="font-size:11px;font-weight:600;color:' + catColor + ';text-transform:uppercase;letter-spacing:1px;margin:8px 0 4px;">' + cat + '</div>';
-          grouped[cat].forEach(s => { html += renderSignupItem(s, viewMonday, i, slot); });
-        });
+        if (viewIsAdmin) {
+          // Admins see signups grouped by dietary category
+          const grouped = {};
+          CATEGORIES.forEach(c => grouped[c] = []);
+          nonEarlyMembers.forEach(s => {
+            const cat = CATEGORIES.includes(s.diet) ? s.diet : 'No Dietary Restrictions';
+            grouped[cat].push(s);
+          });
+          CATEGORIES.forEach(cat => {
+            if (grouped[cat].length === 0) return;
+            let catColor = 'var(--text-dim)';
+            if (cat === 'Vegan') catColor = '#4CAF50';
+            if (cat === 'Vegetarian') catColor = '#8BC34A';
+            if (cat === 'Gluten-Free') catColor = '#E89B3E';
+            if (cat === 'No Pork' || cat === 'No Beef') catColor = '#AB47BC';
+            if (cat === 'Allergies') catColor = '#E05555';
+            html += '<div style="font-size:11px;font-weight:600;color:' + catColor + ';text-transform:uppercase;letter-spacing:1px;margin:8px 0 4px;">' + cat + '</div>';
+            grouped[cat].forEach(s => { html += renderSignupItem(s, viewMonday, i, slot); });
+          });
+        } else {
+          // Non-admins see a flat list without dietary grouping
+          nonEarlyMembers.forEach(s => { html += renderSignupItem(s, viewMonday, i, slot); });
+        }
         html += '</div>';
       }
       html += '</div>';
@@ -1963,14 +1970,14 @@ function renderHorizontalName(s, monday, dayIdx, slot, myName, isAdmin) {
   }
   const isClickable = !!rowClick;
 
-  // Short diet tag
+  // Short diet tag — only visible to admins
   const cat = CATEGORIES.includes(s.diet) ? s.diet : '';
-  const dietShort = { 'Vegan': 'VE', 'Vegetarian': 'V', 'Gluten-Free': 'GF', 'No Pork': 'NP', 'No Beef': 'NB', 'Allergies': '\u26A0' }[cat] || '';
+  const dietShort = isAdmin ? ({ 'Vegan': 'VE', 'Vegetarian': 'V', 'Gluten-Free': 'GF', 'No Pork': 'NP', 'No Beef': 'NB', 'Allergies': '\u26A0' }[cat] || '') : '';
   const tags = [dietShort, s.early ? 'E' : '', isGrad ? 'GG' : ''].filter(Boolean).join('\u00A0');
 
-  // Diet color on name
+  // Diet color on name — only visible to admins
   let nameColor = '';
-  if (!isMyRow && !isGrad) {
+  if (isAdmin && !isMyRow && !isGrad) {
     if (s.diet === 'Vegan') nameColor = 'color:#3D7A4E;';
     else if (s.diet === 'Vegetarian') nameColor = 'color:#5A8A3D;';
   }
@@ -2036,17 +2043,19 @@ function renderSignupItem(s, monday, dayIdx, slot) {
   const canCancelSpotUp = isAdmin || !myName || origName.toLowerCase().trim() === myName;
   const canManageClaimed = isAdmin || !myName || claimedBy.toLowerCase().trim() === myName;
 
+  const isMyRow = !!myName && s.name.toLowerCase().trim() === myName;
+
   let display = s.name;
   let tags = [];
   const cat = CATEGORIES.includes(s.diet) ? s.diet : 'No Dietary Restrictions';
-  if (cat !== 'No Dietary Restrictions') tags.push(cat.toLowerCase());
+  // Diet tags only visible to admins or on own row
+  if ((isAdmin || isMyRow) && cat !== 'No Dietary Restrictions') tags.push(cat.toLowerCase());
   // s.allergies intentionally not added to general tags — admin-only badge below
   if (s.early) tags.push('early');
   if (isGrad) tags.push('Grad Gasman');
   if (tags.length > 0) display += ' (' + tags.join(', ') + ')';
 
   // Allergy badge — visible to admin (all rows) or to the user on their own row
-  const isMyRow = !!myName && s.name.toLowerCase().trim() === myName;
   const allergyBadge = ((isAdmin || isMyRow) && s.allergies)
     ? '<span style="display:inline-block;font-size:9px;font-weight:700;color:#4A148C;background:#F3E5F5;padding:1px 7px;border-radius:2px;letter-spacing:.5px;border:1px solid #CE93D8;margin-left:6px;vertical-align:middle;">\u26A0 ' + escapeHtml(s.allergies) + '</span>'
     : '';
@@ -2055,8 +2064,8 @@ function renderSignupItem(s, monday, dayIdx, slot) {
   const earlyRowStyle = s.early ? 'background:#E3F2FD;border-color:#90CAF9;border-left:3px solid #1E88E5;' : '';
 
   let nameColor = 'var(--text-bright)';
-  if (s.diet === 'Vegan') nameColor = '#3D7A4E';
-  if (s.diet === 'Vegetarian') nameColor = '#5A8A3D';
+  if ((isAdmin || isMyRow) && s.diet === 'Vegan') nameColor = '#3D7A4E';
+  if ((isAdmin || isMyRow) && s.diet === 'Vegetarian') nameColor = '#5A8A3D';
   const gradStyle = isGrad ? 'background:#8B691412;border-color:#8B691430;' : '';
   const gradNameStyle = isGrad ? 'font-weight:800;color:#8B6914;' : 'color:' + nameColor;
 

@@ -87,14 +87,15 @@ async function findOldestSpotUpForUpdate(trx) {
 }
 
 /**
- * Find all unclaimed spot-ups within 2 hours, ordered by spotted_up_at.
+ * Find all unclaimed spot-ups within 2 hours.
+ * Ordered by closest meal date first, then oldest spotted_up_at within the same date.
  */
 async function findAllAvailableSpotUps() {
   return db('signups')
     .where('spot_up_status', 'spotup')
     .whereNotNull('spotted_up_at')
     .whereRaw("spotted_up_at > NOW() - INTERVAL '2 hours'")
-    .orderBy('spotted_up_at', 'asc');
+    .orderByRaw("(monday::date + day_index * INTERVAL '1 day') ASC, spotted_up_at ASC");
 }
 
 /**

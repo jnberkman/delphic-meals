@@ -49,8 +49,13 @@ router.post('/callback/:secret', async (req, res) => {
 
     if (!result) return;
 
+    // Ensure monday is a string (DB may return Date object)
+    const monday = typeof result.monday === 'string'
+      ? result.monday
+      : result.monday.toISOString().split('T')[0];
+
     // Build confirmation message with day/meal context
-    const weekCfg = await weeksDb.getConfig(result.monday);
+    const weekCfg = await weeksDb.getConfig(monday);
     const cfg = weekCfg ? weekCfg.config : null;
     const dayInfo = cfg && cfg[result.day_index] ? cfg[result.day_index] : {};
     let dayMeal = 'meal';
@@ -64,7 +69,7 @@ router.post('/callback/:secret', async (req, res) => {
     }
 
     groupme.postMessage(`${claimerName} claimed ${result.spot_up_orig_name}'s ${dayMeal} spot`);
-    sheetsSync.syncWeek(result.monday).catch(e => console.error('Sheets sync error (week):', e.message));
+    sheetsSync.syncWeek(monday).catch(e => console.error('Sheets sync error (week):', e.message));
   } catch (e) {
     console.error('GroupMe callback error:', e.message);
   }

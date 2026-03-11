@@ -1379,7 +1379,7 @@ async function loadWeekData(autoAdvance) {
   // Skip background re-fetch if data was just fetched within 60 seconds
   if (weekCacheTs[monday] && Date.now() - weekCacheTs[monday] < 60000) {
     document.getElementById('loadingDays').style.display = 'none';
-    if (currentWeekData && currentWeekData.config.every(d => !d.enabled)) {
+    if (autoAdvance && currentWeekData && currentWeekData.config.every(d => !d.enabled)) {
       return advanceToNextActiveWeek(monday);
     }
     return;
@@ -1402,8 +1402,8 @@ async function loadWeekData(autoAdvance) {
   }
   document.getElementById('loadingDays').style.display = 'none';
 
-  // If all meals are off this week, skip to next active week
-  if (currentWeekData && currentWeekData.config.every(d => !d.enabled)) {
+  // If all meals are off this week, auto-advance to next week with meals
+  if (autoAdvance && currentWeekData && currentWeekData.config.every(d => !d.enabled)) {
     return advanceToNextActiveWeek(monday);
   }
 }
@@ -1717,9 +1717,11 @@ async function loadViewData(autoAdvance) {
   // Skip background re-fetch if data was just fetched within 60 seconds
   if (weekCacheTs[monday] && Date.now() - weekCacheTs[monday] < 60000) {
     document.getElementById('viewLoading').style.display = 'none';
-    const weekData = cached || weekCache[monday];
-    if (weekData && weekData.config.every(d => !d.enabled)) {
-      return advanceViewToNextActiveWeek(monday);
+    if (autoAdvance) {
+      const weekData = cached || weekCache[monday];
+      if (weekData && weekData.config.every(d => !d.enabled)) {
+        return advanceViewToNextActiveWeek(monday);
+      }
     }
     return;
   }
@@ -1738,10 +1740,12 @@ async function loadViewData(autoAdvance) {
   }
   document.getElementById('viewLoading').style.display = 'none';
 
-  // If all meals are off this week, skip to next active week
-  const weekData = freshData || cached;
-  if (weekData && weekData.config.every(d => !d.enabled)) {
-    return advanceViewToNextActiveWeek(monday);
+  // If all meals are off this week, auto-advance to next week with meals
+  if (autoAdvance) {
+    const weekData = freshData || cached;
+    if (weekData && weekData.config.every(d => !d.enabled)) {
+      return advanceViewToNextActiveWeek(monday);
+    }
   }
 }
 

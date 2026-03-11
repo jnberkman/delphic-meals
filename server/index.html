@@ -285,7 +285,7 @@
     .view-day-col-body { padding: 10px 12px; flex: 1; }
     .view-col-slot-label { font-size: 9px; font-weight: 700; color: #5B8DEF; text-transform: uppercase; letter-spacing: .8px; margin: 10px 0 4px; padding-bottom: 3px; border-bottom: 1px solid #5B8DEF28; }
     .view-col-slot-label:first-child { margin-top: 0; }
-    .view-col-name { font-family: 'Crimson Pro', serif; font-size: 14px; color: var(--text-bright); padding: 2px 0; line-height: 1.3; display: flex; align-items: baseline; gap: 4px; flex-wrap: wrap; }
+    .view-col-name { font-family: 'Crimson Pro', serif; font-size: 14px; color: var(--text-bright); padding: 2px 0; line-height: 1.3; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
     .view-col-name .vn { min-width: 0; word-break: break-word; }
     .view-col-name .vtag { font-family: 'Jost', sans-serif; font-size: 9px; font-weight: 600; color: var(--text-dim); letter-spacing: .3px; flex-shrink: 0; white-space: nowrap; }
     .view-col-name.vn-mine .vn { font-weight: 700; color: var(--accent); }
@@ -2387,6 +2387,18 @@ function switchAdminPanel(panel) {
   if (panel === 'events') loadAdminEvents();
 }
 
+function handleMealTypeChange(sel, i) {
+  const customInput = document.getElementById('customMeal' + i);
+  if (sel.value === '__custom__') {
+    customInput.style.display = 'inline-block';
+    customInput.focus();
+    adminWeekData.config[i].meal = customInput.value || '';
+  } else {
+    customInput.style.display = 'none';
+    adminWeekData.config[i].meal = sel.value;
+  }
+}
+
 function toggleAdminSlots(i) {
   const panel = document.getElementById('adminSlotsPanel' + i);
   if (!panel) return;
@@ -2437,11 +2449,20 @@ function renderAdminWeekHTML() {
             '<span style="font-family:\'Cormorant Garamond\',serif;font-size:17px;font-weight:600;color:var(--text-bright);">' + day.day + '</span>' +
             '<span style="font-size:12px;color:var(--text-dim);margin-left:6px;">' + dateLabel + '</span>' +
           '</div>' +
-          '<select style="font-size:12px;padding:5px 30px 5px 8px;width:auto;" onchange="adminWeekData.config[' + i + '].meal=this.value">' +
-            '<option ' + (day.meal === 'Lunch' ? 'selected' : '') + '>Lunch</option>' +
-            '<option ' + (day.meal === 'Dinner' ? 'selected' : '') + '>Dinner</option>' +
-            '<option ' + (day.meal === 'Brunch' ? 'selected' : '') + '>Brunch</option>' +
-          '</select>' +
+          (function() {
+            var presets = ['Lunch','Dinner','Brunch'];
+            var isCustom = day.meal && presets.indexOf(day.meal) === -1;
+            return '<select style="font-size:12px;padding:5px 30px 5px 8px;width:auto;" onchange="handleMealTypeChange(this,' + i + ')">' +
+              '<option ' + (day.meal === 'Lunch' ? 'selected' : '') + '>Lunch</option>' +
+              '<option ' + (day.meal === 'Dinner' ? 'selected' : '') + '>Dinner</option>' +
+              '<option ' + (day.meal === 'Brunch' ? 'selected' : '') + '>Brunch</option>' +
+              '<option value="__custom__"' + (isCustom ? ' selected' : '') + '>Custom\u2026</option>' +
+            '</select>' +
+            '<input type="text" class="admin-custom-meal" id="customMeal' + i + '" ' +
+              'style="font-size:12px;padding:5px 8px;width:100px;display:' + (isCustom ? 'inline-block' : 'none') + ';" ' +
+              'placeholder="e.g. BBQ" value="' + (isCustom ? day.meal.replace(/"/g,'&quot;') : '') + '" ' +
+              'oninput="adminWeekData.config[' + i + '].meal=this.value">';
+          })() +
           '<label class="option-pill" style="margin:0;">' +
             '<input type="checkbox" ' + (isEnabled ? 'checked' : '') + ' onchange="adminWeekData.config[' + i + '].enabled=this.checked;renderAdminWeekHTML()">' +
             '<span class="pill-label" style="font-size:11px;padding:6px 14px;">' + (isEnabled ? 'On' : 'Off') + '</span>' +

@@ -77,20 +77,21 @@ async function executeClaim(claimerName, claimNum) {
   }
 
   await executeClaimById(spot.id, claimerName);
-  // silently ignore if already claimed — no error message
 }
 
 /**
  * POST /groupme/callback/:secret
  *
- * Commands (must be the ENTIRE message, nothing else):
- *   "claim"            — claims the most recent spot-up
- *   "claim #"          — claims a specific spot by number (use "spots" to see numbers)
- *   "spots"            — lists all available spot-ups with numbers
- *   "name First Last"  — sets your real name for future claims (requires first + last)
+ * Commands (must be the ENTIRE message):
+ *   "claim"                      — claims first available spot (name must be set)
+ *   "claim #"                    — claims spot # (name must be set)
+ *   "claim First Last"           — sets name + claims first available in one shot
+ *   "claim # First Last"         — sets name + claims spot # in one shot
+ *   "spots"                      — lists all available spot-ups with numbers
+ *   "name First Last"            — sets your real name without claiming
  *
- * Name resolution: DB (self-set) → env var map → GroupMe nickname.
- * Silently ignores unrecognized messages and invalid input to avoid chat noise.
+ * Name resolution: DB (self-set) → env var map.
+ * Unmapped users are prompted to include their name with the claim command.
  */
 router.post('/callback/:secret', async (req, res) => {
   res.status(200).end();
@@ -107,7 +108,7 @@ router.post('/callback/:secret', async (req, res) => {
   const senderId = msg.sender_id;
 
   try {
-    // "name First Last" — requires at least two words after "name"
+    // "name First Last" — set name without claiming
     const nameMatch = text.match(/^name\s+(\S+\s+\S.*)$/i);
     if (nameMatch) {
       const realName = nameMatch[1].trim();
@@ -119,20 +120,49 @@ router.post('/callback/:secret', async (req, res) => {
     // "spots" — list available spot-ups
     if (textLower === 'spots') {
       const { list } = await buildSpotsList();
-      if (!list) return; // no spots, stay silent
-      groupme.postMessage(`Available spots:\n${list}\n\n"claim" = most recent, "claim #" = specific`);
+      if (!list) return;
+      groupme.postMessage(`Available spots:\n${list}\n\n"claim" = first available, "claim #" = specific`);
       return;
     }
 
-    // "claim" or "claim #"
-    const claimMatch = textLower.match(/^claim(?:\s+(\d+))?$/);
+    // Parse claim commands:
+    //   "claim"                    → claimNum=null, inlineName=null
+    //   "claim 2"                  → claimNum=2,    inlineName=null
+    //   "claim John Smith"         → claimNum=null, inlineName="John Smith"
+    //   "claim 2 John Smith"       → claimNum=2,    inlineName="John Smith"
+    const claimMatch = text.match(/^claim(?:\s+(.+))?$/i);
     if (!claimMatch) return;
 
-    const claimNum = claimMatch[1] ? parseInt(claimMatch[1], 10) : null;
-    const claimerName = await groupme.resolveNickname(senderId, msg.name);
+    let claimNum = null;
+    let inlineName = null;
+
+    if (claimMatch[1]) {
+      const args = claimMatch[1].trim();
+      // Check if it starts with a number
+      const numMatch = args.match(/^(\d+)(?:\s+(.+))?$/);
+      if (numMatch) {
+        claimNum = parseInt(numMatch[1], 10);
+        if (numMatch[2]) inlineName = numMatch[2].trim();
+      } else {
+        // No leading number — entire thing is a name (must be first + last)
+        if (/^\S+\s+\S/.test(args)) {
+          inlineName = args;
+        } else {
+          return; // single word after "claim" that's not a number — ignore
+        }
+      }
+    }
+
+    // If inline name provided, save it for future claims
+    if (inlineName) {
+      await groupme.setNickname(senderId, msg.name, inlineName);
+    }
+
+    // Resolve name: inline > DB > env var map
+    const claimerName = inlineName || await groupme.resolveNickname(senderId, msg.name);
 
     if (!claimerName) {
-      groupme.postMessage(`${msg.name}, set your name first: reply "name First Last"`);
+      groupme.postMessage(`${msg.name}, include your name: "claim First Last" or "claim # First Last"`);
       return;
     }
 

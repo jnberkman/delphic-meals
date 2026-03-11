@@ -1,4 +1,5 @@
 const config = require('../config');
+const db = require('../db/knex');
 
 const GROUPME_API = 'https://api.groupme.com/v3';
 
@@ -20,12 +21,41 @@ const NICKNAME_MAP = (() => {
 })();
 
 /**
- * Resolve a GroupMe nickname to a real name using the nickname map.
- * Returns null if no mapping exists.
+ * Resolve a GroupMe sender to a real name.
+ * Priority: DB override → env var map → null.
  */
-function resolveNickname(nickname) {
+async function resolveNickname(senderId, nickname) {
   if (!nickname) return null;
+
+  // Check DB first (user-set names)
+  try {
+    const row = await db('groupme_nicknames').where('sender_id', senderId).first();
+    if (row) return row.real_name;
+  } catch (e) {
+    // Table may not exist yet during migration
+  }
+
+  // Fall back to env var map
   return NICKNAME_MAP[nickname.toLowerCase().trim()] || null;
+}
+
+/**
+ * Save a user's real name in the DB, keyed by their GroupMe sender_id.
+ */
+async function setNickname(senderId, nickname, realName) {
+  const existing = await db('groupme_nicknames').where('sender_id', senderId).first();
+  if (existing) {
+    await db('groupme_nicknames').where('sender_id', senderId).update({
+      nickname,
+      real_name: realName
+    });
+  } else {
+    await db('groupme_nicknames').insert({
+      sender_id: senderId,
+      nickname,
+      real_name: realName
+    });
+  }
 }
 
 /**
@@ -48,4 +78,4 @@ async function postMessage(text) {
   }
 }
 
-module.exports = { postMessage, resolveNickname };
+module.exports = { postMessage, resolveNickname, setNickname };

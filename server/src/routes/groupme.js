@@ -7,19 +7,6 @@ const weeksDb = require('../db/queries/weeks');
 const groupme = require('../services/groupme');
 const sheetsSync = require('../services/sheetsSync');
 
-// In-memory pending states for users whose nickname isn't in the map.
-// Key: sender_id, Value: { claimNum, timestamp }
-// claimNum: the # they want to claim (null = most recent)
-const pendingNameRequests = new Map();
-const PENDING_TTL = 2 * 60 * 1000;
-
-function cleanExpired() {
-  const now = Date.now();
-  for (const [key, val] of pendingNameRequests) {
-    if (now - val.timestamp > PENDING_TTL) pendingNameRequests.delete(key);
-  }
-}
-
 async function getSpotLabel(signup) {
   const monday = typeof signup.monday === 'string'
     ? signup.monday
@@ -36,6 +23,14 @@ async function getSpotLabel(signup) {
     return `${signup.spot_up_orig_name}'s ${dayInfo.day} ${dayInfo.meal}${datePart}`;
   }
   return `${signup.spot_up_orig_name}'s meal`;
+}
+
+async function buildSpotsList() {
+  const spots = await signupsDb.findAllAvailableSpotUps();
+  if (spots.length === 0) return { list: null, spots: [] };
+  const labels = await Promise.all(spots.map(s => getSpotLabel(s)));
+  const list = labels.map((label, i) => `${i + 1}. ${label}`).join('\n');
+  return { list, spots };
 }
 
 async function executeClaimById(spotId, claimerName) {
@@ -69,41 +64,33 @@ async function executeClaimById(spotId, claimerName) {
   return result;
 }
 
-/**
- * Execute a claim for the given claimer.
- * claimNum: 1-based index into the spot list, or null for the most recent.
- */
 async function executeClaim(claimerName, claimNum) {
   const spots = await signupsDb.findAllAvailableSpotUps();
   if (spots.length === 0) return;
 
-  // Most recent = last in the list (ordered by spotted_up_at asc)
   let spot;
   if (claimNum !== null) {
-    if (claimNum < 1 || claimNum > spots.length) {
-      groupme.postMessage(`Invalid number. Reply "claim #" with a number between 1 and ${spots.length}.`);
-      return;
-    }
+    if (claimNum < 1 || claimNum > spots.length) return; // silently ignore bad numbers
     spot = spots[claimNum - 1];
   } else {
-    spot = spots[spots.length - 1];
+    spot = spots[0];
   }
 
-  const result = await executeClaimById(spot.id, claimerName);
-  if (!result) {
-    groupme.postMessage('Sorry, that spot was already claimed.');
-  }
+  await executeClaimById(spot.id, claimerName);
+  // silently ignore if already claimed — no error message
 }
 
 /**
  * POST /groupme/callback/:secret
  *
- * Commands:
- *   "claim"   — claims the most recent spot-up
- *   "claim #" — claims a specific spot by number
- *   "spots"   — lists all available spot-ups with numbers
+ * Commands (must be the ENTIRE message, nothing else):
+ *   "claim"            — claims the most recent spot-up
+ *   "claim #"          — claims a specific spot by number (use "spots" to see numbers)
+ *   "spots"            — lists all available spot-ups with numbers
+ *   "name First Last"  — sets your real name for future claims (requires first + last)
  *
- * If the sender's nickname isn't in the map, asks for their name first.
+ * Name resolution: DB (self-set) → env var map → GroupMe nickname.
+ * Silently ignores unrecognized messages and invalid input to avoid chat noise.
  */
 router.post('/callback/:secret', async (req, res) => {
   res.status(200).end();
@@ -120,44 +107,31 @@ router.post('/callback/:secret', async (req, res) => {
   const senderId = msg.sender_id;
 
   try {
-    cleanExpired();
-
-    // Handle pending name reply for unknown nicknames
-    const pending = pendingNameRequests.get(senderId);
-    if (pending) {
-      pendingNameRequests.delete(senderId);
-      const claimerName = text;
-      if (!claimerName) return;
-      await executeClaim(claimerName, pending.claimNum);
+    // "name First Last" — requires at least two words after "name"
+    const nameMatch = text.match(/^name\s+(\S+\s+\S.*)$/i);
+    if (nameMatch) {
+      const realName = nameMatch[1].trim();
+      await groupme.setNickname(senderId, msg.name, realName);
+      groupme.postMessage(`${msg.name} → ${realName}`);
       return;
     }
 
     // "spots" — list available spot-ups
     if (textLower === 'spots') {
-      const spots = await signupsDb.findAllAvailableSpotUps();
-      if (spots.length === 0) {
-        groupme.postMessage('No spots available right now.');
-        return;
-      }
-      const labels = await Promise.all(spots.map(s => getSpotLabel(s)));
-      const lines = labels.map((label, i) => `${i + 1}. ${label}`);
-      groupme.postMessage(`Available spots:\n${lines.join('\n')}\n\nReply "claim" for most recent, or "claim #" for a specific one.`);
+      const { list } = await buildSpotsList();
+      if (!list) return; // no spots, stay silent
+      groupme.postMessage(`Available spots:\n${list}\n\n"claim" = most recent, "claim #" = specific`);
       return;
     }
 
-    // Parse "claim" or "claim #"
+    // "claim" or "claim #"
     const claimMatch = textLower.match(/^claim(?:\s+(\d+))?$/);
     if (!claimMatch) return;
 
     const claimNum = claimMatch[1] ? parseInt(claimMatch[1], 10) : null;
-    const resolvedName = groupme.resolveNickname(msg.name);
+    const claimerName = await groupme.resolveNickname(senderId, msg.name) || msg.name;
 
-    if (resolvedName) {
-      await executeClaim(resolvedName, claimNum);
-    } else {
-      pendingNameRequests.set(senderId, { claimNum, timestamp: Date.now() });
-      groupme.postMessage(`${msg.name}, reply with your first and last name to claim the spot.`);
-    }
+    await executeClaim(claimerName, claimNum);
   } catch (e) {
     console.error('GroupMe callback error:', e.message);
   }

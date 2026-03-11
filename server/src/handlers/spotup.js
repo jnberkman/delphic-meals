@@ -47,7 +47,16 @@ async function spotUp(monday, dayIndex, name, time) {
   }
 
   // Post to GroupMe (fire-and-forget)
-  groupme.postMessage(`${name} spotted up for ${dayMeal}`);
+  // Keep it short — "spots" command gives the full list
+  const allSpots = await signupsDb.findAllAvailableSpotUps().catch(() => []);
+  if (allSpots.length > 1) {
+    // Find this spot's position in the list (ordered by spotted_up_at asc)
+    const idx = allSpots.findIndex(s => s.id === signup.id);
+    const num = idx >= 0 ? idx + 1 : allSpots.length;
+    groupme.postMessage(`${name} spotted up for ${dayMeal} — reply "claim ${num}" to claim it (${allSpots.length} spots open, "spots" to see all)`);
+  } else {
+    groupme.postMessage(`${name} spotted up for ${dayMeal} — reply "claim" to claim it`);
+  }
 
   return { status: 'ok' };
 }
@@ -107,7 +116,14 @@ async function unclaimSpotUp(monday, dayIndex, originalName, time) {
       }
       dayMeal = `${dayInfo.day} ${dayInfo.meal}${datePart}`;
     }
-    groupme.postMessage(`${signup.spot_up_orig_name}'s ${dayMeal} spot is available again`);
+    const allSpots = await signupsDb.findAllAvailableSpotUps().catch(() => []);
+    if (allSpots.length > 1) {
+      const idx = allSpots.findIndex(s => s.id === signup.id);
+      const num = idx >= 0 ? idx + 1 : allSpots.length;
+      groupme.postMessage(`${signup.spot_up_orig_name}'s ${dayMeal} spot is available again — reply "claim ${num}" to claim it (${allSpots.length} spots open, "spots" to see all)`);
+    } else {
+      groupme.postMessage(`${signup.spot_up_orig_name}'s ${dayMeal} spot is available again — reply "claim" to claim it`);
+    }
 
     return { status: 'ok' };
   });

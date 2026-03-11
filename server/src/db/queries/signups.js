@@ -86,8 +86,30 @@ async function findOldestSpotUpForUpdate(trx) {
     .first();
 }
 
+/**
+ * Find all unclaimed spot-ups within 2 hours, ordered by spotted_up_at.
+ */
+async function findAllAvailableSpotUps() {
+  return db('signups')
+    .where('spot_up_status', 'spotup')
+    .whereNotNull('spotted_up_at')
+    .whereRaw("spotted_up_at > NOW() - INTERVAL '2 hours'")
+    .orderBy('spotted_up_at', 'asc');
+}
+
+/**
+ * Find a specific spot-up by ID for claiming with row lock.
+ */
+async function findSpotUpByIdForUpdate(trx, id) {
+  return trx('signups')
+    .where({ id, spot_up_status: 'spotup' })
+    .forUpdate()
+    .first();
+}
+
 module.exports = {
   getByMonday, getByMondayAndDay, findSignup, findSignupByDayAndName,
   insert, deleteByDayAndName, update, countByTime,
-  findSpotUpForUpdate, findClaimedForUpdate, findOldestSpotUpForUpdate
+  findSpotUpForUpdate, findClaimedForUpdate, findOldestSpotUpForUpdate,
+  findAllAvailableSpotUps, findSpotUpByIdForUpdate
 };

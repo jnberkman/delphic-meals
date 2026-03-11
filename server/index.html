@@ -1350,7 +1350,7 @@ let selectedDays = new Set();
 let selectedTimes = {};
 let dayOptions = {};
 
-async function loadWeekData(autoAdvance) {
+async function loadWeekData(skipDir) {
   const weekInput = document.getElementById('weekSelect').value;
   if (!weekInput) return;
   const monday = getMonday(weekInput);
@@ -1380,7 +1380,7 @@ async function loadWeekData(autoAdvance) {
   if (weekCacheTs[monday] && Date.now() - weekCacheTs[monday] < 60000) {
     document.getElementById('loadingDays').style.display = 'none';
     if (currentWeekData && currentWeekData.config.every(d => !d.enabled)) {
-      return advanceToNextActiveWeek(monday);
+      return advanceToNextActiveWeek(monday, skipDir || 1);
     }
     return;
   }
@@ -1402,17 +1402,18 @@ async function loadWeekData(autoAdvance) {
   }
   document.getElementById('loadingDays').style.display = 'none';
 
-  // If all meals are off this week, skip to next active week
+  // If all meals are off this week, skip in the direction the user was navigating
   if (currentWeekData && currentWeekData.config.every(d => !d.enabled)) {
-    return advanceToNextActiveWeek(monday);
+    return advanceToNextActiveWeek(monday, skipDir || 1);
   }
 }
 
-async function advanceToNextActiveWeek(fromMonday) {
-  // Look ahead up to 4 weeks for a week with at least one meal enabled
+async function advanceToNextActiveWeek(fromMonday, dir) {
+  // Look ahead/behind up to 4 weeks for a week with at least one meal enabled
+  const step = (dir || 1) > 0 ? 7 : -7;
   const d = new Date(fromMonday + 'T12:00:00');
   for (let i = 0; i < 4; i++) {
-    d.setDate(d.getDate() + 7);
+    d.setDate(d.getDate() + step);
     const nextMonday = d.toISOString().slice(0, 10);
     try {
       const result = await apiCall('getWeek', { monday: nextMonday });
@@ -1692,7 +1693,7 @@ function _applyViewData(data, preserveIdx) {
   }
 }
 
-async function loadViewData(autoAdvance) {
+async function loadViewData(skipDir) {
   const weekInput = document.getElementById('viewWeekSelect').value;
   const nav = document.getElementById('viewDayNav');
   if (!weekInput) {
@@ -1719,7 +1720,7 @@ async function loadViewData(autoAdvance) {
     document.getElementById('viewLoading').style.display = 'none';
     const weekData = cached || weekCache[monday];
     if (weekData && weekData.config.every(d => !d.enabled)) {
-      return advanceViewToNextActiveWeek(monday);
+      return advanceViewToNextActiveWeek(monday, skipDir || 1);
     }
     return;
   }
@@ -1738,17 +1739,18 @@ async function loadViewData(autoAdvance) {
   }
   document.getElementById('viewLoading').style.display = 'none';
 
-  // If all meals are off this week, skip to next active week
+  // If all meals are off this week, skip in the direction the user was navigating
   const weekData = freshData || cached;
   if (weekData && weekData.config.every(d => !d.enabled)) {
-    return advanceViewToNextActiveWeek(monday);
+    return advanceViewToNextActiveWeek(monday, skipDir || 1);
   }
 }
 
-async function advanceViewToNextActiveWeek(fromMonday) {
+async function advanceViewToNextActiveWeek(fromMonday, dir) {
+  const step = (dir || 1) > 0 ? 7 : -7;
   const d = new Date(fromMonday + 'T12:00:00');
   for (let i = 0; i < 4; i++) {
-    d.setDate(d.getDate() + 7);
+    d.setDate(d.getDate() + step);
     const nextMonday = d.toISOString().slice(0, 10);
     try {
       const result = await apiCall('getWeek', { monday: nextMonday });
@@ -2390,7 +2392,7 @@ function shiftWeek(inputId, days, callback) {
   if (d < minDate || d > maxDate) return;
 
   el.value = d.toISOString().split('T')[0];
-  if (callback) callback();
+  if (callback) callback(days > 0 ? 1 : -1);
 }
 
 function shiftAdminWeek(days) {

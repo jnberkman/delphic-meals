@@ -20,7 +20,8 @@ When a member spots up on the website, a GroupMe bot posts a notification to the
 - `getMemberName(senderUserId)` — GET `/groups/{group_id}` members, find real name by `user_id` (not nickname)
 - Gracefully no-ops if `GROUPME_BOT_ID` is not set (same pattern as sheetsSync)
 
-**`server/src/routes/groupme.js`** — `POST /groupme/callback`
+**`server/src/routes/groupme.js`** — `POST /groupme/callback/:secret`
+- Validates `:secret` param against `GROUPME_CALLBACK_SECRET` env var (rejects if mismatch)
 - Receives all messages pushed by GroupMe for the group
 - Ignores messages where `sender_type === 'bot'` (prevents self-loops)
 - Ignores messages that don't match "claim" (case-insensitive)
@@ -32,7 +33,7 @@ When a member spots up on the website, a GroupMe bot posts a notification to the
 
 ### Modified Files
 
-**`server/src/handlers/spotup.js`** — after setting `spot_up_status = 'spotup'`, call `groupme.postMessage()` with spot-up details
+**`server/src/handlers/spotup.js`** — set `spotted_up_at = NOW()` alongside `spot_up_status = 'spotup'`, then call `groupme.postMessage()` fire-and-forget. On cancel/unclaim, clear `spotted_up_at`.
 
 **`server/src/index.js`** — mount the `/groupme` route
 
@@ -63,12 +64,13 @@ Row-level locking (`FOR UPDATE`) prevents double-claims across all three claim m
 | `GROUPME_BOT_ID` | For posting messages to the group |
 | `GROUPME_ACCESS_TOKEN` | For reading group members to get real names |
 | `GROUPME_GROUP_ID` | Group ID for member lookup |
+| `GROUPME_CALLBACK_SECRET` | Secret token in callback URL path for basic auth |
 
 ## GroupMe Bot Setup (One-Time)
 
 1. Go to https://dev.groupme.com/bots
 2. Create a bot attached to the Delphic group
-3. Set callback URL to `https://meals.delphicclub.org/groupme/callback`
+3. Set callback URL to `https://meals.delphicclub.org/groupme/callback/<secret>` (secret stored as `GROUPME_CALLBACK_SECRET` env var)
 4. Save the bot ID → set as `GROUPME_BOT_ID` env var
 5. Get an access token from https://dev.groupme.com → set as `GROUPME_ACCESS_TOKEN`
 6. Get group ID from GroupMe API or URL → set as `GROUPME_GROUP_ID`

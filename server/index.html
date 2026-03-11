@@ -972,6 +972,7 @@ async function submitAccessCode() {
   try {
     const result = await apiCall('checkAccessCode', { code });
     if (result.valid) {
+      sessionStorage.setItem('delphic_access_code', code);
       grantAccess({ name: '', isAdmin: false, guest: true });
     } else {
       errEl.textContent = 'Incorrect access code.';
@@ -1130,10 +1131,15 @@ function showToast(msg, color, undoFn) {
   _toastUndoFn = undoFn || null;
   const t = document.getElementById('toast');
   t.style.background = color || 'var(--green)';
+  t.textContent = '';
+  t.appendChild(document.createTextNode(msg));
   if (undoFn) {
-    t.innerHTML = msg + ' <button class="toast-undo" onclick="_toastUndo()">Undo</button>';
-  } else {
-    t.textContent = msg;
+    const btn = document.createElement('button');
+    btn.className = 'toast-undo';
+    btn.textContent = 'Undo';
+    btn.onclick = _toastUndo;
+    t.appendChild(document.createTextNode(' '));
+    t.appendChild(btn);
   }
   t.classList.add('show');
   _toastTimer = setTimeout(() => { t.classList.remove('show'); _toastUndoFn = null; _toastTimer = null; }, 3500);
@@ -1199,7 +1205,7 @@ function renderMySignupsSummary() {
     const safeMon = monday.replace(/'/g, "\\'");
     const timeLabel = time === '12:00 PM' ? '12:00\u20131:00 PM' : time === '1:00 PM' ? '1:00\u20132:00 PM' : (time || '');
     html += '<div class="my-signups-row">' +
-      '<span>' + day.day + ' <span style="color:var(--text-dim);">&middot;</span> ' + day.meal +
+      '<span>' + escapeHtml(day.day) + ' <span style="color:var(--text-dim);">&middot;</span> ' + escapeHtml(day.meal) +
         (timeLabel ? ' <span style="color:var(--text-dim);">&middot;</span> <span style="font-size:13px;color:var(--text-dim);">' + timeLabel + '</span>' : '') +
       '</span>' +
       '<button class="my-signups-cancel" onclick="cancelMySignup(\'' + safeMon + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')" title="Remove sign-up">&#215;</button>' +
@@ -1274,10 +1280,13 @@ async function apiCall(action, data = {}) {
       const headers = { 'Content-Type': 'application/json' };
       const idToken = sessionStorage.getItem('delphic_id_token');
       if (idToken) headers['Authorization'] = 'Bearer ' + idToken;
+      const guestCode = sessionStorage.getItem('delphic_access_code');
+      const payload = { action, ...data };
+      if (!idToken && guestCode) payload.accessCode = guestCode;
       resp = await fetch(SCRIPT_URL + '/api', {
         method: 'POST',
         headers,
-        body: JSON.stringify({ action, ...data })
+        body: JSON.stringify(payload)
       });
     } else {
       const payload = encodeURIComponent(JSON.stringify({ action, ...data }));
@@ -1478,8 +1487,8 @@ function renderDayCards() {
 
     const menuPreview = day.menu ? (day.menu.length > 32 ? day.menu.slice(0, 32) + '\u2026' : day.menu) : '';
     html += '<div class="day-card ' + (isFull ? 'full' : '') + '" data-day="' + i + '" onclick="' + (isFull ? '' : 'toggleDay(' + i + ')') + '">' +
-      '<div class="day-meal">' + day.meal + '</div>' +
-      '<div class="day-name">' + day.day + '</div>' +
+      '<div class="day-meal">' + escapeHtml(day.meal) + '</div>' +
+      '<div class="day-name">' + escapeHtml(day.day) + '</div>' +
       '<div class="day-date">' + new Date(day.date + 'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}) + '</div>' +
       (menuPreview ? '<div class="day-menu-preview">' + menuPreview + '</div>' : '') +
       '<div class="day-spots ' + spotsClass + '">' + spotsText + '</div>' +
@@ -1511,7 +1520,7 @@ function updateTimeSection() {
     const times = getDayTimes(day);
     const guestsAllowed = day.guestsAllowed || false;
     html += '<div style="margin-bottom:20px;padding:16px;background:var(--surface2);border-radius:4px;border:1px solid var(--border);">' +
-      '<div style="font-family:\'Cormorant Garamond\',serif;font-weight:600;font-size:18px;color:var(--text-bright);margin-bottom:12px;">' + day.day + ' — ' + day.meal + '</div>';
+      '<div style="font-family:\'Cormorant Garamond\',serif;font-weight:600;font-size:18px;color:var(--text-bright);margin-bottom:12px;">' + escapeHtml(day.day) + ' — ' + escapeHtml(day.meal) + '</div>';
     if (day.menu) html += '<div class="menu-display"><strong>Menu:</strong> ' + escapeHtml(day.menu) + '</div>';
 
     if (times.length > 1) {
@@ -1548,7 +1557,7 @@ function updateTimeSection() {
     }
 
     html += '<div>' +
-      '<label style="font-family:\'Jost\',sans-serif;font-size:11px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-dim);">Accommodations for ' + day.day + '</label>' +
+      '<label style="font-family:\'Jost\',sans-serif;font-size:11px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-dim);">Accommodations for ' + escapeHtml(day.day) + '</label>' +
       '<input type="text" id="accom_' + i + '" placeholder="e.g. no cheese, extra rice" style="margin-top:6px;" oninput="dayOptions[' + i + '] = dayOptions[' + i + '] || {}; dayOptions[' + i + '].accommodations = this.value;">' +
     '</div>';
 
@@ -1795,7 +1804,7 @@ function renderViewDay(idx) {
   let html = '<div class="card">';
   html += '<div style="display:flex;justify-content:space-between;align-items:start;">' +
     '<div>' +
-      '<div class="card-title">' + day.day + ' \u2014 ' + day.meal + '</div>' +
+      '<div class="card-title">' + escapeHtml(day.day) + ' \u2014 ' + escapeHtml(day.meal) + '</div>' +
       '<div class="card-sub">' + new Date(day.date + 'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}) + ' &middot; ' + sups.length + '/' + maxTotal + ' signed up</div>' +
     '</div>' +
     '<span class="tag ' + (sups.length >= maxTotal ? 'tag-red' : sups.length > maxTotal * 0.8 ? 'tag-orange' : 'tag-green') + '">' + (sups.length >= maxTotal ? 'FULL' : 'OPEN') + '</span>' +
@@ -1904,8 +1913,8 @@ function renderHorizontalView() {
 
     // Column header
     html += '<div class="view-day-col-header">' +
-      '<div class="view-day-col-dayname">' + day.day + '</div>' +
-      '<div class="view-day-col-meal">' + day.meal + '</div>' +
+      '<div class="view-day-col-dayname">' + escapeHtml(day.day) + '</div>' +
+      '<div class="view-day-col-meal">' + escapeHtml(day.meal) + '</div>' +
       '<div class="view-day-col-date">' + new Date(day.date + 'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}) + '</div>' +
       '<span class="view-day-col-count" style="background:' + countBg + ';color:' + countColor + ';">' + sups.length + '&thinsp;/&thinsp;' + maxTotal + '</span>' +
       (day.menu ? '<div class="view-day-col-menu" title="' + escapeHtml(day.menu) + '">' + escapeHtml(day.menu) + '</div>' : '') +
@@ -2474,7 +2483,7 @@ function renderAdminWeekHTML() {
           '</div>';
       });
     } else {
-      slotsHtml = '<div style="color:var(--text-dim);font-size:12px;font-style:italic;margin-bottom:8px;">Using default times for ' + (day.meal || 'Lunch') + '.</div>';
+      slotsHtml = '<div style="color:var(--text-dim);font-size:12px;font-style:italic;margin-bottom:8px;">Using default times for ' + escapeHtml(day.meal || 'Lunch') + '.</div>';
     }
 
     const dateLabel = new Date(day.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -2484,7 +2493,7 @@ function renderAdminWeekHTML() {
         // Row 1: day name + meal type select + enabled toggle
         '<div style="display:flex;align-items:center;gap:10px;margin-bottom:' + (isEnabled ? '12' : '0') + 'px;">' +
           '<div style="flex:1;">' +
-            '<span style="font-family:\'Cormorant Garamond\',serif;font-size:17px;font-weight:600;color:var(--text-bright);">' + day.day + '</span>' +
+            '<span style="font-family:\'Cormorant Garamond\',serif;font-size:17px;font-weight:600;color:var(--text-bright);">' + escapeHtml(day.day) + '</span>' +
             '<span style="font-size:12px;color:var(--text-dim);margin-left:6px;">' + dateLabel + '</span>' +
           '</div>' +
           (function() {
@@ -3548,7 +3557,7 @@ function openMooseDaySheet(dateStr) {
         _mooseSheetMealData = { monday, dayIdx, day, weekData, myEntry };
 
         mealHtml += '<div class="moose-sheet-sect">Meal</div><div class="moose-meal-box">' +
-          '<div class="moose-meal-type">' + day.meal + '</div>';
+          '<div class="moose-meal-type">' + escapeHtml(day.meal) + '</div>';
         if (day.menu) mealHtml += '<div class="moose-meal-menu">' + escapeHtml(day.menu) + '</div>';
 
         if (myEntry) {
@@ -3583,7 +3592,7 @@ function openMooseDaySheet(dateStr) {
             _mooseSelectedTime = times[0]; // auto-select single slot
           }
           mealHtml += '<button class="btn btn-primary" id="mooseMealBtn" style="width:auto;padding:10px 24px;font-size:14px;" ' +
-            'onclick="submitMooseMeal()">Sign Up for ' + day.meal + '</button>';
+            'onclick="submitMooseMeal()">Sign Up for ' + escapeHtml(day.meal) + '</button>';
         }
         mealHtml += '</div>';
       } else if (day && !day.enabled) {

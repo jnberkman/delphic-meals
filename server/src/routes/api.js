@@ -64,11 +64,22 @@ async function dispatch(req, res) {
   if (!handler) return res.json({ error: 'Unknown action: ' + action });
 
   try {
-    const result = await handler(data);
+    let result = await handler(data);
+
+    // Strip sensitive fields from getWeek for non-admin callers
+    if (action === 'getWeek' && result && result.signups && !(req.user && req.user.isAdmin)) {
+      for (const dayIdx of Object.keys(result.signups)) {
+        result.signups[dayIdx] = result.signups[dayIdx].map(s => {
+          const { diet, allergies, ...rest } = s;
+          return rest;
+        });
+      }
+    }
+
     res.json(result);
   } catch (err) {
     console.error(`Action ${action} error:`, err);
-    res.json({ error: err.message || 'Internal error' });
+    res.json({ error: 'Internal error' });
   }
 }
 

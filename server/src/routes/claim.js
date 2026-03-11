@@ -38,6 +38,11 @@ async function claimViaToken(token) {
 
     if (tokenRow.used) return { error: 'already_used', message: 'This link has already been used.' };
 
+    // Reject tokens older than 24 hours
+    if (tokenRow.created_at && Date.now() - new Date(tokenRow.created_at).getTime() > 24 * 60 * 60 * 1000) {
+      return { error: 'expired', message: 'This link has expired.' };
+    }
+
     const monday = tokenRow.monday;
     const dayIdx = tokenRow.day_idx;
     const origName = tokenRow.orig_name;

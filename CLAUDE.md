@@ -37,7 +37,7 @@ Appscripts/
 server/                     # Backend + frontend — Node.js + Express + PostgreSQL
   index.html                # Entire frontend (HTML + CSS + JS), served by Express
   favicon.ico               # Delphic Club favicon (from delphicclub.com)
-  package.json              # Dependencies: express, knex, pg, nodemailer, googleapis, cors, dotenv, uuid
+  package.json              # Dependencies: express, knex, pg, nodemailer, googleapis, cors, dotenv, uuid, express-rate-limit
   knexfile.js               # Knex config (reads DATABASE_URL)
   railway.toml              # Railway deployment config (nixpacks, health check, auto-migrate)
   .env.example              # Required environment variables
@@ -93,7 +93,7 @@ server/                     # Backend + frontend — Node.js + Express + Postgre
 - **Entry point**: `server/src/index.js` — mounts `/api`, `/claim`, `/health`, `/groupme` routes, serves frontend and favicon
 - **Action dispatch**: `server/src/routes/api.js` maps `data.action` to handler functions (28 actions)
 - **Database**: PostgreSQL via Knex query builder. 8 tables defined in `server/migrations/001_initial_schema.js`
-- **Auth middleware**: `server/src/middleware/auth.js` — verifies Google `id_token` via `google-auth-library`. Public actions (ping, checkAccessCode, checkMember, requestAccess, getSettings, getWeek, getEvents) pass through. Admin actions require verified token + `is_admin` flag in members table
+- **Auth middleware**: `server/src/middleware/auth.js` — 3-tier auth: PUBLIC actions (no auth), MEMBER actions (Google token or guest access code), ADMIN actions (Google token + `is_admin`). Guest access code sent as `accessCode` in request body
 - **Sheets sync**: `server/src/services/sheetsSync.js` — only syncs chef-facing week display sheets (`Week_YYYY-MM-DD`). All other sync functions (members, settings, events, etc.) are no-ops. Gracefully no-ops if `GOOGLE_SERVICE_ACCOUNT_KEY` is not set
 - **Email**: Nodemailer (`server/src/services/email.js`) with HTML templates (`emailTemplates.js`)
 - **Claim route**: `GET /claim?token=` with PostgreSQL row-level locking for spot-up claims via email links
@@ -145,5 +145,8 @@ server/                     # Backend + frontend — Node.js + Express + Postgre
 - Admin features are gated by `isAdmin` flag from the members table, enforced server-side
 - `interestOnly` admin setting controls whether events show full signup or just interest tracking
 - **Sheets sync constraint**: Do NOT modify the live Google Sheet directly — the sync service only writes chef-facing display sheets (`Week_YYYY-MM-DD`). Postgres is the source of truth
+- **Rate limiting**: `/api` is limited to 100 req/min, `/groupme` to 15 req/15min via `express-rate-limit`
+- **Claim token expiry**: Email claim links expire after 24 hours
+- **Diet/allergy privacy**: `getWeek` API strips `diet` and `allergies` fields for non-admin callers; frontend also hides them for non-admins
 - **Data migration**: `server/scripts/migrate-from-sheets.js` imports existing data from Google Sheets to PostgreSQL (one-time, requires credentials)
 - **Constants shared with backend**: `DAYS`, `DEFAULT_MEALS`, `CATEGORIES` are duplicated in both `index.html` and `Code.gs` — keep them in sync if modifying the legacy backend

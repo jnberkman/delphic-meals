@@ -1348,7 +1348,7 @@ let selectedDays = new Set();
 let selectedTimes = {};
 let dayOptions = {};
 
-async function loadWeekData() {
+async function loadWeekData(autoAdvance) {
   const weekInput = document.getElementById('weekSelect').value;
   if (!weekInput) return;
   const monday = getMonday(weekInput);
@@ -1356,7 +1356,7 @@ async function loadWeekData() {
   selectedDays.clear();
   selectedTimes = {};
   dayOptions = {};
-  document.getElementById('dayCards').innerHTML = '';
+  document.getElementById('dayCards').textContent = '';
   document.getElementById('timeSection').style.display = 'none';
 
   // Show cached data instantly if available
@@ -1377,6 +1377,9 @@ async function loadWeekData() {
   // Skip background re-fetch if data was just fetched within 60 seconds
   if (weekCacheTs[monday] && Date.now() - weekCacheTs[monday] < 60000) {
     document.getElementById('loadingDays').style.display = 'none';
+    if (autoAdvance && currentWeekData && currentWeekData.config.every(d => !d.enabled)) {
+      return advanceToNextActiveWeek(monday);
+    }
     return;
   }
 
@@ -1396,6 +1399,37 @@ async function loadWeekData() {
     if (!cachedWeek) currentWeekData = buildDefaultWeek(monday);
   }
   document.getElementById('loadingDays').style.display = 'none';
+
+  // If all meals are off this week, auto-advance to next week with meals
+  if (autoAdvance && currentWeekData && currentWeekData.config.every(d => !d.enabled)) {
+    return advanceToNextActiveWeek(monday);
+  }
+}
+
+async function advanceToNextActiveWeek(fromMonday) {
+  // Look ahead up to 4 weeks for a week with at least one meal enabled
+  const d = new Date(fromMonday + 'T12:00:00');
+  for (let i = 0; i < 4; i++) {
+    d.setDate(d.getDate() + 7);
+    const nextMonday = d.toISOString().slice(0, 10);
+    try {
+      const result = await apiCall('getWeek', { monday: nextMonday });
+      weekCache[nextMonday] = result;
+      weekCacheTs[nextMonday] = Date.now();
+      setCache('week_' + nextMonday, result);
+      if (result.config.some(day => day.enabled)) {
+        document.getElementById('weekSelect').value = nextMonday;
+        currentWeekData = result;
+        if (result.caps) {
+          caps.slot12 = result.caps.slot12 || 45;
+          caps.slot1 = result.caps.slot1 || 45;
+          caps.dinner = result.caps.dinner || 90;
+        }
+        renderDayCards();
+        return;
+      }
+    } catch (e) { /* keep looking */ }
+  }
 }
 
 function buildDefaultWeek(monday) {
@@ -1656,7 +1690,7 @@ function _applyViewData(data, preserveIdx) {
   }
 }
 
-async function loadViewData() {
+async function loadViewData(autoAdvance) {
   const weekInput = document.getElementById('viewWeekSelect').value;
   const nav = document.getElementById('viewDayNav');
   if (!weekInput) {
@@ -1681,12 +1715,20 @@ async function loadViewData() {
   // Skip background re-fetch if data was just fetched within 60 seconds
   if (weekCacheTs[monday] && Date.now() - weekCacheTs[monday] < 60000) {
     document.getElementById('viewLoading').style.display = 'none';
+    if (autoAdvance) {
+      const weekData = cached || weekCache[monday];
+      if (weekData && weekData.config.every(d => !d.enabled)) {
+        return advanceViewToNextActiveWeek(monday);
+      }
+    }
     return;
   }
 
   // Fetch fresh data in background (stale-while-revalidate)
+  let freshData = null;
   try {
     const data = await apiCall('getWeek', { monday });
+    freshData = data;
     weekCache[monday] = data;
     weekCacheTs[monday] = Date.now();
     setCache('week_' + monday, data);
@@ -1695,6 +1737,34 @@ async function loadViewData() {
     if (!cached) _applyViewData(buildDefaultWeek(monday), false);
   }
   document.getElementById('viewLoading').style.display = 'none';
+
+  // If all meals are off this week, auto-advance to next week with meals
+  if (autoAdvance) {
+    const weekData = freshData || cached;
+    if (weekData && weekData.config.every(d => !d.enabled)) {
+      return advanceViewToNextActiveWeek(monday);
+    }
+  }
+}
+
+async function advanceViewToNextActiveWeek(fromMonday) {
+  const d = new Date(fromMonday + 'T12:00:00');
+  for (let i = 0; i < 4; i++) {
+    d.setDate(d.getDate() + 7);
+    const nextMonday = d.toISOString().slice(0, 10);
+    try {
+      const result = await apiCall('getWeek', { monday: nextMonday });
+      weekCache[nextMonday] = result;
+      weekCacheTs[nextMonday] = Date.now();
+      setCache('week_' + nextMonday, result);
+      if (result.config.some(day => day.enabled)) {
+        document.getElementById('viewWeekSelect').value = nextMonday;
+        viewMonday = nextMonday;
+        _applyViewData(result, false);
+        return;
+      }
+    } catch (e) { /* keep looking */ }
+  }
 }
 
 function changeViewDay(delta) {
@@ -3118,8 +3188,8 @@ snapToMonday('weekSelect', loadWeekData);
 snapToMonday('viewWeekSelect', loadViewData);
 snapToMonday('adminWeekSelect', renderAdminWeek);
 
-loadWeekData();
-loadViewData(); // prefetch so View tab renders instantly on first click
+loadWeekData(true);
+loadViewData(true); // prefetch so View tab renders instantly on first click
 if (currentUser && currentUser.isAdmin) { switchAdminPanel('week'); loadAccessRequests(); }
 
 // Initialize calendar

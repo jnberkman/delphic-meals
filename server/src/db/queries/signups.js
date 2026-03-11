@@ -72,8 +72,22 @@ async function findClaimedForUpdate(trx, monday, dayIndex, originalName, time) {
     .first();
 }
 
+/**
+ * Find the oldest unclaimed spot-up within 2 hours for GroupMe claiming.
+ * Uses SELECT ... FOR UPDATE for concurrency control.
+ */
+async function findOldestSpotUpForUpdate(trx) {
+  return trx('signups')
+    .where('spot_up_status', 'spotup')
+    .whereNotNull('spotted_up_at')
+    .whereRaw("spotted_up_at > NOW() - INTERVAL '2 hours'")
+    .orderBy('spotted_up_at', 'asc')
+    .forUpdate()
+    .first();
+}
+
 module.exports = {
   getByMonday, getByMondayAndDay, findSignup, findSignupByDayAndName,
   insert, deleteByDayAndName, update, countByTime,
-  findSpotUpForUpdate, findClaimedForUpdate
+  findSpotUpForUpdate, findClaimedForUpdate, findOldestSpotUpForUpdate
 };

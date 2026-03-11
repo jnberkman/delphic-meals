@@ -6,7 +6,7 @@ A meal sign-up web application for the Delphic Club. Members sign up for weekly 
 
 ## Architecture
 
-**Frontend**: Single-file static site (`server/index.html`, ~3850 lines) served by Express on **Railway** at `meals.delphicclub.org`. Contains all HTML, CSS, and vanilla JavaScript in one file — no build step, no framework, no bundler.
+**Frontend**: Single-file static site (`server/index.html`, ~3925 lines) served by Express on **Railway** at `meals.delphicclub.org`. Contains all HTML, CSS, and vanilla JavaScript in one file — no build step, no framework, no bundler.
 
 **Backend**: Node.js + Express + PostgreSQL (`server/`), deployed on **Railway**. 28 API actions. Syncs chef-facing week display sheets to Google Sheets (fire-and-forget, no-ops without credentials).
 
@@ -14,7 +14,7 @@ A meal sign-up web application for the Delphic Club. Members sign up for weekly 
 
 **Legacy backend**: Google Apps Script (`Appscripts/Code.gs`) — still exists but is no longer the active backend. `SCRIPT_URL` in the frontend points to Railway.
 
-**Auth**: Google OAuth2 redirect-based sign-in (`id_token` implicit flow). Server-side token verification via `google-auth-library` enforces admin access on sensitive actions. Guest access via server-validated access code (`ACCESS_CODE` env var).
+**Auth**: Google OAuth2 redirect-based sign-in (`id_token` implicit flow) with silent re-auth (`prompt: 'none'`) for session persistence. Server-side token verification via `google-auth-library` enforces admin access on sensitive actions. Guest access via server-validated access code (`ACCESS_CODE` env var).
 
 **Deployment**: Push to `main` → Railway auto-deploys via GitHub integration (rootDirectory: `/server`). Migrations run automatically on deploy.
 
@@ -86,7 +86,7 @@ server/                     # Backend + frontend — Node.js + Express + Postgre
 - **API communication**: All backend calls go through `apiCall(action, data)` which POSTs JSON to `/api` with `Authorization: Bearer <id_token>` header when signed in via Google
 - **Auth**: Google OAuth2 redirect-based sign-in. Guest access code validated server-side via `checkAccessCode` action
 - **Client-side caching**: `getCache()`/`setCache()` with 10-minute TTL for API responses
-- **State**: `currentUser` object, week data stored in module-level variables, preferences in `localStorage` (`delphic_prefs`), Google `id_token` in `sessionStorage`
+- **State**: `currentUser` object, week data stored in module-level variables, preferences in `localStorage` (`delphic_prefs`), Google `id_token` in both `sessionStorage` and `localStorage` (silent re-auth on expiry). Guest access code in `sessionStorage` only (clears on tab close)
 
 ### Backend — Express (server/)
 

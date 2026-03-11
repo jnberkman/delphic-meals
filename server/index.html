@@ -2010,16 +2010,15 @@ function renderHorizontalName(s, monday, dayIdx, slot, myName, isAdmin) {
   if (isAdmin && s.allergies) {
     html += '<span class="vn-admin-note">\u26A0\uFE0F ' + escapeHtml(s.allergies) + '</span>';
   }
+  // Admin remove button (inline with name)
+  if (isAdmin) {
+    html += '<button class="remove-btn" style="margin-left:auto;font-size:14px;flex-shrink:0;" title="Remove" onclick="event.stopPropagation();removeSignup(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')">&#215;</button>';
+  }
   html += '</div>';
 
   // Spot-up state: show compact Claim button
   if (spotUpEnabled && spotStatus === 'spotup') {
     html += '<button class="vn-compact-claim" onclick="event.stopPropagation();openClaimModal(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')">Claim</button>';
-  }
-
-  // Admin remove button
-  if (isAdmin) {
-    html += '<button class="remove-btn" style="margin-left:auto;font-size:14px;" title="Remove" onclick="event.stopPropagation();removeSignup(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')">&#215;</button>';
   }
 
   if (isAdmin && s.notes) {

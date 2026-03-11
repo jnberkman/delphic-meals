@@ -68,7 +68,7 @@ async function spotUp(monday, dayIndex, name, time) {
 async function claimSpotUp(monday, dayIndex, originalName, time, claimerName) {
   const timeNorm = normalizeTime(time);
 
-  return db.transaction(async (trx) => {
+  const result = await db.transaction(async (trx) => {
     const signup = await signupsDb.findSpotUpForUpdate(trx, monday, dayIndex, originalName, timeNorm);
     if (!signup) return { error: 'Spot up not found or already claimed' };
 
@@ -79,9 +79,13 @@ async function claimSpotUp(monday, dayIndex, originalName, time, claimerName) {
       spot_up_claimed_by: claimerName
     });
 
-    sheetsSync.syncWeek(monday).catch(e => console.error('Sheets sync error (week):', e.message));
     return { status: 'ok' };
   });
+
+  if (result.status === 'ok') {
+    sheetsSync.syncWeek(monday).catch(e => console.error('Sheets sync error (week):', e.message));
+  }
+  return result;
 }
 
 /**
@@ -90,9 +94,9 @@ async function claimSpotUp(monday, dayIndex, originalName, time, claimerName) {
 async function unclaimSpotUp(monday, dayIndex, originalName, time) {
   const timeNorm = normalizeTime(time);
 
-  return db.transaction(async (trx) => {
+  const { result, signup } = await db.transaction(async (trx) => {
     const signup = await signupsDb.findClaimedForUpdate(trx, monday, dayIndex, originalName, timeNorm);
-    if (!signup) return { error: 'Claimed spot not found' };
+    if (!signup) return { result: { error: 'Claimed spot not found' }, signup: null };
 
     await trx('signups').where('id', signup.id).update({
       name: signup.spot_up_orig_name,
@@ -101,6 +105,10 @@ async function unclaimSpotUp(monday, dayIndex, originalName, time) {
       spotted_up_at: new Date()
     });
 
+    return { result: { status: 'ok' }, signup };
+  });
+
+  if (result.status === 'ok') {
     sheetsSync.syncWeek(monday).catch(e => console.error('Sheets sync error (week):', e.message));
 
     // Re-notify GroupMe that the spot is available again
@@ -124,9 +132,9 @@ async function unclaimSpotUp(monday, dayIndex, originalName, time) {
     } else {
       groupme.postMessage(`${signup.spot_up_orig_name}'s ${dayMeal} spot is available again — reply "claim" to claim it`);
     }
+  }
 
-    return { status: 'ok' };
-  });
+  return result;
 }
 
 /**

@@ -32,7 +32,7 @@ router.get('/', async (req, res) => {
 });
 
 async function claimViaToken(token) {
-  return db.transaction(async (trx) => {
+  const result = await db.transaction(async (trx) => {
     const tokenRow = await trx('claim_tokens').where('token', token).forUpdate().first();
     if (!tokenRow) return { error: 'not_found', message: 'Link not found or expired.' };
 
@@ -70,11 +70,14 @@ async function claimViaToken(token) {
       .where({ monday, day_idx: dayIdx, orig_name: origName, time, used: false })
       .update({ used: true });
 
-    sheetsSync.syncWeek(monday).catch(e => console.error('Sheets sync error (claim):', e.message));
-    sheetsSync.syncClaimTokens().catch(e => console.error('Sheets sync error (claim tokens):', e.message));
-
     return { status: 'ok', claimerName, origName, monday, dayIdx };
   });
+
+  if (result.status === 'ok') {
+    sheetsSync.syncWeek(result.monday).catch(e => console.error('Sheets sync error (claim):', e.message));
+  }
+
+  return result;
 }
 
 function renderError(title, message) {

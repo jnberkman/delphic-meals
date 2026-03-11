@@ -30,5 +30,6 @@ module.exports = {
   groupmeBotId: process.env.GROUPME_BOT_ID || '',
   groupmeAccessToken: process.env.GROUPME_ACCESS_TOKEN || '',
   groupmeGroupId: process.env.GROUPME_GROUP_ID || '',
-  groupmeCallbackSecret: process.env.GROUPME_CALLBACK_SECRET || ''
+  groupmeCallbackSecret: process.env.GROUPME_CALLBACK_SECRET || '',
+  groupmeNicknameMap: process.env.GROUPME_NICKNAME_MAP || ''
 };

@@ -134,6 +134,7 @@ server/                     # Backend + frontend — Node.js + Express + Postgre
 | `GROUPME_ACCESS_TOKEN` | Optional — GroupMe API token for member name lookup |
 | `GROUPME_GROUP_ID` | Optional — GroupMe group ID for member lookup |
 | `GROUPME_CALLBACK_SECRET` | Optional — secret in callback URL for GroupMe message validation |
+| `GROUPME_NICKNAME_MAP` | Optional — JSON mapping of GroupMe nicknames to real names (e.g. `{"Nickname":"Real Name"}`) |
 
 ## Important Notes
 

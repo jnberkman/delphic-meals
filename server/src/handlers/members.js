@@ -1,9 +1,19 @@
 const membersDb = require('../db/queries/members');
+const settingsDb = require('../db/queries/settings');
 const sheetsSync = require('../services/sheetsSync');
 
-async function checkMember(email) {
-  const member = await membersDb.findByEmail(email);
-  if (!member) return { authorized: false };
+async function checkMember(email, name) {
+  let member = await membersDb.findByEmail(email);
+  if (!member) {
+    const settings = await settingsDb.getAll();
+    if (settings.autoRegister) {
+      await membersDb.upsert(email, false, name || '');
+      sheetsSync.syncMembers().catch(e => console.error('Sheets sync error (members):', e.message));
+      member = await membersDb.findByEmail(email);
+    } else {
+      return { authorized: false };
+    }
+  }
   return {
     authorized: true,
     isAdmin: member.is_admin,

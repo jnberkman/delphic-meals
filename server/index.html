@@ -694,6 +694,16 @@
         </div>
         <div class="setting-row">
           <div class="setting-info">
+            <div class="setting-name">Auto-Register</div>
+            <div class="setting-desc">Anyone who signs in with Google is automatically added as a member (no approval needed)</div>
+          </div>
+          <label class="option-pill" style="margin:0;">
+            <input type="checkbox" id="autoRegisterToggle" onchange="toggleAutoRegister(this.checked)">
+            <span class="pill-label" style="font-size:12px;">Enabled</span>
+          </label>
+        </div>
+        <div class="setting-row">
+          <div class="setting-info">
             <div class="setting-name">Spot Ups</div>
             <div class="setting-desc">Members can mark their spot as available and others can claim it. When off, "Put spot ups in chat" is shown instead.</div>
           </div>
@@ -923,9 +933,9 @@ async function handleGoogleSignIn(response) {
   const email = payload.email;
   const name = payload.name;
   try {
-    const result = await apiCall('checkMember', { email });
+    const result = await apiCall('checkMember', { email, name });
     if (result.authorized) {
-      grantAccess({ email, name, isAdmin: result.isAdmin, notifyEmail: result.notifyEmail || false });
+      grantAccess({ email, name: result.name || name, isAdmin: result.isAdmin, notifyEmail: result.notifyEmail || false });
     } else {
       pendingEmail = email;
       pendingName = name;
@@ -2855,6 +2865,8 @@ async function loadAccessSettings() {
     setCache('settings', settings);
     const oaToggle = document.getElementById('openAccessToggle');
     if (oaToggle) oaToggle.checked = !!settings.openAccess;
+    const arToggle = document.getElementById('autoRegisterToggle');
+    if (arToggle) arToggle.checked = !!settings.autoRegister;
     const suToggle = document.getElementById('spotUpToggle');
     const _suRaw = settings.spotUpEnabled;
     const _suOn = _suRaw !== false && String(_suRaw).toUpperCase() !== 'FALSE';
@@ -2869,6 +2881,17 @@ async function toggleOpenAccess(enabled) {
     const cur = getCache('settings') || {};
     setCache('settings', { ...cur, openAccess: enabled });
     showToast(enabled ? 'Open access enabled — anyone can access the site' : 'Open access disabled — sign-in required');
+  } catch(e) {
+    showToast('Failed to update setting', 'var(--red)');
+  }
+}
+
+async function toggleAutoRegister(enabled) {
+  try {
+    await apiCall('setSettings', { settings: { autoRegister: enabled } });
+    const cur = getCache('settings') || {};
+    setCache('settings', { ...cur, autoRegister: enabled });
+    showToast(enabled ? 'Auto-register enabled — anyone with Google can sign in' : 'Auto-register disabled — members must be added manually');
   } catch(e) {
     showToast('Failed to update setting', 'var(--red)');
   }

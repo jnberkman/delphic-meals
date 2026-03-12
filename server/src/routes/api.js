@@ -25,7 +25,7 @@ const handlers = {
   cancelSpotUp:       (d) => spotupHandler.cancelSpotUp(d.monday, d.dayIndex, d.name, d.time),
   markServed:         (d) => spotupHandler.markServed(d.monday, d.dayIndex, d.name, d.time, d.served),
   // Members
-  checkMember:        (d) => membersHandler.checkMember(d.email),
+  checkMember:        (d) => membersHandler.checkMember(d.email, d.name),
   getMembers:         () => membersHandler.getMembers(),
   addMember:          (d) => membersHandler.addMember(d.email, d.isAdmin, d.name),
   removeMember:       (d) => membersHandler.removeMember(d.email),

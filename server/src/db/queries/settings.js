@@ -2,10 +2,11 @@ const db = require('../knex');
 
 async function getAll() {
   const rows = await db('settings').select('*');
-  const settings = { openAccess: false, spotUpEnabled: true };
+  const settings = { openAccess: false, spotUpEnabled: true, autoRegister: false };
   for (const row of rows) {
     if (row.key === 'openAccess') settings.openAccess = row.value === 'true';
     if (row.key === 'spotUpEnabled') settings.spotUpEnabled = row.value !== 'false';
+    if (row.key === 'autoRegister') settings.autoRegister = row.value === 'true';
   }
   return settings;
 }

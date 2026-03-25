@@ -112,8 +112,8 @@ router.post('/callback/:secret', async (req, res) => {
     const nameMatch = text.match(/^name\s+(\S+\s+\S.*)$/i);
     if (nameMatch) {
       const realName = nameMatch[1].trim();
-      await groupme.setNickname(senderId, msg.name, realName);
-      groupme.postMessage(`${msg.name} → ${realName}`);
+      const saved = await groupme.setNickname(senderId, msg.name, realName);
+      groupme.postMessage(saved ? `${msg.name} → ${realName}` : `Failed to save name — try again`);
       return;
     }
 

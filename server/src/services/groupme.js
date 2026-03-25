@@ -3,60 +3,75 @@ const db = require('../db/knex');
 
 const GROUPME_API = 'https://api.groupme.com/v3';
 
-// Parse GROUPME_NICKNAME_MAP env var (JSON: {"nickname": "Real Name", ...})
-// Keys are lowercased at parse time for case-insensitive lookup.
-const NICKNAME_MAP = (() => {
-  if (!config.groupmeNicknameMap) return {};
-  try {
-    let raw = JSON.parse(config.groupmeNicknameMap);
-    // Handle double-encoded JSON (env var wrapped in extra quotes)
-    if (typeof raw === 'string') raw = JSON.parse(raw);
-    const map = {};
-    for (const [nick, real] of Object.entries(raw)) {
-      map[nick.toLowerCase().trim()] = real;
-    }
-    return map;
-  } catch (e) {
-    console.error('Failed to parse GROUPME_NICKNAME_MAP:', e.message);
-    return {};
-  }
-})();
-
 /**
  * Resolve a GroupMe sender to a real name.
- * Priority: DB override → env var map → null.
+ * Priority: DB by sender_id → DB by nickname → null.
+ * When found by nickname, backfills the sender_id for future lookups.
  */
 async function resolveNickname(senderId, nickname) {
   if (!nickname) return null;
 
-  // Check DB first (user-set names)
   try {
-    const row = await db('groupme_nicknames').where('sender_id', senderId).first();
-    if (row) return row.real_name;
+    // Check by sender_id first (exact match)
+    const bySender = await db('groupme_nicknames').where('sender_id', senderId).first();
+    if (bySender) return bySender.real_name;
+
+    // Fall back to nickname lookup (case-insensitive)
+    const byNick = await db('groupme_nicknames')
+      .whereRaw('LOWER(nickname) = ?', [nickname.toLowerCase().trim()])
+      .first();
+    if (byNick) {
+      // Backfill the real sender_id so future lookups are instant
+      await db('groupme_nicknames').where('id', byNick.id).update({
+        sender_id: senderId
+      });
+      return byNick.real_name;
+    }
   } catch (e) {
-    // Table may not exist yet during migration
+    console.error('resolveNickname error:', e.message);
   }
 
-  // Fall back to env var map
-  return NICKNAME_MAP[nickname.toLowerCase().trim()] || null;
+  return null;
 }
 
 /**
  * Save a user's real name in the DB, keyed by their GroupMe sender_id.
+ * Returns true on success, false on failure.
  */
 async function setNickname(senderId, nickname, realName) {
-  const existing = await db('groupme_nicknames').where('sender_id', senderId).first();
-  if (existing) {
-    await db('groupme_nicknames').where('sender_id', senderId).update({
-      nickname,
-      real_name: realName
-    });
-  } else {
+  try {
+    // Check if this sender already has an entry
+    const bySender = await db('groupme_nicknames').where('sender_id', senderId).first();
+    if (bySender) {
+      await db('groupme_nicknames').where('id', bySender.id).update({
+        nickname,
+        real_name: realName
+      });
+      return true;
+    }
+
+    // Check if there's a nickname-only entry (from imported map) to claim
+    const byNick = await db('groupme_nicknames')
+      .whereRaw('LOWER(nickname) = ?', [nickname.toLowerCase().trim()])
+      .first();
+    if (byNick) {
+      await db('groupme_nicknames').where('id', byNick.id).update({
+        sender_id: senderId,
+        real_name: realName
+      });
+      return true;
+    }
+
+    // New entry
     await db('groupme_nicknames').insert({
       sender_id: senderId,
       nickname,
       real_name: realName
     });
+    return true;
+  } catch (e) {
+    console.error('setNickname error:', e.message);
+    return false;
   }
 }
 

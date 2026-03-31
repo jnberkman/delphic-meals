@@ -32,5 +32,7 @@ app.use(require('./middleware/errorHandler'));
 
 app.listen(config.port, () => {
   console.log(`Delphic Meals API listening on port ${config.port}`);
-  require('./services/topicPoller').start();
+  require('./services/topicPoller').start().catch(e => {
+    console.error('Topic listener startup error:', e.message);
+  });
 });

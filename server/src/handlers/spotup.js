@@ -53,9 +53,9 @@ async function spotUp(monday, dayIndex, name, time) {
     // Find this spot's position in the list (ordered by spotted_up_at asc)
     const idx = allSpots.findIndex(s => s.id === signup.id);
     const num = idx >= 0 ? idx + 1 : allSpots.length;
-    groupme.postMessage(`${name} spotted up for ${dayMeal} — reply "claim ${num}" to claim it (${allSpots.length} spots open, "spots" to see all)`);
+    groupme.postToTopic(`${name} spotted up for ${dayMeal} — reply "claim ${num}" to claim it (${allSpots.length} spots open, "spots" to see all)`);
   } else {
-    groupme.postMessage(`${name} spotted up for ${dayMeal} — reply "claim" to claim it`);
+    groupme.postToTopic(`${name} spotted up for ${dayMeal} — reply "claim" to claim it`);
   }
 
   return { status: 'ok' };
@@ -128,9 +128,9 @@ async function unclaimSpotUp(monday, dayIndex, originalName, time) {
     if (allSpots.length > 1) {
       const idx = allSpots.findIndex(s => s.id === signup.id);
       const num = idx >= 0 ? idx + 1 : allSpots.length;
-      groupme.postMessage(`${signup.spot_up_orig_name}'s ${dayMeal} spot is available again — reply "claim ${num}" to claim it (${allSpots.length} spots open, "spots" to see all)`);
+      groupme.postToTopic(`${signup.spot_up_orig_name}'s ${dayMeal} spot is available again — reply "claim ${num}" to claim it (${allSpots.length} spots open, "spots" to see all)`);
     } else {
-      groupme.postMessage(`${signup.spot_up_orig_name}'s ${dayMeal} spot is available again — reply "claim" to claim it`);
+      groupme.postToTopic(`${signup.spot_up_orig_name}'s ${dayMeal} spot is available again — reply "claim" to claim it`);
     }
   }
 
@@ -172,9 +172,9 @@ async function cancelSpotUp(monday, dayIndex, name, time) {
     }
     const remaining = await signupsDb.findAllAvailableSpotUps().then(s => s.length).catch(() => 0);
     if (remaining > 0) {
-      groupme.postMessage(`${name}'s ${dayMeal} spot-up was cancelled (${remaining} spot${remaining > 1 ? 's' : ''} remaining, "spots" to refresh)`);
+      groupme.postToTopic(`${name}'s ${dayMeal} spot-up was cancelled (${remaining} spot${remaining > 1 ? 's' : ''} remaining, "spots" to refresh)`);
     } else {
-      groupme.postMessage(`${name}'s ${dayMeal} spot-up was cancelled — no spots available`);
+      groupme.postToTopic(`${name}'s ${dayMeal} spot-up was cancelled — no spots available`);
     }
   } catch (e) {
     // fire-and-forget

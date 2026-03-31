@@ -95,4 +95,29 @@ async function postMessage(text) {
   }
 }
 
-module.exports = { postMessage, resolveNickname, setNickname };
+/**
+ * Post a message to the GroupMe topic via user access token.
+ * Fire-and-forget — logs errors but never throws.
+ */
+async function postToTopic(text) {
+  if (!config.groupmeTopicId || !config.groupmeAccessToken) return;
+  try {
+    const res = await fetch(`${GROUPME_API}/groups/${config.groupmeTopicId}/messages?token=${config.groupmeAccessToken}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: {
+          source_guid: `dm-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          text
+        }
+      })
+    });
+    if (!res.ok) {
+      console.error('GroupMe topic post error:', res.status, await res.text());
+    }
+  } catch (e) {
+    console.error('GroupMe topic post error:', e.message);
+  }
+}
+
+module.exports = { postMessage, postToTopic, resolveNickname, setNickname };

@@ -244,6 +244,7 @@ function connect() {
       if (msg.data && msg.data.type === 'line.create' && msg.data.subject) {
         const subject = msg.data.subject;
         if (String(subject.group_id) !== String(config.groupmeTopicId)) continue;
+        if (String(subject.user_id) === String(botUserId)) continue;
         console.log(`Topic listener: "${subject.text}" from ${subject.name}`);
         handleMessage(subject).then(() => {
           console.log('Topic listener: message handled successfully');

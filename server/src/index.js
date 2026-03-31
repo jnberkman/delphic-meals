@@ -6,6 +6,7 @@ const config = require('./config');
 const path = require('path');
 const app = express();
 
+app.set('trust proxy', 1);
 app.use(require('./middleware/cors'));
 app.use(express.json({ limit: '1mb' }));
 

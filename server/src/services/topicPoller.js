@@ -241,16 +241,15 @@ function connect() {
       }
 
       // Real message — filter for our topic
-      if (msg.data && msg.data.subject) {
+      if (msg.data && msg.data.type === 'line.create' && msg.data.subject) {
         const subject = msg.data.subject;
-        console.log(`Topic listener: received ${msg.data.type} from group ${subject.group_id} (want ${config.groupmeTopicId}): "${subject.text}"`);
-        if (msg.data.type === 'line.create' && String(subject.group_id) === String(config.groupmeTopicId)) {
-          handleMessage(subject).then(() => {
-            console.log('Topic listener: message handled successfully');
-          }).catch(e => {
-            console.error('Topic listener message error:', e.message, e.stack);
-          });
-        }
+        if (String(subject.group_id) !== String(config.groupmeTopicId)) continue;
+        console.log(`Topic listener: "${subject.text}" from ${subject.name}`);
+        handleMessage(subject).then(() => {
+          console.log('Topic listener: message handled successfully');
+        }).catch(e => {
+          console.error('Topic listener message error:', e.message, e.stack);
+        });
       }
     }
   });

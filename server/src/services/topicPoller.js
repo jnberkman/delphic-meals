@@ -114,7 +114,10 @@ async function handleMessage(subject) {
   // "spots"
   if (textLower === 'spots') {
     const { list } = await buildSpotsList();
-    if (!list) return;
+    if (!list) {
+      groupme.postToTopic('No spots available right now');
+      return;
+    }
     groupme.postToTopic(`Available spots:\n${list}\n\n"claim" = first available, "claim #" = specific`);
     return;
   }

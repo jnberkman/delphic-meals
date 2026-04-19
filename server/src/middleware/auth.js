@@ -42,6 +42,7 @@ const ADMIN_ACTIONS = new Set([
   'deleteEvent',
   'markServed',
   'setNotifyEmail',
+  'adminAddSignup',
 ]);
 
 const membersDb = require('../db/queries/members');

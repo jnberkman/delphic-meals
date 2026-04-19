@@ -2035,7 +2035,13 @@ function renderHorizontalView() {
         sortedSups.forEach(s => { html += renderHorizontalName(s, viewMonday, i, slot, myName, isAdmin); });
       });
     }
-    html += '</div></div>'; // body + col
+    html += '</div>'; // close body
+    if (isAdmin) {
+      html += '<div class="view-day-col-admin" style="padding:8px 10px;">' +
+        renderAdminAddNameBlock(viewMonday, i, times) +
+        '</div>';
+    }
+    html += '</div>'; // close col
   });
 
   html += '</div>';

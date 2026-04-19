@@ -1973,6 +1973,9 @@ function renderViewDay(idx) {
   if (!spotUpEnabled) {
     html += '<div style="margin-top:18px;padding:12px 16px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);text-align:center;font-family:\'Crimson Pro\',serif;font-size:15px;color:var(--text-dim);font-style:italic;">Put spot ups in chat</div>';
   }
+  if (currentUser && currentUser.isAdmin) {
+    html += renderAdminAddNameBlock(viewMonday, i, times);
+  }
   html += '</div>';
   document.getElementById('viewContent').innerHTML = html;
 }

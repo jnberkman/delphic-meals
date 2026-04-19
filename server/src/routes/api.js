@@ -18,6 +18,7 @@ const handlers = {
   addSignups:         (d) => mealsHandler.addSignups(d.monday, d.entries, d.caps || {}),
   removeSignup:       (d) => mealsHandler.removeSignup(d.monday, d.dayIndex, d.name, d.time),
   setWeekConfig:      (d) => mealsHandler.setWeekConfig(d.monday, d.config, d.caps || {}, d.freezeDate || ''),
+  adminAddSignup:     (d) => mealsHandler.adminAddSignup(d.monday, d.dayIndex, d.name, d.time),
   // Spot Up
   spotUp:             (d) => spotupHandler.spotUp(d.monday, d.dayIndex, d.name, d.time),
   claimSpotUp:        (d) => spotupHandler.claimSpotUp(d.monday, d.dayIndex, d.originalName, d.time, d.claimerName),

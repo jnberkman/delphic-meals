@@ -115,4 +115,41 @@ async function setWeekConfig(monday, config, caps, freezeDate) {
   return { status: 'ok' };
 }
 
-module.exports = { getWeek, addSignups, removeSignup, setWeekConfig };
+/**
+ * Admin-only add of a single signup. Bypasses freeze date and capacity caps.
+ * Used when an admin signs someone up on their behalf.
+ */
+async function adminAddSignup(monday, dayIndex, name, time) {
+  if (!name || !String(name).trim()) {
+    return { error: 'Name is required' };
+  }
+
+  let weekCfg = await weeksDb.getConfig(monday);
+  if (!weekCfg) {
+    const defaultCfg = buildDefaultConfig(monday);
+    await weeksDb.upsertConfig(monday, defaultCfg, DEFAULT_CAPS, '');
+    weekCfg = await weeksDb.getConfig(monday);
+  }
+
+  const cleanName = String(name).trim();
+  const timeStr = normalizeTime(time);
+
+  await signupsDb.deleteByDayAndName(monday, dayIndex, cleanName);
+
+  await signupsDb.insert({
+    monday,
+    day_index: dayIndex,
+    name: cleanName,
+    diet: 'No Dietary Restrictions',
+    allergies: '',
+    time: timeStr,
+    early: false,
+    notes: '',
+    grad_gasman: false
+  });
+
+  sheetsSync.syncWeek(monday).catch(e => console.error('Sheets sync error (week):', e.message));
+  return { added: 1, name: cleanName };
+}
+
+module.exports = { getWeek, addSignups, removeSignup, setWeekConfig, adminAddSignup };

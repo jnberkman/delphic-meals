@@ -1071,6 +1071,8 @@ function _silentReauth() {
   location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + params;
 }
 
+let adminMembersCache = null;
+
 function clearPersistedSession() {
   adminMembersCache = null;
   localStorage.removeItem('delphic_id_token');
@@ -3015,7 +3017,7 @@ async function loadMembers() {
 // =============================================
 //  ADMIN ADD-NAME (View Signups tab)
 // =============================================
-let adminMembersCache = null;
+// (adminMembersCache declared above clearPersistedSession to avoid TDZ on startup.)
 
 async function ensureAdminMembersCache() {
   if (adminMembersCache) return adminMembersCache;
@@ -3114,6 +3116,7 @@ async function adminAddMember() {
     document.getElementById('newMemberEmail').value = '';
     document.getElementById('newMemberName').value = '';
     document.getElementById('newMemberAdmin').checked = false;
+    adminMembersCache = null;
     showToast('Member added');
     loadMembers();
   } catch(e) {}
@@ -3123,6 +3126,7 @@ async function adminRemoveMember(email) {
   if (!confirm('Remove ' + email + '?')) return;
   try {
     await apiCall('removeMember', { email });
+    adminMembersCache = null;
     showToast('Member removed');
     loadMembers();
   } catch(e) {}

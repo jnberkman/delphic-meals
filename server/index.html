@@ -521,6 +521,7 @@
       <button id="viewNextDay" class="btn btn-secondary" style="width:auto;padding:8px 14px;font-size:16px;" onclick="changeViewDay(1)">&#8594;</button>
     </div>
     <div id="viewLoading" style="display:none;text-align:center;padding:24px;color:var(--text-dim);" aria-live="polite"><div class="spinner"></div><div style="margin-top:10px;font-family:'Crimson Pro',serif;font-size:14px;font-style:italic;">Loading signups&hellip;</div></div>
+    <datalist id="adminAddMembersList"></datalist>
     <div id="viewContent"></div>
   </div>
 
@@ -1071,6 +1072,7 @@ function _silentReauth() {
 }
 
 function clearPersistedSession() {
+  adminMembersCache = null;
   localStorage.removeItem('delphic_id_token');
   localStorage.removeItem('delphic_user');
   sessionStorage.removeItem('delphic_id_token');
@@ -2999,6 +3001,98 @@ async function loadMembers() {
       '</div>'
     ).join('');
   } catch(e) {}
+}
+
+// =============================================
+//  ADMIN ADD-NAME (View Signups tab)
+// =============================================
+let adminMembersCache = null;
+
+async function ensureAdminMembersCache() {
+  if (adminMembersCache) return adminMembersCache;
+  try {
+    const result = await apiCall('getMembers');
+    adminMembersCache = (result.members || []).filter(m => m.name && m.name.trim());
+  } catch (e) {
+    adminMembersCache = [];
+  }
+  const dl = document.getElementById('adminAddMembersList');
+  if (dl) {
+    while (dl.firstChild) dl.removeChild(dl.firstChild);
+    adminMembersCache.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m.name;
+      dl.appendChild(opt);
+    });
+  }
+  return adminMembersCache;
+}
+
+function renderAdminAddNameBlock(monday, dayIdx, dayTimes) {
+  const blockId = 'adminAdd_' + dayIdx;
+  const timeSelect = dayTimes.length > 1
+    ? '<select id="' + blockId + '_time" style="font-size:12px;padding:5px 24px 5px 8px;width:auto;">' +
+        dayTimes.map(t => '<option value="' + escapeHtml(t) + '">' + escapeHtml(t) + '</option>').join('') +
+      '</select>'
+    : '<input type="hidden" id="' + blockId + '_time" value="' + escapeHtml(dayTimes[0] || '12:00 PM') + '">';
+
+  return '<div class="admin-add-block" style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--border);">' +
+    '<button id="' + blockId + '_toggle" class="btn btn-secondary" style="font-size:12px;padding:6px 12px;width:auto;" ' +
+      'onclick="toggleAdminAddBlock(\'' + monday + '\',' + dayIdx + ')">+ Add name</button>' +
+    '<div id="' + blockId + '_form" style="display:none;align-items:center;gap:6px;flex-wrap:wrap;">' +
+      '<input type="text" id="' + blockId + '_name" list="adminAddMembersList" placeholder="Name" autocomplete="off" ' +
+        'style="font-size:13px;padding:6px 8px;flex:1;min-width:140px;" ' +
+        'onkeydown="if(event.key===\'Enter\'){event.preventDefault();submitAdminAddSignup(\'' + monday + '\',' + dayIdx + ');}">' +
+      timeSelect +
+      '<button class="btn btn-primary" style="font-size:12px;padding:6px 12px;width:auto;" ' +
+        'onclick="submitAdminAddSignup(\'' + monday + '\',' + dayIdx + ')">Add</button>' +
+      '<button class="btn btn-secondary" style="font-size:12px;padding:6px 10px;width:auto;" ' +
+        'onclick="toggleAdminAddBlock(\'' + monday + '\',' + dayIdx + ')" title="Cancel">&#x2715;</button>' +
+    '</div>' +
+  '</div>';
+}
+
+async function toggleAdminAddBlock(monday, dayIdx) {
+  const blockId = 'adminAdd_' + dayIdx;
+  const form = document.getElementById(blockId + '_form');
+  const btn = document.getElementById(blockId + '_toggle');
+  if (!form) return;
+  const isOpen = form.style.display !== 'none';
+  if (isOpen) {
+    form.style.display = 'none';
+    if (btn) btn.style.display = '';
+  } else {
+    form.style.display = 'flex';
+    if (btn) btn.style.display = 'none';
+    await ensureAdminMembersCache();
+    const input = document.getElementById(blockId + '_name');
+    if (input) { input.value = ''; input.focus(); }
+  }
+}
+
+async function submitAdminAddSignup(monday, dayIdx) {
+  const blockId = 'adminAdd_' + dayIdx;
+  const nameEl = document.getElementById(blockId + '_name');
+  const timeEl = document.getElementById(blockId + '_time');
+  const name = (nameEl && nameEl.value || '').trim();
+  const time = (timeEl && timeEl.value) || '12:00 PM';
+  if (!name) { showToast('Enter a name', 'var(--red)'); return; }
+
+  try {
+    const result = await apiCall('adminAddSignup', { monday, dayIndex: dayIdx, name, time });
+    if (result && result.error) {
+      showToast(result.error, 'var(--red)');
+      return;
+    }
+    const dayInfo = (viewEnabledDays || []).find(d => d.configIdx === dayIdx);
+    const label = dayInfo ? (dayInfo.day.day + ' ' + dayInfo.day.meal) : 'meal';
+    showToast('Added ' + name + ' to ' + label);
+    delete weekCache[monday];
+    delete weekCacheTs[monday];
+    await loadViewData(false);
+  } catch (e) {
+    // apiCall already toasts on error
+  }
 }
 
 async function adminAddMember() {

@@ -4,6 +4,41 @@ const { normalizeTime } = require('../utils/time');
 const { buildDefaultConfig, DEFAULT_CAPS } = require('../utils/weekHelpers');
 const sheetsSync = require('../services/sheetsSync');
 
+function normalizeGuests(guests) {
+  if (!guests) return [];
+  if (typeof guests === 'string') {
+    try {
+      const parsed = JSON.parse(guests);
+      if (Array.isArray(parsed)) guests = parsed;
+    } catch (e) {}
+  }
+  const list = Array.isArray(guests)
+    ? guests
+    : String(guests).split(',');
+
+  return list
+    .map(name => String(name || '').trim())
+    .filter(Boolean);
+}
+
+function getCapForEntry(weekCfg, caps, dayIdx, timeStr) {
+  const day = weekCfg && weekCfg.config && weekCfg.config[dayIdx];
+  const customSlot = day && Array.isArray(day.slots)
+    ? day.slots.find(slot => normalizeTime(slot.time || slot) === timeStr)
+    : null;
+  if (customSlot && customSlot.cap != null && Number(customSlot.cap) > 0) {
+    return Number(customSlot.cap);
+  }
+
+  const capSlot12 = caps.slot12 || weekCfg.caps.slot12 || 50;
+  const capSlot1 = caps.slot1 || weekCfg.caps.slot1 || 50;
+  const capDinner = caps.dinner || weekCfg.caps.dinner || 50;
+
+  if (timeStr === '1:00 PM') return capSlot1;
+  if (timeStr === '7:30 PM') return capDinner;
+  return capSlot12;
+}
+
 /**
  * Port of getWeek() from Code.gs:870-886.
  */
@@ -25,6 +60,7 @@ async function getWeek(monday) {
       time: normalizeTime(row.time),
       early: row.early,
       notes: row.notes || '',
+      guests: normalizeGuests(row.guests),
       timestamp: row.timestamp ? row.timestamp.toISOString() : '',
       gradGasman: row.grad_gasman,
       spotUpStatus: row.spot_up_status || '',
@@ -57,27 +93,24 @@ async function addSignups(monday, entries, caps) {
     }
   }
 
-  const capSlot12 = caps.slot12 || weekCfg.caps.slot12 || 50;
-  const capSlot1 = caps.slot1 || weekCfg.caps.slot1 || 50;
-  const capDinner = caps.dinner || weekCfg.caps.dinner || 50;
-
   let added = 0, updated = 0, full = 0;
 
   for (const entry of entries) {
     const dayIdx = entry.dayIndex;
-
-    // Delete existing signup for this name+day (upsert behavior)
-    const deleted = await signupsDb.deleteByDayAndName(monday, dayIdx, entry.name);
-    if (deleted > 0) updated++;
+    const guests = normalizeGuests(entry.guests);
+    const partySize = 1 + guests.length;
 
     // Check capacity
     const timeStr = normalizeTime(entry.time);
-    const timeCount = await signupsDb.countByTime(monday, dayIdx, timeStr);
-    let cap = capSlot12;
-    if (timeStr === '1:00 PM') cap = capSlot1;
-    else if (timeStr === '7:30 PM') cap = capDinner;
+    const existing = await signupsDb.findSignupByDayAndName(monday, dayIdx, entry.name);
+    const timeCount = await signupsDb.countPartyByTime(monday, dayIdx, timeStr, existing ? existing.id : null);
+    const cap = getCapForEntry(weekCfg, caps, dayIdx, timeStr);
 
-    if (timeCount >= cap) { full++; continue; }
+    if (timeCount + partySize > cap) { full++; continue; }
+
+    // Delete existing signup for this name+day after capacity is known to be available.
+    const deleted = await signupsDb.deleteByDayAndName(monday, dayIdx, entry.name);
+    if (deleted > 0) updated++;
 
     await signupsDb.insert({
       monday,
@@ -88,6 +121,7 @@ async function addSignups(monday, entries, caps) {
       time: timeStr,
       early: entry.early || false,
       notes: entry.notes || '',
+      guests: JSON.stringify(guests),
       grad_gasman: entry.gradGasman || false
     });
     added++;

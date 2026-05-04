@@ -246,7 +246,7 @@ async function rebuildDisplaySheet(monday, signups, weekCfg) {
     requests.push({
       updateCells: {
         range: { sheetId, startRowIndex: 7, startColumnIndex: col, endRowIndex: 8, endColumnIndex: col + 1 },
-        rows: [{ values: [{ userEnteredValue: { numberValue: daySups.length } }] }],
+        rows: [{ values: [{ userEnteredValue: { numberValue: countParty(daySups) } }] }],
         fields: 'userEnteredValue'
       }
     });
@@ -288,6 +288,17 @@ async function rebuildDisplaySheet(monday, signups, weekCfg) {
         cellRows.push({ values: [renderMemberCell(m)] });
         row++;
       }
+      const slotGuests = getGuestRows(slotMembers);
+      if (slotGuests.length > 0) {
+        cellRows.push({
+          values: [buildCell('Guests:', { bold: true, fontSize: 10, fg: '#3B6BC4' })]
+        });
+        row++;
+        for (const guest of slotGuests) {
+          cellRows.push({ values: [renderGuestCell(guest)] });
+          row++;
+        }
+      }
       cellRows.push({ values: [{ userEnteredValue: { stringValue: '' } }] });
       row++;
     }
@@ -309,6 +320,17 @@ async function rebuildDisplaySheet(monday, signups, weekCfg) {
         for (const m of members) {
           cellRows.push({ values: [renderMemberCell(m)] });
           row++;
+        }
+        const guestRows = getGuestRows(members);
+        if (guestRows.length > 0) {
+          cellRows.push({
+            values: [buildCell('Guests:', { bold: true, fontSize: 10, fg: '#3B6BC4' })]
+          });
+          row++;
+          for (const guest of guestRows) {
+            cellRows.push({ values: [renderGuestCell(guest)] });
+            row++;
+          }
         }
         cellRows.push({ values: [{ userEnteredValue: { stringValue: '' } }] });
         row++;
@@ -374,6 +396,40 @@ function renderMemberCell(m) {
   if (m.served_status === 'served') { format.strikethrough = true; format.fg = '#999999'; }
 
   return buildCell(display, format);
+}
+
+function normalizeGuests(guests) {
+  if (!guests) return [];
+  if (typeof guests === 'string') {
+    try {
+      const parsed = JSON.parse(guests);
+      if (Array.isArray(parsed)) guests = parsed;
+    } catch (e) {}
+  }
+  const list = Array.isArray(guests) ? guests : String(guests).split(',');
+  return list.map(g => String(g || '').trim()).filter(Boolean);
+}
+
+function countParty(signups) {
+  return (signups || []).reduce((total, signup) => total + 1 + normalizeGuests(signup.guests).length, 0);
+}
+
+function getGuestRows(signups) {
+  const rows = [];
+  for (const signup of signups || []) {
+    for (const guest of normalizeGuests(signup.guests)) {
+      rows.push({ name: guest, host: signup.name || '' });
+    }
+  }
+  return rows;
+}
+
+function renderGuestCell(guest) {
+  return buildCell(`${guest.name} (${guest.host})`, {
+    fontSize: 10,
+    fg: '#3B6BC4',
+    bg: '#EAF1FF'
+  });
 }
 
 function buildCell(text, fmt = {}) {

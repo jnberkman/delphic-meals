@@ -46,6 +46,29 @@ async function countByTime(monday, dayIndex, time) {
   return parseInt(count, 10);
 }
 
+async function countPartyByTime(monday, dayIndex, time, excludeId) {
+  let query = db('signups')
+    .where({ monday, day_index: dayIndex, time });
+
+  if (excludeId) query = query.whereNot('id', excludeId);
+
+  const rows = await query.select('guests');
+  return rows.reduce((total, row) => {
+    const guests = normalizeGuests(row.guests);
+    return total + 1 + guests.length;
+  }, 0);
+}
+
+function normalizeGuests(guests) {
+  if (!guests) return [];
+  if (Array.isArray(guests)) return guests.map(g => String(g || '').trim()).filter(Boolean);
+  try {
+    const parsed = JSON.parse(guests);
+    if (Array.isArray(parsed)) return parsed.map(g => String(g || '').trim()).filter(Boolean);
+  } catch (e) {}
+  return String(guests).split(',').map(g => g.trim()).filter(Boolean);
+}
+
 /**
  * Find a spot-up signup row for claiming.
  * Uses SELECT ... FOR UPDATE for concurrency control.
@@ -110,7 +133,7 @@ async function findSpotUpByIdForUpdate(trx, id) {
 
 module.exports = {
   getByMonday, getByMondayAndDay, findSignup, findSignupByDayAndName,
-  insert, deleteByDayAndName, update, countByTime,
+  insert, deleteByDayAndName, update, countByTime, countPartyByTime,
   findSpotUpForUpdate, findClaimedForUpdate, findOldestSpotUpForUpdate,
   findAllAvailableSpotUps, findSpotUpByIdForUpdate
 };

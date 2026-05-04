@@ -16,7 +16,7 @@ const CAT_COLORS = {
   'No Beef':                 { font: '#4A148C', bg: '#F3E5F5' }
 };
 
-const DEFAULT_CAPS = { slot12: 50, slot1: 50, dinner: 50 };
+const DEFAULT_CAPS = { slot12: 50, slot1: 50, dinner: 50, guestLimitPerSignup: 0 };
 
 /**
  * Build the default week config for a given Monday date string.

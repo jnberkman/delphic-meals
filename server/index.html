@@ -646,7 +646,11 @@
             <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);">
               Dinner <input type="number" id="capDinner" value="90" min="1" style="width:60px;text-align:center;" onchange="saveCaps()">
             </label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);">
+              Guests per person <input type="number" id="guestLimitPerSignup" value="0" min="0" style="width:60px;text-align:center;" onchange="saveCaps()">
+            </label>
           </div>
+          <div style="font-family:'Crimson Pro',serif;font-size:12px;color:var(--text-dim);font-style:italic;margin-top:6px;">Use 0 for no guest limit.</div>
         </div>
       </div>
     </div>
@@ -798,6 +802,19 @@
     <div class="confirm-sub" id="confirmSub">Thank you for signing up for this week's meals.</div>
     <div class="confirm-days" id="confirmDays"></div>
     <button class="confirm-btn" onclick="closeConfirm()">Done</button>
+  </div>
+</div>
+
+<div class="confirm-overlay" id="guestPaymentOverlay" onclick="if(event.target===this)resolveGuestPayment(false)">
+  <div class="confirm-modal" style="max-width:440px;padding-top:38px;">
+    <div class="confirm-rule"></div>
+    <div class="confirm-title">Guest Plate Payment</div>
+    <div class="confirm-sub" id="guestPaymentText"></div>
+    <div class="confirm-days" id="guestPaymentAmount" style="margin-bottom:20px;"></div>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+      <button class="confirm-btn" onclick="resolveGuestPayment(false)">Cancel</button>
+      <button class="confirm-btn" style="background:var(--accent);color:#fff;border-color:var(--accent);" onclick="resolveGuestPayment(true)">I Agree</button>
+    </div>
   </div>
 </div>
 
@@ -1017,6 +1034,8 @@ document.addEventListener('keydown', function(e) {
     submitAccessCode();
   }
   if (e.key === 'Escape') {
+    const guestPay = document.getElementById('guestPaymentOverlay');
+    if (guestPay && guestPay.classList.contains('show')) { resolveGuestPayment(false); return; }
     const confirm = document.getElementById('confirmOverlay');
     if (confirm && confirm.classList.contains('show')) { closeConfirm(); return; }
     const spotup = document.getElementById('spotupOverlay');
@@ -1167,7 +1186,7 @@ function clearPersistedSession() {
 })();
 
 // Capacity defaults (will be overridden by sheet config when available)
-let caps = { slot12: 45, slot1: 45, dinner: 90 };
+let caps = { slot12: 45, slot1: 45, dinner: 90, guestLimitPerSignup: 0 };
 let weekCache = {};    // monday => {config, signups}
 let weekCacheTs = {};  // monday => timestamp of last fetch
 let spotUpEnabled = true; // controlled by admin Settings toggle
@@ -1175,6 +1194,7 @@ let _pendingCancels = new Set(); // dayIdx of optimistically-removed signups
 let _cancelData = {};            // dayIdx => stored entry for undo
 let _toastTimer = null;
 let _toastUndoFn = null;
+let _guestPaymentResolver = null;
 
 // =============================================
 //  LOCAL CACHE (localStorage, 5-min TTL)
@@ -1228,6 +1248,16 @@ function signupGroupSize(signups) {
   return (signups || []).reduce((total, signup) => total + signupPartySize(signup), 0);
 }
 
+function getGuestLimitPerSignup(weekData) {
+  const sourceCaps = (weekData && weekData.caps) || caps;
+  const limit = parseInt((sourceCaps && sourceCaps.guestLimitPerSignup) || 0, 10);
+  return Number.isFinite(limit) && limit > 0 ? limit : 0;
+}
+
+function getEntryGuestCount(entries) {
+  return (entries || []).reduce((total, entry) => total + normalizeGuestNames(entry.guests).length, 0);
+}
+
 function slotMatchesSignup(signup, slot) {
   const t = ((signup && signup.time) || '').toString();
   if (t.indexOf('1899') !== -1 || t.indexOf('GMT') !== -1) {
@@ -1239,6 +1269,19 @@ function slotMatchesSignup(signup, slot) {
     } catch(e) {}
   }
   return t === slot || t.includes(slot);
+}
+
+function isWeekFrozen(weekData) {
+  return !!(weekData && weekData.freezeDate && Date.now() > new Date(weekData.freezeDate).getTime());
+}
+
+function isDayReopened(day) {
+  return !!(day && day.reopenSignups === true);
+}
+
+function isDayOpenForSignups(weekData, dayIdx) {
+  if (!isWeekFrozen(weekData)) return true;
+  return isDayReopened(weekData.config && weekData.config[dayIdx]);
 }
 
 let _scrollLockCount = 0;
@@ -1302,6 +1345,30 @@ function showConfirmation(name, daysList, count, wasUpdate, isEvent) {
 function closeConfirm() {
   document.getElementById('confirmOverlay').classList.remove('show');
   unlockScroll();
+}
+
+function showGuestPaymentAgreement(totalGuests) {
+  return new Promise(resolve => {
+    _guestPaymentResolver = resolve;
+    const amount = totalGuests * 20;
+    document.getElementById('guestPaymentText').textContent =
+      'By bringing ' + totalGuests + ' guest' + (totalGuests === 1 ? '' : 's') +
+      ', you agree to pay $20 per guest plate to delphicclubtreasurer@gmail.com.';
+    document.getElementById('guestPaymentAmount').textContent = '$' + amount + ' total';
+    document.getElementById('guestPaymentOverlay').classList.add('show');
+    lockScroll();
+  });
+}
+
+function resolveGuestPayment(accepted) {
+  const overlay = document.getElementById('guestPaymentOverlay');
+  if (overlay) overlay.classList.remove('show');
+  unlockScroll();
+  if (_guestPaymentResolver) {
+    const resolve = _guestPaymentResolver;
+    _guestPaymentResolver = null;
+    resolve(!!accepted);
+  }
 }
 
 function renderMySignupsSummary() {
@@ -1391,7 +1458,8 @@ function saveCaps() {
   caps.slot12 = parseInt(document.getElementById('cap12').value) || 45;
   caps.slot1 = parseInt(document.getElementById('cap1').value) || 45;
   caps.dinner = parseInt(document.getElementById('capDinner').value) || 90;
-  if (adminWeekData) adminWeekData.caps = { slot12: caps.slot12, slot1: caps.slot1, dinner: caps.dinner };
+  caps.guestLimitPerSignup = Math.max(0, parseInt((document.getElementById('guestLimitPerSignup') || {}).value || '0', 10) || 0);
+  if (adminWeekData) adminWeekData.caps = { slot12: caps.slot12, slot1: caps.slot1, dinner: caps.dinner, guestLimitPerSignup: caps.guestLimitPerSignup };
 }
 
 // =============================================
@@ -1505,6 +1573,7 @@ async function loadWeekData(autoAdvance) {
       caps.slot12 = cachedWeek.caps.slot12 || 45;
       caps.slot1 = cachedWeek.caps.slot1 || 45;
       caps.dinner = cachedWeek.caps.dinner || 90;
+      caps.guestLimitPerSignup = parseInt(cachedWeek.caps.guestLimitPerSignup || 0, 10) || 0;
     }
     renderDayCards();
   } else {
@@ -1530,6 +1599,7 @@ async function loadWeekData(autoAdvance) {
       caps.slot12 = result.caps.slot12 || 45;
       caps.slot1 = result.caps.slot1 || 45;
       caps.dinner = result.caps.dinner || 90;
+      caps.guestLimitPerSignup = parseInt(result.caps.guestLimitPerSignup || 0, 10) || 0;
     }
     renderDayCards();
   } catch (e) {
@@ -1561,6 +1631,7 @@ async function advanceToNextActiveWeek(fromMonday) {
           caps.slot12 = result.caps.slot12 || 45;
           caps.slot1 = result.caps.slot1 || 45;
           caps.dinner = result.caps.dinner || 90;
+          caps.guestLimitPerSignup = parseInt(result.caps.guestLimitPerSignup || 0, 10) || 0;
         }
         renderDayCards();
         return;
@@ -1589,9 +1660,12 @@ function renderDayCards() {
   let html = '';
 
   if (currentWeekData.freezeDate) {
-    const freezeTime = new Date(currentWeekData.freezeDate).getTime();
-    if (Date.now() > freezeTime) {
-      html += '<div style="background:#B1424210;border:1px solid #B1424230;border-radius:4px;padding:14px 18px;font-family:\'Crimson Pro\',serif;font-size:14px;color:var(--red);margin-bottom:16px;line-height:1.5;">Sign-ups for this week are closed.</div>';
+    if (isWeekFrozen(currentWeekData)) {
+      const reopenedDays = config.filter(day => day.enabled && isDayReopened(day)).map(day => day.day);
+      const msg = reopenedDays.length > 0
+        ? 'Sign-ups for this week are closed, except for ' + reopenedDays.join(', ') + '.'
+        : 'Sign-ups for this week are closed.';
+      html += '<div style="background:#B1424210;border:1px solid #B1424230;border-radius:4px;padding:14px 18px;font-family:\'Crimson Pro\',serif;font-size:14px;color:var(--red);margin-bottom:16px;line-height:1.5;">' + escapeHtml(msg) + '</div>';
     } else {
       const fd = new Date(currentWeekData.freezeDate);
       html += '<div style="background:#B07A2A10;border:1px solid #B07A2A25;border-radius:4px;padding:12px 16px;font-family:\'Crimson Pro\',serif;font-size:13px;color:var(--orange);margin-bottom:16px;font-style:italic;">Sign-ups close ' + fd.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}) + ' at ' + fd.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}) + '</div>';
@@ -1605,14 +1679,16 @@ function renderDayCards() {
     const maxTotal = times.reduce((s, t) => s + getCapForSlot(t, day), 0);
     const total = signupGroupSize(daySups);
     const isFull = total >= maxTotal;
+    const isClosed = !isDayOpenForSignups(currentWeekData, i);
     const pct = total / maxTotal;
 
     let spotsClass = 'open', spotsText = (maxTotal - total) + ' spots left';
-    if (isFull) { spotsClass = 'full-tag'; spotsText = 'FULL'; }
+    if (isClosed) { spotsClass = 'full-tag'; spotsText = 'CLOSED'; }
+    else if (isFull) { spotsClass = 'full-tag'; spotsText = 'FULL'; }
     else if (pct > 0.8) { spotsClass = 'almost'; spotsText = (maxTotal - total) + ' spots left'; }
 
     const menuPreview = day.menu ? (day.menu.length > 32 ? day.menu.slice(0, 32) + '\u2026' : day.menu) : '';
-    html += '<div class="day-card ' + (isFull ? 'full' : '') + '" data-day="' + i + '" onclick="' + (isFull ? '' : 'toggleDay(' + i + ')') + '">' +
+    html += '<div class="day-card ' + ((isFull || isClosed) ? 'full' : '') + '" data-day="' + i + '" onclick="' + ((isFull || isClosed) ? '' : 'toggleDay(' + i + ')') + '">' +
       '<div class="day-meal">' + escapeHtml(day.meal) + '</div>' +
       '<div class="day-name">' + escapeHtml(day.day) + '</div>' +
       '<div class="day-date">' + new Date(day.date + 'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}) + '</div>' +
@@ -1627,12 +1703,25 @@ function renderDayCards() {
 function toggleDay(idx) {
   const card = document.querySelector('.day-card[data-day="' + idx + '"]');
   if (!card) return;
+  if (!isDayOpenForSignups(currentWeekData, idx)) {
+    showToast('Sign-ups are closed for this day', 'var(--red)');
+    return;
+  }
   if (selectedDays.has(idx)) { selectedDays.delete(idx); card.classList.remove('selected'); }
   else { selectedDays.add(idx); card.classList.add('selected'); }
   updateTimeSection();
 }
 
 function updateTimeSection() {
+  if (currentWeekData) {
+    [...selectedDays].forEach(i => {
+      if (!isDayOpenForSignups(currentWeekData, i)) {
+        selectedDays.delete(i);
+        const card = document.querySelector('.day-card[data-day="' + i + '"]');
+        if (card) card.classList.remove('selected');
+      }
+    });
+  }
   if (!currentWeekData || selectedDays.size === 0) {
     document.getElementById('timeSection').style.display = 'none'; return;
   }
@@ -1641,6 +1730,7 @@ function updateTimeSection() {
 
   let html = '';
   [...selectedDays].sort().forEach(i => {
+    if (!isDayOpenForSignups(currentWeekData, i)) return;
     const day = config[i];
     const daySups = signups[i] || [];
     const times = getDayTimes(day);
@@ -1676,8 +1766,9 @@ function updateTimeSection() {
 
     if (guestsAllowed) {
       const guests = normalizeGuestNames((dayOptions[i] || {}).guests);
+      const guestLimit = getGuestLimitPerSignup(currentWeekData);
       html += '<div class="guest-builder">' +
-        '<label style="font-family:\'Jost\',sans-serif;font-size:11px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-dim);">Guests</label>' +
+        '<label style="font-family:\'Jost\',sans-serif;font-size:11px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-dim);">Guests ($20/pp)' + (guestLimit > 0 ? ' (max ' + guestLimit + ')' : '') + '</label>' +
         '<div id="guestRows_' + i + '">' + renderGuestRowsHtml(i, guests) + '</div>' +
         '<button type="button" class="guest-add-btn" onclick="addGuestInput(' + i + ')">+ Add Guest</button>' +
       '</div>';
@@ -1721,6 +1812,11 @@ function renderGuestRows(dayIdx) {
 function addGuestInput(dayIdx) {
   dayOptions[dayIdx] = dayOptions[dayIdx] || {};
   const guests = normalizeGuestNames(dayOptions[dayIdx].guests);
+  const guestLimit = getGuestLimitPerSignup(currentWeekData);
+  if (guestLimit > 0 && guests.length >= guestLimit) {
+    showToast('Guest limit is ' + guestLimit + ' per meal signup', 'var(--orange)');
+    return;
+  }
   guests.push('');
   dayOptions[dayIdx].guests = guests;
   const rows = document.getElementById('guestRows_' + dayIdx);
@@ -1763,14 +1859,6 @@ async function submitSignup() {
     sessionStorage.setItem('delphic_user', JSON.stringify(currentUser));
   }
 
-  if (currentWeekData.freezeDate) {
-    const freezeTime = new Date(currentWeekData.freezeDate).getTime();
-    if (Date.now() > freezeTime) {
-      showToast('Sign-ups are closed for this week', 'var(--red)');
-      return;
-    }
-  }
-
   const diet = document.querySelector('input[name="diet"]:checked')?.value || 'No Dietary Restrictions';
   const allergies = document.getElementById('allergies').value.trim();
   const gradGasman = document.getElementById('gradGasman').checked;
@@ -1783,6 +1871,7 @@ async function submitSignup() {
 
   const entries = [];
   for (const dayIdx of selectedDays) {
+    if (!isDayOpenForSignups(currentWeekData, dayIdx)) continue;
     const day = currentWeekData.config[dayIdx];
     const times = getDayTimes(day);
     const time = selectedTimes[dayIdx];
@@ -1797,13 +1886,36 @@ async function submitSignup() {
     const early = opts.early || false;
     const accom = opts.accommodations || '';
     const guests = normalizeGuestNames(opts.guests);
+    const guestLimit = getGuestLimitPerSignup(currentWeekData);
+    if (guestLimit > 0 && guests.length > guestLimit) {
+      showToast('Guest limit is ' + guestLimit + ' per meal signup', 'var(--red)');
+      btn.disabled = false;
+      btn.innerHTML = 'Submit Sign-Up';
+      return;
+    }
     const allNotes = [allergies, accom].filter(Boolean).join(', ');
     entries.push({ dayIndex: dayIdx, day: day.day, date: day.date, meal: day.meal, time: finalTime, name, diet, allergies: allNotes, early, notes: generalNotes, guests, gradGasman });
+  }
+
+  if (entries.length === 0) {
+    showToast('Sign-ups are closed for the selected day(s)', 'var(--red)');
+    btn.disabled = false;
+    btn.innerHTML = 'Submit Sign-Up';
+    return;
   }
 
   // Build day summary BEFORE clearing selections
   const confirmedDays = entries.map(e => e.day + ' ' + e.meal).join('  ·  ');
   const memberNameVal = name;
+  const totalGuests = getEntryGuestCount(entries);
+  if (totalGuests > 0) {
+    const agreed = await showGuestPaymentAgreement(totalGuests);
+    if (!agreed) {
+      btn.disabled = false;
+      btn.innerHTML = 'Submit Sign-Up';
+      return;
+    }
+  }
 
   try {
     const result = await apiCall('addSignups', { monday, entries, caps });
@@ -1811,8 +1923,14 @@ async function submitSignup() {
       // Show the confirmation modal
       showConfirmation(memberNameVal, confirmedDays, result.added, result.updated > 0);
       if (result.full > 0) showToast(result.full + ' slot(s) were full', 'var(--orange)');
+      if (result.frozen > 0) showToast(result.frozen + ' closed day(s) were skipped', 'var(--orange)');
+      if (result.guestLimit > 0) showToast(result.guestLimit + ' signup(s) exceeded the guest limit', 'var(--orange)');
     } else if (result.full > 0) {
       showToast('Those slots are full', 'var(--red)');
+    } else if (result.guestLimit > 0) {
+      showToast('Guest limit exceeded', 'var(--red)');
+    } else if (result.frozen > 0) {
+      showToast('Sign-ups are closed for the selected day(s)', 'var(--red)');
     }
     selectedDays.clear();
     selectedTimes = {};
@@ -1843,6 +1961,7 @@ function _applyViewData(data, preserveIdx) {
     caps.slot12 = data.caps.slot12 || 45;
     caps.slot1 = data.caps.slot1 || 45;
     caps.dinner = data.caps.dinner || 90;
+    caps.guestLimitPerSignup = parseInt(data.caps.guestLimitPerSignup || 0, 10) || 0;
   }
   const { config, signups } = data;
   const newEnabled = config
@@ -2673,6 +2792,7 @@ function renderAdminWeekHTML() {
   let html = '';
   config.forEach((day, i) => {
     const guestsAllowed = day.guestsAllowed || false;
+    const reopenSignups = day.reopenSignups === true;
     const isEnabled = day.enabled !== false;
     const slots = day.slots || [];
 
@@ -2743,6 +2863,10 @@ function renderAdminWeekHTML() {
               '<input type="checkbox" ' + (guestsAllowed ? 'checked' : '') + ' onchange="adminWeekData.config[' + i + '].guestsAllowed=this.checked">' +
               '<span class="pill-label" style="font-size:11px;padding:6px 12px;">Guests Allowed</span>' +
             '</label>' +
+            '<label class="option-pill" style="margin:0;">' +
+              '<input type="checkbox" ' + (reopenSignups ? 'checked' : '') + ' onchange="adminWeekData.config[' + i + '].reopenSignups=this.checked">' +
+              '<span class="pill-label" style="font-size:11px;padding:6px 12px;">Reopen Sign-ups</span>' +
+            '</label>' +
             '<a href="#" onclick="toggleAdminSlots(' + i + ');return false;" id="slotsToggleLink' + i + '" ' +
               'style="font-size:12px;color:var(--text-dim);text-decoration:none;border-bottom:1px dashed var(--border);">' +
               (slots.length > 0 ? '⚙ Time slots (' + slots.length + ')' : '+ Custom time slots') +
@@ -2799,9 +2923,11 @@ async function renderAdminWeek() {
       caps.slot12 = adminWeekData.caps.slot12 || 45;
       caps.slot1 = adminWeekData.caps.slot1 || 45;
       caps.dinner = adminWeekData.caps.dinner || 90;
+      caps.guestLimitPerSignup = parseInt(adminWeekData.caps.guestLimitPerSignup || 0, 10) || 0;
       document.getElementById('cap12').value = caps.slot12;
       document.getElementById('cap1').value = caps.slot1;
       document.getElementById('capDinner').value = caps.dinner;
+      document.getElementById('guestLimitPerSignup').value = caps.guestLimitPerSignup;
     }
   } catch (e) {
     adminWeekData = buildDefaultWeek(monday);
@@ -2818,7 +2944,8 @@ async function renderAdminWeek() {
 
 async function pushWeekConfig() {
   if (!adminWeekData) { showToast('Select a week first', 'var(--red)'); return; }
-  // Harvest current textarea values before saving (handles case where Save is clicked while textarea has focus)
+  // Harvest current form values before saving (handles case where Save is clicked while a field has focus)
+  saveCaps();
   adminWeekData.config.forEach((day, i) => {
     const ta = document.getElementById('adminMenu' + i);
     if (ta) day.menu = ta.value;
@@ -3870,7 +3997,7 @@ function openMooseDaySheet(dateStr) {
         const maxTotal = times.reduce((s, t) => s + getCapForSlot(t, day), 0);
         const myEntry = myName ? daySups.find(s => s.name && s.name.toLowerCase().trim() === myName) : null;
         const isFull = signupGroupSize(daySups) >= maxTotal;
-        const isFrozen = weekData.freezeDate && Date.now() > new Date(weekData.freezeDate).getTime();
+        const isFrozen = !isDayOpenForSignups(weekData, dayIdx);
         _mooseSheetMealData = { monday, dayIdx, day, weekData, myEntry };
 
         mealHtml += '<div class="moose-sheet-sect">Meal</div><div class="moose-meal-box">' +
@@ -3884,7 +4011,7 @@ function openMooseDaySheet(dateStr) {
             '<button class="btn btn-secondary" style="width:auto;padding:8px 20px;font-size:13px;" ' +
             'onclick="removeMooseMeal(\'' + monday + '\',' + dayIdx + ',\'' + myEntry.name.replace(/'/g,"\\'") + '\',\'' + (myEntry.time||'').replace(/'/g,"\\'") + '\')">Remove Sign-Up</button>';
         } else if (isFrozen) {
-          mealHtml += '<div style="font-family:\'Crimson Pro\',serif;font-size:14px;color:var(--text-dim);">Sign-ups are closed for this week.</div>';
+          mealHtml += '<div style="font-family:\'Crimson Pro\',serif;font-size:14px;color:var(--text-dim);">Sign-ups are closed for this day.</div>';
         } else if (!currentUser || (!currentUser.name && !currentUser.openAccess)) {
           mealHtml += '<div style="font-family:\'Crimson Pro\',serif;font-size:14px;color:var(--text-dim);">Sign in to sign up for this meal.</div>';
         } else if (!myName && currentUser.openAccess) {
@@ -3898,7 +4025,7 @@ function openMooseDaySheet(dateStr) {
             mealHtml += '<div class="moose-time-row">';
             times.forEach(t => {
               const tl = t === '12:00 PM' ? '12:00\u20131:00 PM' : t === '1:00 PM' ? '1:00\u20132:00 PM' : t;
-              const slotFull = daySups.filter(s => s.time === t).length >= getCapForSlot(t, day);
+              const slotFull = signupGroupSize(daySups.filter(s => slotMatchesSignup(s, t))) >= getCapForSlot(t, day);
               const chipId = 'mchip_' + t.replace(/[: ]/g, '_');
               mealHtml += '<button class="moose-time-chip" id="' + chipId + '"' +
                 (slotFull ? ' disabled style="opacity:.4;cursor:not-allowed;"' : ' onclick="selectMooseTime(\'' + t.replace(/'/g,"\\'") + '\')"') + '>' +
@@ -3983,6 +4110,7 @@ async function submitMooseMeal() {
   const times = getDayTimes(day);
   const time = times.length === 1 ? times[0] : _mooseSelectedTime;
   if (!time) { showToast('Please select a time slot', 'var(--orange)'); return; }
+  if (!isDayOpenForSignups(weekData, dayIdx)) { showToast('Sign-ups are closed for this day', 'var(--red)'); return; }
 
   const myName = currentUser && currentUser.name;
   if (!myName) { showToast('Please add your name on the Sign Up tab first', 'var(--orange)'); return; }

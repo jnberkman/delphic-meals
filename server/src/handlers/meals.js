@@ -39,6 +39,24 @@ function getCapForEntry(weekCfg, caps, dayIdx, timeStr) {
   return capSlot12;
 }
 
+function getGuestLimitPerSignup(weekCfg, caps) {
+  const configured = weekCfg && weekCfg.caps && weekCfg.caps.guestLimitPerSignup != null
+    ? weekCfg.caps.guestLimitPerSignup
+    : caps.guestLimitPerSignup;
+  const limit = parseInt(configured || '0', 10);
+  return Number.isFinite(limit) && limit > 0 ? limit : 0;
+}
+
+function isPastFreeze(freezeDate) {
+  return !!(freezeDate && Date.now() > new Date(freezeDate).getTime());
+}
+
+function isDayOpenForSignups(weekCfg, dayIdx) {
+  if (!isPastFreeze(weekCfg.freeze_date)) return true;
+  const day = weekCfg && weekCfg.config && weekCfg.config[dayIdx];
+  return !!(day && day.reopenSignups === true);
+}
+
 /**
  * Port of getWeek() from Code.gs:870-886.
  */
@@ -86,18 +104,23 @@ async function addSignups(monday, entries, caps) {
     weekCfg = await weeksDb.getConfig(monday);
   }
 
-  // Check freeze date
-  if (weekCfg.freeze_date) {
-    if (Date.now() > new Date(weekCfg.freeze_date).getTime()) {
-      return { added: 0, duplicates: 0, full: 0, error: 'Sign-ups are closed for this week' };
-    }
-  }
+  const guestLimitPerSignup = getGuestLimitPerSignup(weekCfg, caps);
 
-  let added = 0, updated = 0, full = 0;
+  let added = 0, updated = 0, full = 0, frozen = 0, guestLimit = 0;
 
   for (const entry of entries) {
     const dayIdx = entry.dayIndex;
+    if (!isDayOpenForSignups(weekCfg, dayIdx)) {
+      frozen++;
+      continue;
+    }
+
     const guests = normalizeGuests(entry.guests);
+    if (guestLimitPerSignup > 0 && guests.length > guestLimitPerSignup) {
+      guestLimit++;
+      continue;
+    }
+
     const partySize = 1 + guests.length;
 
     // Check capacity
@@ -128,7 +151,10 @@ async function addSignups(monday, entries, caps) {
   }
 
   sheetsSync.syncWeek(monday).catch(e => console.error('Sheets sync error (week):', e.message));
-  return { added, updated, full };
+  if (frozen > 0 && added === 0 && full === 0 && guestLimit === 0) {
+    return { added, updated, full, frozen, guestLimit, error: 'Sign-ups are closed for this week' };
+  }
+  return { added, updated, full, frozen, guestLimit };
 }
 
 /**

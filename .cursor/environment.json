@@ -1,0 +1,15 @@
+{
+  "name": "Delphic Meals",
+  "user": "ubuntu",
+  "install": "bash ./.cursor/install.sh",
+  "start": "bash ./.cursor/start.sh",
+  "terminals": [
+    {
+      "name": "server",
+      "command": "cd server && npm run migrate && npm start"
+    }
+  ],
+  "ports": [
+    { "name": "app", "port": 3000 }
+  ]
+}

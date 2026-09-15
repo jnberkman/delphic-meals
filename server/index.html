@@ -26,6 +26,7 @@
     --accent-muted: #A47E1E;
     --accent-glow: #8B691408;
     --accent-glow2: #8B691412;
+    --focus-ring: #8B691466;
     --green: #3D7A4E;
     --red: #B14242;
     --orange: #B07A2A;
@@ -58,6 +59,7 @@
   .tab { flex: 1; padding: 14px 8px; text-align: center; cursor: pointer; font-size: 13px; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-dim); transition: all .25s; border: none; background: transparent; border-bottom: 2px solid transparent; margin-bottom: -1px; }
   .tab:hover { color: var(--text); }
   .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab:focus-visible { outline: 2px solid var(--accent-muted); outline-offset: 2px; color: var(--accent); }
 
   .section { display: none; animation: fadeUp .4s ease; }
   .section.active { display: block; }
@@ -70,7 +72,10 @@
   input[type="text"], input[type="number"], input[type="date"], textarea, select {
     width: 100%; padding: 13px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; color: var(--text-bright); font-family: 'Crimson Pro', serif; font-size: 16px; transition: border-color .2s, box-shadow .2s; outline: none;
   }
-  input:focus, textarea:focus, select:focus { border-color: var(--accent-muted); box-shadow: 0 0 0 2px var(--accent-glow); }
+  input:focus, textarea:focus, select:focus,
+  input:focus-visible, textarea:focus-visible, select:focus-visible {
+    border-color: var(--accent-muted); box-shadow: 0 0 0 2px var(--focus-ring);
+  }
   textarea { resize: vertical; min-height: 72px; }
   select { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%237A8599' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
   select option { background: var(--surface); color: var(--text); }
@@ -89,6 +94,7 @@
   .day-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(125px, 1fr)); gap: 10px; margin-bottom: 24px; }
   .day-card { border: 1px solid var(--border); border-radius: 4px; padding: 16px 12px; cursor: pointer; transition: all .2s; background: var(--surface); text-align: center; min-width: 0; }
   .day-card:hover { border-color: var(--border-light); background: var(--surface2); }
+  .day-card:focus-visible { outline: 2px solid var(--accent-muted); outline-offset: 2px; }
   .day-card.selected { border-color: var(--accent-muted); background: var(--accent-glow2); }
   .day-card.full { border-color: var(--red); opacity: .4; cursor: not-allowed; }
   .day-card .day-name { font-family: 'Cormorant Garamond', serif; font-weight: 600; font-size: 16px; color: var(--text-bright); margin-bottom: 1px; }
@@ -110,14 +116,16 @@
   .time-row { display: flex; gap: 10px; flex-wrap: wrap; }
   .time-chip { flex: 1; min-width: 120px; padding: 14px; border-radius: 4px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; text-align: center; transition: all .2s; }
   .time-chip:hover { border-color: var(--border-light); }
+  .time-chip:focus-visible { outline: 2px solid var(--accent-muted); outline-offset: 2px; }
   .time-chip.selected { border-color: var(--accent-muted); background: var(--accent-glow2); }
   .time-chip.disabled { opacity: .35; cursor: not-allowed; pointer-events: none; }
   .time-chip .time-label { font-family: 'Cormorant Garamond', serif; font-weight: 600; font-size: 16px; color: var(--text-bright); }
   .time-chip .time-spots { font-size: 11px; color: var(--text-dim); margin-top: 3px; }
 
   .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 13px 28px; border-radius: 3px; font-family: 'Jost', sans-serif; font-size: 13px; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; transition: all .2s; border: none; }
-  .btn-primary { background: var(--accent); color: var(--bg-deep); width: 100%; }
-  .btn-primary:hover { background: var(--accent-muted); }
+  .btn:focus-visible { outline: 2px solid var(--accent-muted); outline-offset: 2px; }
+  .btn-primary { background: var(--accent); color: #fff; width: 100%; }
+  .btn-primary:hover { background: var(--accent-muted); color: #fff; }
   .btn-secondary { background: transparent; color: var(--text); border: 1px solid var(--border); }
   .btn-secondary:hover { border-color: var(--border-light); background: var(--surface2); }
   .btn:disabled { opacity: .35; cursor: not-allowed; }
@@ -164,7 +172,7 @@
   .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(0,0,0,.15); border-top-color: var(--accent); border-radius: 50%; animation: spin .6s linear infinite; }
   .spinner-sm { width: 14px; height: 14px; border-width: 2px; }
   .spinner-lg { width: 22px; height: 22px; border-width: 3px; }
-  .btn-primary .spinner { border-color: rgba(0,0,0,.18); border-top-color: rgba(0,0,0,.65); }
+  .btn-primary .spinner { border-color: rgba(255,255,255,.35); border-top-color: #fff; }
   .btn-primary:disabled { opacity: .75; cursor: not-allowed; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
@@ -452,7 +460,7 @@
       <div class="card-title">Your Info</div>
       <div class="card-sub">Tell us who you are and any dietary needs</div>
       <div class="field">
-        <label class="field-label">Name <span class="req">*</span></label>
+        <label class="field-label" for="memberName">Name <span class="req">*</span></label>
         <input type="text" id="memberName" placeholder="e.g. Robby Meek">
       </div>
       <div class="field">
@@ -467,7 +475,7 @@
         </div>
       </div>
       <div class="field">
-        <label class="field-label">Allergies / Special Accommodations</label>
+        <label class="field-label" for="allergies">Allergies / Special Accommodations</label>
         <input type="text" id="allergies" placeholder="e.g. peanut, tree nut, shellfish, dairy, no cheese">
       </div>
       <div class="field" style="margin-bottom:0;">
@@ -482,7 +490,7 @@
       <div class="card-title">Select Meals</div>
       <div class="card-sub">Pick the days you'd like to attend this week</div>
       <div class="field">
-        <label class="field-label">Week of (Monday)</label>
+        <label class="field-label" for="weekSelect">Week of (Monday)</label>
         <div style="display:flex;gap:8px;align-items:center;">
           <button class="btn btn-secondary" style="width:auto;padding:10px 14px;font-size:16px;" onclick="shiftWeek('weekSelect',-7,loadWeekData)" title="Previous week">&#8592;</button>
           <input type="date" id="weekSelect" style="flex:1;">
@@ -503,7 +511,7 @@
 
     <div class="card">
       <div class="field" style="margin-bottom:0;">
-        <label class="field-label">General Notes</label>
+        <label class="field-label" for="notes">General Notes</label>
         <textarea id="notes" placeholder="Other info that applies to all days"></textarea>
       </div>
     </div>
@@ -515,10 +523,10 @@
   <!-- ========== VIEW ========== -->
   <div id="tab-view" class="section">
     <div id="spotUpInfoBanner" class="info-banner" style="display:none;margin-bottom:16px;">
-      <strong>Spot Up:</strong> Tap any name to offer that spot to others. Anyone can then claim it.
+      <strong>Spot Up:</strong> Tap <em>your</em> name to offer the spot. Others can then claim it.
     </div>
     <div class="field">
-      <label class="field-label">Week of (Monday)</label>
+      <label class="field-label" for="viewWeekSelect">Week of (Monday)</label>
       <div style="display:flex;gap:8px;align-items:center;">
         <button class="btn btn-secondary" style="width:auto;padding:10px 14px;font-size:16px;" onclick="shiftWeek('viewWeekSelect',-7,loadViewData)" title="Previous week">&#8592;</button>
         <input type="date" id="viewWeekSelect" style="flex:1;">
@@ -617,7 +625,7 @@
         <!-- Week selector + freeze date -->
         <div style="display:flex;gap:12px;align-items:flex-end;margin-bottom:20px;flex-wrap:wrap;">
           <div style="flex:1;min-width:180px;">
-            <label class="field-label" style="font-size:10px;">Week (starting Monday)</label>
+            <label class="field-label" style="font-size:10px;" for="adminWeekSelect">Week (starting Monday)</label>
             <div style="display:flex;gap:6px;align-items:center;">
               <button class="btn btn-secondary" style="width:auto;padding:8px 12px;font-size:15px;" onclick="shiftAdminWeek(-7)" title="Previous week">&#8592;</button>
               <input type="date" id="adminWeekSelect" style="flex:1;">
@@ -625,7 +633,7 @@
             </div>
           </div>
           <div style="flex:1;min-width:180px;">
-            <label class="field-label" style="font-size:10px;">Freeze sign-ups after</label>
+            <label class="field-label" style="font-size:10px;" for="freezeDate">Freeze sign-ups after</label>
             <input type="datetime-local" id="freezeDate" onchange="if(adminWeekData)adminWeekData.freezeDate=this.value">
           </div>
         </div>
@@ -674,11 +682,11 @@
           <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);margin-bottom:10px;">Add Member</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
             <div style="flex:2;min-width:180px;">
-              <label class="field-label" style="font-size:10px;">Email</label>
+              <label class="field-label" style="font-size:10px;" for="newMemberEmail">Email</label>
               <input type="text" id="newMemberEmail" placeholder="name@college.harvard.edu">
             </div>
             <div style="flex:1;min-width:120px;">
-              <label class="field-label" style="font-size:10px;">Name (optional)</label>
+              <label class="field-label" style="font-size:10px;" for="newMemberName">Name (optional)</label>
               <input type="text" id="newMemberName" placeholder="Full name">
             </div>
             <div style="display:flex;gap:8px;align-items:center;padding-bottom:2px;flex-shrink:0;">
@@ -740,34 +748,34 @@
         <div style="border-top:1px solid var(--border);padding-top:16px;margin-top:4px;">
           <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);margin-bottom:14px;">New Event</div>
           <div class="field" style="margin-bottom:10px;">
-            <label class="field-label" style="font-size:10px;">Title <span class="req">*</span></label>
+            <label class="field-label" style="font-size:10px;" for="newEventTitle">Title <span class="req">*</span></label>
             <input type="text" id="newEventTitle" placeholder="e.g. Spring Formal, Alumni Dinner">
           </div>
           <div style="display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
             <div class="field" style="flex:1;min-width:130px;margin-bottom:0;">
-              <label class="field-label" style="font-size:10px;">Date <span class="req">*</span></label>
+              <label class="field-label" style="font-size:10px;" for="newEventDate">Date <span class="req">*</span></label>
               <input type="date" id="newEventDate">
             </div>
             <div class="field" style="flex:1;min-width:120px;margin-bottom:0;">
-              <label class="field-label" style="font-size:10px;">Time</label>
+              <label class="field-label" style="font-size:10px;" for="newEventTime">Time</label>
               <input type="text" id="newEventTime" placeholder="e.g. 7:00 PM">
             </div>
             <div class="field" style="flex:1;min-width:130px;margin-bottom:0;">
-              <label class="field-label" style="font-size:10px;">Location</label>
+              <label class="field-label" style="font-size:10px;" for="newEventLocation">Location</label>
               <input type="text" id="newEventLocation" placeholder="e.g. Main Dining Room">
             </div>
           </div>
           <div class="field" style="margin-bottom:10px;">
-            <label class="field-label" style="font-size:10px;">Description</label>
+            <label class="field-label" style="font-size:10px;" for="newEventDesc">Description</label>
             <textarea id="newEventDesc" style="min-height:52px;" placeholder="Details, dress code, etc."></textarea>
           </div>
           <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
             <div class="field" style="flex:1;min-width:130px;margin-bottom:0;">
-              <label class="field-label" style="font-size:10px;">Capacity (0 = unlimited)</label>
+              <label class="field-label" style="font-size:10px;" for="newEventCap">Capacity (0 = unlimited)</label>
               <input type="number" id="newEventCap" value="0" min="0">
             </div>
             <div class="field" style="flex:1;min-width:160px;margin-bottom:0;">
-              <label class="field-label" style="font-size:10px;">Freeze sign-ups after</label>
+              <label class="field-label" style="font-size:10px;" for="newEventFreeze">Freeze sign-ups after</label>
               <input type="datetime-local" id="newEventFreeze">
             </div>
           </div>
@@ -818,7 +826,7 @@
   </div>
 </div>
 
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <!-- Moose: day detail sheet -->
 <div class="moose-overlay" id="mooseSheetOverlay" onclick="if(event.target===this)closeMooseSheet()">
@@ -929,9 +937,9 @@ let pendingName = null;
 
 function grantAccess(user) {
   currentUser = user;
-  // For open-access users, restore identity from the last saved name so
+  // For open-access / guest users, restore identity from the last saved name so
   // "Your Spot" and form pre-fill work without requiring a Google sign-in.
-  if (user.openAccess && !user.name) {
+  if ((user.openAccess || user.guest) && !user.name) {
     try {
       const prefs = JSON.parse(localStorage.getItem('delphic_prefs') || '{}');
       if (prefs.name) currentUser.name = prefs.name;
@@ -1175,6 +1183,7 @@ function clearPersistedSession() {
       setCache('settings', settings);
     }
     if (settings.spotUpEnabled === false || String(settings.spotUpEnabled).toUpperCase() === 'FALSE') spotUpEnabled = false;
+    updateSpotUpInfoBanner();
     if (settings.openAccess) {
       grantAccess({ name: '', isAdmin: false, openAccess: true });
     }
@@ -1232,6 +1241,33 @@ const DEFAULT_TIMES = { Lunch: ['12:00 PM','1:00 PM'], Dinner: ['7:30 PM'], Brun
 function escapeHtml(str) {
   if (!str) return '';
   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/** Display-cased identity for the current user (Google / guest / open-access). */
+function getMyDisplayName() {
+  let name = (currentUser && currentUser.name) ? String(currentUser.name).trim() : '';
+  if (!name) {
+    const el = document.getElementById('memberName');
+    if (el && el.value) name = el.value.trim();
+  }
+  if (!name) {
+    try {
+      const prefs = JSON.parse(localStorage.getItem('delphic_prefs') || '{}');
+      if (prefs.name) name = String(prefs.name).trim();
+    } catch(e) {}
+  }
+  return name;
+}
+
+/** Lowercased identity for "my row" / spot-up permission checks. Empty = no identity. */
+function getMyName() {
+  return getMyDisplayName().toLowerCase();
+}
+
+function updateSpotUpInfoBanner() {
+  const banner = document.getElementById('spotUpInfoBanner');
+  if (!banner) return;
+  banner.style.display = spotUpEnabled ? '' : 'none';
 }
 
 function normalizeGuestNames(guests) {
@@ -1374,8 +1410,7 @@ function resolveGuestPayment(accepted) {
 function renderMySignupsSummary() {
   const el = document.getElementById('mySignupsSummary');
   if (!el || !currentWeekData) { if (el) el.innerHTML = ''; return; }
-  const myName = (currentUser && currentUser.name && !currentUser.guest)
-    ? currentUser.name.toLowerCase().trim() : '';
+  const myName = getMyName();
   if (!myName) { el.innerHTML = ''; return; }
 
   const { config, signups, monday } = currentWeekData;
@@ -1989,6 +2024,8 @@ function _applyViewData(data, preserveIdx) {
 
   viewEnabledDays = newEnabled;
 
+  updateSpotUpInfoBanner();
+
   if (window.matchMedia('(min-width: 900px)').matches) {
     nav.style.display = 'none';
     renderHorizontalView();
@@ -2096,8 +2133,7 @@ function renderViewDay(idx) {
   const lbl = document.getElementById('viewDayLabel');
   if (lbl) lbl.textContent = day.day + ' \u2014 ' + day.meal;
 
-  const myName = (currentUser && currentUser.name && !currentUser.guest)
-    ? currentUser.name.toLowerCase().trim() : '';
+  const myName = getMyName();
 
   let html = '<div class="card">';
   html += '<div style="display:flex;justify-content:space-between;align-items:start;">' +
@@ -2187,8 +2223,7 @@ function renderViewDay(idx) {
 
 function renderHorizontalView() {
   if (!viewEnabledDays || viewEnabledDays.length === 0) return;
-  const myName = (currentUser && currentUser.name && !currentUser.guest)
-    ? currentUser.name.toLowerCase().trim() : '';
+  const myName = getMyName();
   const isAdmin = !!(currentUser && currentUser.isAdmin);
 
   let html = '<div class="view-day-grid">';
@@ -2294,9 +2329,9 @@ function renderHorizontalName(s, monday, dayIdx, slot, myName, isAdmin) {
   let displayName = s.name;
   if (spotStatus === 'claimed' && claimedBy) displayName = claimedBy;
 
-  const canSpotUp = isAdmin || !myName || s.name.toLowerCase().trim() === myName;
-  const canCancelSpotUp = isAdmin || !myName || origName.toLowerCase().trim() === myName;
-  const canManageClaimed = isAdmin || !myName || claimedBy.toLowerCase().trim() === myName;
+  const canSpotUp = isAdmin || (!!myName && s.name.toLowerCase().trim() === myName);
+  const canCancelSpotUp = isAdmin || (!!myName && origName.toLowerCase().trim() === myName);
+  const canManageClaimed = isAdmin || (!!myName && claimedBy.toLowerCase().trim() === myName);
 
   const safeName = s.name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
   const safeTime = (s.time || slot || '').replace(/'/g, "\\'");
@@ -2386,9 +2421,8 @@ function renderHorizontalName(s, monday, dayIdx, slot, myName, isAdmin) {
 function renderSignupItem(s, monday, dayIdx, slot) {
   // Resolve identity + permissions
   const isAdmin = !!(currentUser && currentUser.isAdmin);
-  // myName is set for any user with a known name (Google sign-in OR named open-access)
-  const myName = (currentUser && currentUser.name && !currentUser.guest)
-    ? currentUser.name.toLowerCase().trim() : '';
+  // myName from Google sign-in, guest/open-access name, #memberName, or prefs
+  const myName = getMyName();
 
   const spotStatus = s.spotUpStatus || '';
   const origName = s.spotUpOrigName || '';
@@ -2398,10 +2432,10 @@ function renderSignupItem(s, monday, dayIdx, slot) {
   const safeOrigName = origName.replace(/'/g, "\\'").replace(/"/g, '&quot;');
   const safeTime = (s.time || slot || '').replace(/'/g, "\\'");
 
-  // Permission flags — no known identity means actions are open (guest / anonymous open-access)
-  const canSpotUp = isAdmin || !myName || s.name.toLowerCase().trim() === myName;
-  const canCancelSpotUp = isAdmin || !myName || origName.toLowerCase().trim() === myName;
-  const canManageClaimed = isAdmin || !myName || claimedBy.toLowerCase().trim() === myName;
+  // Permission flags — empty identity must NOT unlock actions on every row
+  const canSpotUp = isAdmin || (!!myName && s.name.toLowerCase().trim() === myName);
+  const canCancelSpotUp = isAdmin || (!!myName && origName.toLowerCase().trim() === myName);
+  const canManageClaimed = isAdmin || (!!myName && claimedBy.toLowerCase().trim() === myName);
 
   const isMyRow = !!myName && s.name.toLowerCase().trim() === myName;
 
@@ -2467,7 +2501,7 @@ function renderSignupItem(s, monday, dayIdx, slot) {
   if (spotStatus === 'spotup') {
     return '<div class="signup-item spotup-item">' +
       '<div style="flex:1;">' +
-        '<div><span class="name" style="color:#E65100;text-decoration:line-through;opacity:.7;">' + display + '</span>' +
+        '<div><span class="name" style="color:#E65100;text-decoration:line-through;opacity:.7;">' + escapeHtml(display) + '</span>' +
         '<span class="spotup-badge">SPOT UP</span>' + allergyBadge + '</div>' +
         '<div class="meta" style="color:#E65100;">This spot is available to claim</div>' +
       '</div>' +
@@ -2484,10 +2518,10 @@ function renderSignupItem(s, monday, dayIdx, slot) {
     return '<div class="signup-item claimed-item' + (isServed ? ' served-item' : '') + '" style="display:flex;align-items:center;">' +
       servedCb +
       '<div style="flex:1;">' +
-        '<div><span class="name" style="color:var(--green);font-weight:700;">' + s.name + '</span>' +
+        '<div><span class="name" style="color:var(--green);font-weight:700;">' + escapeHtml(s.name) + '</span>' +
         '<span class="spotup-claimed-badge">CLAIMED</span>' + allergyBadge + '</div>' +
-        '<div class="meta" style="color:var(--green);">Was: ' + origName + '</div>' +
-        (s.notes ? '<div class="meta">' + s.notes + '</div>' : '') +
+        '<div class="meta" style="color:var(--green);">Was: ' + escapeHtml(origName) + '</div>' +
+        (s.notes ? '<div class="meta">' + escapeHtml(s.notes) + '</div>' : '') +
       '</div>' +
       (canManageClaimed || isAdmin ?
         '<div style="display:flex;gap:4px;align-items:center;">' +
@@ -2505,8 +2539,8 @@ function renderSignupItem(s, monday, dayIdx, slot) {
   return '<div class="signup-item ' + (canSpotUp ? 'can-spotup' : '') + (isServed ? ' served-item' : '') + '" ' + rowClick + ' style="display:flex;align-items:center;' + gradStyle + earlyRowStyle + '">' +
     servedCb +
     '<div style="flex:1;">' +
-      '<span class="name" style="' + gradNameStyle + '">' + display + '</span>' + allergyBadge +
-      (s.notes ? '<div class="meta">' + s.notes + '</div>' : '') +
+      '<span class="name" style="' + gradNameStyle + '">' + escapeHtml(display) + '</span>' + allergyBadge +
+      (s.notes ? '<div class="meta">' + escapeHtml(s.notes) + '</div>' : '') +
     '</div>' +
     (isAdmin ? '<button class="remove-btn" title="Remove" onclick="event.stopPropagation();removeSignup(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')">&#215;</button>' : '') +
   '</div>';
@@ -2541,11 +2575,11 @@ function openClaimModal(monday, dayIdx, origName, time) {
   const overlay = document.getElementById('spotupOverlay');
   document.getElementById('spotupModalTitle').textContent = 'Claim This Spot';
   document.getElementById('spotupModalSub').textContent = 'Take over ' + origName + "'s spot.";
-  const prefilledName = (currentUser && currentUser.name && !currentUser.openAccess && !currentUser.guest) ? currentUser.name : '';
+  const prefilledName = getMyDisplayName();
   document.getElementById('spotupModalBody').innerHTML =
     '<div class="field" style="margin-bottom:0;">' +
-      '<label class="field-label">Your Name <span class="req">*</span></label>' +
-      '<input type="text" id="claimNameInput" placeholder="Enter your full name" value="' + prefilledName + '">' +
+      '<label class="field-label" for="claimNameInput">Your Name <span class="req">*</span></label>' +
+      '<input type="text" id="claimNameInput" placeholder="Enter your full name" value="' + escapeHtml(prefilledName) + '">' +
     '</div>';
   document.getElementById('spotupModalActions').innerHTML =
     '<button class="btn btn-secondary" onclick="closeSpotUpModal()">Cancel</button>' +
@@ -2635,7 +2669,7 @@ function openAdminSwapModal(monday, dayIdx, name, time, spotStatus, origName) {
   document.getElementById('spotupModalSub').textContent = name + (origName ? ' (was: ' + origName + ')' : '');
 
   let bodyHtml = '<div class="field" style="margin-bottom:8px;">' +
-    '<label class="field-label">Replace with name <span class="req">*</span></label>' +
+    '<label class="field-label" for="adminSwapNameInput">Replace with name <span class="req">*</span></label>' +
     '<input type="text" id="adminSwapNameInput" placeholder="Enter replacement name" style="margin-bottom:0;">' +
   '</div>';
   document.getElementById('spotupModalBody').innerHTML = bodyHtml;
@@ -3126,6 +3160,7 @@ async function loadAccessSettings() {
     const _suOn = _suRaw !== false && String(_suRaw).toUpperCase() !== 'FALSE';
     if (suToggle) suToggle.checked = _suOn;
     spotUpEnabled = _suOn;
+    updateSpotUpInfoBanner();
   } catch(e) {}
 }
 
@@ -3157,6 +3192,7 @@ async function toggleSpotUp(enabled) {
     const cur = getCache('settings') || {};
     setCache('settings', { ...cur, spotUpEnabled: enabled });
     spotUpEnabled = enabled;
+    updateSpotUpInfoBanner();
     showToast(enabled ? 'Spot ups enabled' : 'Spot ups disabled — members will see "Put spot ups in chat"');
   } catch(e) {
     showToast('Failed to update setting', 'var(--red)');
@@ -3862,8 +3898,7 @@ function renderMooseCalendar() {
   lbl.textContent = MONTHS[_mooseCalMonth] + ' ' + _mooseCalYear;
 
   const todayStr = new Date().toISOString().slice(0, 10);
-  const myName = (currentUser && currentUser.name && !currentUser.guest)
-    ? currentUser.name.toLowerCase().trim() : '';
+  const myName = getMyName();
 
   // Index events by date
   const evByDate = {};
@@ -3981,8 +4016,7 @@ function openMooseDaySheet(dateStr) {
   const dayIdx = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
   const monday = getMonday(dateStr);
   const weekData = weekCache[monday];
-  const myName = (currentUser && currentUser.name && !currentUser.guest)
-    ? currentUser.name.toLowerCase().trim() : '';
+  const myName = getMyName();
 
   let html = '<div class="moose-sheet-title">' + dateLabel + '</div>';
 

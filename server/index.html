@@ -3610,7 +3610,8 @@ async function adminAddMember() {
 }
 
 async function adminRemoveMember(email) {
-  if (!confirm('Remove ' + email + '?')) return;
+  const ok = await showActionConfirm('Remove Member', 'Remove ' + email + '?', 'Remove', 'background:var(--red);border-color:var(--red);');
+  if (!ok) return;
   try {
     await apiCall('removeMember', { email });
     adminMembersCache = null;

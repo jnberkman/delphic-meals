@@ -30,6 +30,11 @@
     --green: #3D7A4E;
     --red: #B14242;
     --orange: #B07A2A;
+    --event: #6B3A4A;
+    --event-text: #5A2F3C;
+    --event-muted: #6B3A4A18;
+    --event-border: #6B3A4A30;
+    --ink: #3A3530;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
@@ -49,13 +54,13 @@
   }
   .app { position: relative; z-index: 1; max-width: 680px; margin: 0 auto; padding: 24px 16px 80px; }
 
-  .header { text-align: center; padding: 48px 0 36px; margin-bottom: 32px; }
-  .header-rule { width: 60px; height: 1px; background: linear-gradient(90deg, transparent, var(--accent-muted), transparent); margin: 0 auto 20px; }
-  .header-badge { display: inline-block; font-size: 10px; font-weight: 500; letter-spacing: 3.5px; text-transform: uppercase; color: var(--accent); border: 1px solid var(--border); padding: 6px 20px; border-radius: 2px; margin-bottom: 24px; }
-  .header h1 { font-family: 'Cormorant Garamond', serif; font-size: 44px; font-weight: 600; letter-spacing: 0.5px; color: var(--text-bright); margin-bottom: 12px; line-height: 1.1; }
-  .header p { font-family: 'Crimson Pro', serif; color: var(--text-dim); font-size: 16px; line-height: 1.6; font-style: italic; max-width: 420px; margin: 0 auto; }
+  .header { text-align: center; padding: 28px 0 18px; margin-bottom: 18px; }
+  .header-rule { width: 60px; height: 1px; background: linear-gradient(90deg, transparent, var(--accent-muted), transparent); margin: 0 auto 14px; }
+  .header-badge { display: inline-block; font-size: 10px; font-weight: 500; letter-spacing: 3.5px; text-transform: uppercase; color: var(--accent); border: 1px solid var(--border); padding: 5px 16px; border-radius: 2px; margin-bottom: 14px; }
+  .header h1 { font-family: 'Cormorant Garamond', serif; font-size: 40px; font-weight: 600; letter-spacing: 0.5px; color: var(--text-bright); margin-bottom: 8px; line-height: 1.1; }
+  .header p { font-family: 'Crimson Pro', serif; color: var(--text-dim); font-size: 15px; line-height: 1.5; font-style: italic; max-width: 420px; margin: 0 auto; }
 
-  .tabs { display: flex; gap: 0; margin-bottom: 32px; border-bottom: 1px solid var(--border); }
+  .tabs { display: flex; gap: 0; margin-bottom: 20px; border-bottom: 1px solid var(--border); }
   .tab { flex: 1; padding: 14px 8px; text-align: center; cursor: pointer; font-size: 13px; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-dim); transition: all .25s; border: none; background: transparent; border-bottom: 2px solid transparent; margin-bottom: -1px; }
   .tab:hover { color: var(--text); }
   .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
@@ -144,7 +149,7 @@
   .setting-desc { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
   .setting-row input[type="number"] { width: 72px; text-align: center; font-size: 14px; }
 
-  .info-banner { background: #5B8DEF08; border: 1px solid #5B8DEF20; border-radius: 4px; padding: 14px 18px; font-family: 'Crimson Pro', serif; font-size: 14px; color: #3B6BC4; margin-bottom: 20px; line-height: 1.5; }
+  .info-banner { background: var(--accent-glow2); border: 1px solid #8B691430; border-radius: 4px; padding: 14px 18px; font-family: 'Crimson Pro', serif; font-size: 14px; color: var(--ink); margin-bottom: 20px; line-height: 1.5; }
   .menu-display { background: var(--surface2); border-radius: 4px; padding: 12px 16px; margin-bottom: 16px; font-family: 'Crimson Pro', serif; font-size: 14px; line-height: 1.6; color: var(--text-dim); border-left: 2px solid var(--accent-muted); }
   .menu-display strong { color: var(--text-bright); }
 
@@ -160,7 +165,7 @@
   .guest-remove-btn { flex-shrink: 0; width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; background: transparent; border: 1px solid var(--border); border-radius: 3px; color: var(--red); cursor: pointer; font-size: 16px; line-height: 1; }
   .guest-remove-btn:hover { border-color: var(--red); }
   .guest-section-label { font-size: 11px; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin: 10px 0 4px; }
-  .guest-display-item { display: flex; align-items: baseline; gap: 5px; padding: 7px 12px; border-radius: 3px; background: #5B8DEF08; border: 1px solid #5B8DEF20; margin-bottom: 5px; font-size: 13px; }
+  .guest-display-item { display: flex; align-items: baseline; gap: 5px; padding: 7px 12px; border-radius: 3px; background: var(--accent-glow); border: 1px solid #8B691428; margin-bottom: 5px; font-size: 13px; }
   .guest-display-item .guest-name { font-family: 'Crimson Pro', serif; font-weight: 600; font-size: 15px; color: var(--text-bright); }
   .guest-display-item .guest-host { color: var(--text-dim); font-size: 12px; }
   .remove-btn { background: none; border: none; color: var(--red); cursor: pointer; font-size: 16px; padding: 0 4px; opacity: .6; transition: opacity .2s; }
@@ -189,17 +194,17 @@
   .cal-day .cal-num { font-weight: 600; color: var(--text-bright); margin-bottom: 4px; }
   .cal-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 3px; }
   .cal-dot.meal { background: var(--accent); }
-  .cal-dot.event { background: #5B8DEF; }
+  .cal-dot.event { background: var(--event); }
   .cal-tag { display: inline-block; font-size: 9px; padding: 1px 5px; border-radius: 2px; margin-top: 2px; line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
   .cal-tag.meal-tag { background: #8B691412; color: var(--accent); }
-  .cal-tag.event-tag { background: #5B8DEF15; color: #3B6BC4; cursor: pointer; }
-  .cal-tag.event-tag:hover { background: #5B8DEF25; }
+  .cal-tag.event-tag { background: var(--event-muted); color: var(--event-text); cursor: pointer; }
+  .cal-tag.event-tag:hover { background: var(--event-border); }
 
   /* Event cards */
-  .event-card { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 24px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.04); border-left: 4px solid #5B8DEF; }
+  .event-card { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 24px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.04); border-left: 4px solid var(--event); }
   .event-card .event-title { font-family: 'Cormorant Garamond', serif; font-size: 24px; font-weight: 600; color: var(--text-bright); margin-bottom: 4px; }
   .event-card .event-meta { font-family: 'Crimson Pro', serif; font-size: 14px; color: var(--text-dim); font-style: italic; margin-bottom: 16px; line-height: 1.6; }
-  .event-card .event-desc { font-family: 'Crimson Pro', serif; font-size: 15px; color: var(--text); line-height: 1.6; margin-bottom: 16px; padding: 12px 16px; background: var(--surface2); border-radius: 4px; border-left: 2px solid #5B8DEF; }
+  .event-card .event-desc { font-family: 'Crimson Pro', serif; font-size: 15px; color: var(--text); line-height: 1.6; margin-bottom: 16px; padding: 12px 16px; background: var(--surface2); border-radius: 4px; border-left: 2px solid var(--event); }
 
   /* Confirmation Modal */
   .confirm-overlay { position: fixed; inset: 0; background: rgba(26,26,26,.55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); z-index: 1000; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity .35s ease; }
@@ -213,6 +218,22 @@
   .confirm-days { font-family: 'Jost', sans-serif; font-size: 12px; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; color: var(--accent); margin: 16px 0 24px; line-height: 1.8; }
   .confirm-btn { display: inline-flex; align-items: center; justify-content: center; padding: 12px 32px; border-radius: 3px; font-family: 'Jost', sans-serif; font-size: 12px; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase; cursor: pointer; transition: all .2s; border: 1px solid var(--border); background: transparent; color: var(--text); }
   .confirm-btn:hover { border-color: var(--accent-muted); color: var(--accent); background: var(--accent-glow2); }
+  .confirm-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .confirm-btn.primary:hover { background: var(--accent-muted); color: #fff; border-color: var(--accent-muted); }
+  .confirm-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .confirm-guest-receipt { font-family: 'Crimson Pro', serif; font-size: 14px; color: var(--text); line-height: 1.55; margin: 0 0 18px; padding: 12px 14px; background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; text-align: left; }
+  .confirm-guest-receipt strong { color: var(--text-bright); }
+  .field-hint { font-family: 'Crimson Pro', serif; font-size: 13px; font-style: italic; color: var(--text-dim); margin-top: 6px; line-height: 1.4; }
+  .week-quick-links { text-align: right; margin-top: 6px; font-family: 'Crimson Pro', serif; font-size: 13px; font-style: italic; }
+  .week-quick-links a { color: var(--accent); text-decoration: none; border-bottom: 1px solid transparent; transition: border-color .15s; }
+  .week-quick-links a:hover { border-bottom-color: var(--accent); }
+  .week-quick-links .sep { color: var(--text-dim); margin: 0 6px; }
+  .access-success { margin-top: 8px; padding: 18px 16px; background: var(--accent-glow2); border: 1px solid #8B691430; border-radius: 6px; text-align: left; }
+  .access-success h3 { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600; color: var(--text-bright); margin-bottom: 8px; }
+  .access-success p { font-family: 'Crimson Pro', serif; font-size: 15px; color: var(--text); line-height: 1.55; margin-bottom: 8px; }
+  .access-success .muted { color: var(--text-dim); font-style: italic; font-size: 14px; margin-bottom: 0; }
+  .ink-glossary { font-family: 'Crimson Pro', serif; font-size: 13px; font-style: italic; color: var(--text-dim); margin: -4px 0 14px; line-height: 1.45; }
+  .ink-status-banner { font-family: 'Crimson Pro', serif; font-size: 14px; color: var(--green); background: #3D7A4E12; border: 1px solid #3D7A4E28; border-radius: 4px; padding: 10px 12px; margin-bottom: 14px; line-height: 1.45; }
 
   /* Spot Up styles */
   .spotup-badge { display: inline-block; padding: 2px 8px; border-radius: 2px; font-size: 9px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; background: #E65100; color: #fff; margin-left: 6px; vertical-align: middle; }
@@ -292,7 +313,11 @@
   .confirm-warnings { font-family: 'Crimson Pro', serif; font-size: 14px; color: var(--orange); line-height: 1.5; margin: 0 0 16px; padding: 10px 12px; background: #B07A2A12; border: 1px solid #B07A2A30; border-radius: 4px; text-align: left; }
 
   @media (max-width: 520px) {
-    .header h1 { font-size: 32px; }
+    .header { padding: 18px 0 10px; margin-bottom: 10px; }
+    .header h1 { font-size: 30px; }
+    .header p { font-size: 14px; }
+    .header-badge { margin-bottom: 10px; }
+    .tabs { margin-bottom: 14px; }
     .day-grid { grid-template-columns: 1fr 1fr; }
     .app { padding: 16px 12px 80px; }
     .confirm-modal { padding: 36px 28px 32px; }
@@ -317,7 +342,7 @@
     .view-day-col-count { display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 2px; margin-top: 6px; letter-spacing: .3px; }
     .view-day-col-menu { font-family: 'Crimson Pro', serif; font-size: 11px; font-style: italic; color: var(--text-dim); margin-top: 7px; padding-top: 6px; border-top: 1px solid var(--border); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .view-day-col-body { padding: 10px 12px; flex: 1; }
-    .view-col-slot-label { font-size: 9px; font-weight: 700; color: #5B8DEF; text-transform: uppercase; letter-spacing: .8px; margin: 10px 0 4px; padding-bottom: 3px; border-bottom: 1px solid #5B8DEF28; }
+    .view-col-slot-label { font-size: 9px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .8px; margin: 10px 0 4px; padding-bottom: 3px; border-bottom: 1px solid #8B691428; }
     .view-col-slot-label:first-child { margin-top: 0; }
     .view-col-name { font-family: 'Crimson Pro', serif; font-size: 14px; color: var(--text-bright); padding: 2px 0; line-height: 1.3; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
     .view-col-name .vn { min-width: 0; word-break: break-word; }
@@ -326,7 +351,7 @@
     .view-col-name.vn-grad .vn { font-weight: 800; color: #8B6914; }
     .view-col-name.vn-spotted .vn { text-decoration: line-through; opacity: .45; }
     .view-col-name.vn-claimed .vn { color: var(--green); font-weight: 600; }
-    .view-col-name.vn-early { background: #E3F2FD; border-left: 2px solid #1E88E5; padding-left: 4px; border-radius: 2px; }
+    .view-col-name.vn-early { background: var(--accent-glow2); border-left: 2px solid var(--accent-muted); padding-left: 4px; border-radius: 2px; }
     .view-col-served-cb { appearance: none; -webkit-appearance: none; width: 13px; height: 13px; border: 1.5px solid var(--border); border-radius: 2px; cursor: pointer; flex-shrink: 0; transition: all .15s; background: var(--surface); position: relative; }
     .view-col-served-cb:checked { background: var(--green); border-color: var(--green); }
     .view-col-served-cb:checked::after { content: ''; position: absolute; left: 2px; top: -1px; width: 4px; height: 7px; border: 2px solid #fff; border-top: none; border-left: none; transform: rotate(45deg); }
@@ -351,13 +376,13 @@
 
   /* Upcoming event cards */
   .moose-upcoming { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; margin-bottom: 28px; }
-  .moose-evt-card { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid #5B8DEF; border-radius: 6px; padding: 16px 18px 14px; cursor: pointer; transition: box-shadow .15s; min-width: 0; }
+  .moose-evt-card { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--event); border-radius: 6px; padding: 16px 18px 14px; cursor: pointer; transition: box-shadow .15s; min-width: 0; }
   .moose-evt-card:hover { box-shadow: 0 4px 14px rgba(0,0,0,.09); }
   .moose-evt-title { font-family: 'Cormorant Garamond', serif; font-size: 19px; font-weight: 600; color: var(--text-bright); margin-bottom: 2px; }
   .moose-evt-meta { font-family: 'Crimson Pro', serif; font-size: 13px; color: var(--text-dim); font-style: italic; margin-bottom: 8px; }
   .moose-evt-desc { font-family: 'Crimson Pro', serif; font-size: 14px; color: var(--text); line-height: 1.5; margin-bottom: 12px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-  .moose-evt-btn { font-family: 'Jost', sans-serif; font-size: 10px; font-weight: 600; letter-spacing: .5px; color: #3B6BC4; background: #5B8DEF12; border: 1px solid #5B8DEF30; border-radius: 3px; padding: 5px 12px; cursor: pointer; transition: background .15s; }
-  .moose-evt-btn:hover { background: #5B8DEF25; }
+  .moose-evt-btn { font-family: 'Jost', sans-serif; font-size: 10px; font-weight: 600; letter-spacing: .5px; color: var(--event-text); background: var(--event-muted); border: 1px solid var(--event-border); border-radius: 3px; padding: 5px 12px; cursor: pointer; transition: background .15s; }
+  .moose-evt-btn:hover { background: var(--event-border); }
 
   /* Calendar */
   .moose-cal-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; margin-bottom: 8px; }
@@ -377,13 +402,13 @@
   .mc-pill { display: block; font-family: 'Jost', sans-serif; font-size: 8px; font-weight: 700; letter-spacing: .2px; padding: 2px 5px; border-radius: 3px; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .mc-pill.mp-mine { background: var(--accent-glow2); color: var(--accent); border: 1px solid #8B691428; }
   .mc-pill.mp-open { background: var(--surface2); color: var(--text-dim); border: 1px solid var(--border); }
-  .mc-pill.mp-evt  { background: #5B8DEF15; color: #3B6BC4; border: 1px solid #5B8DEF28; }
+  .mc-pill.mp-evt  { background: var(--event-muted); color: var(--event-text); border: 1px solid var(--event-border); }
   .mc-pill.mp-past { opacity: .45; }
   /* legend dots kept for the key at bottom */
   .mc-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
   .mc-dot.dm { background: var(--accent); }
   .mc-dot.do { background: var(--border-light); }
-  .mc-dot.de { background: #5B8DEF; }
+  .mc-dot.de { background: var(--event); }
 
   /* Bottom sheets */
   .moose-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.42); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 500; opacity: 0; pointer-events: none; transition: opacity .22s; display: flex; align-items: flex-end; justify-content: center; }
@@ -397,7 +422,7 @@
   .ink-choice-wrap { display: flex; gap: 10px; margin: 16px 0 20px; }
   .ink-choice { flex: 1; padding: 13px 8px; border-radius: 8px; border: 2px solid var(--border); background: var(--surface2); font-family: 'Jost', sans-serif; font-weight: 600; font-size: 14px; cursor: pointer; transition: all .15s; color: var(--text-dim); text-align: center; }
   .ink-choice.active { border-color: var(--accent); background: var(--accent-glow2); color: var(--accent); }
-  .ink-choice.active.int-btn { border-color: #5B8DEF; background: #5B8DEF15; color: #3B6BC4; }
+  .ink-choice.active.int-btn { border-color: var(--event); background: var(--event-muted); color: var(--event-text); }
   .ink-count-bar { font-family: 'Jost', sans-serif; font-size: 11px; font-weight: 500; color: var(--text-dim); letter-spacing: .3px; margin-bottom: 14px; }
   .moose-meal-box { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 14px 16px; }
   .moose-meal-type { font-family: 'Jost', sans-serif; font-size: 9px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); margin-bottom: 2px; }
@@ -431,16 +456,17 @@
       <div class="inapp-warn-body">This browser (GroupMe, etc.) blocks Google Sign-In. Please open the link in <strong>Safari</strong> or <strong>Chrome</strong>.</div>
       <div class="inapp-warn-steps">Tap &nbsp;&#8943;&nbsp; or &nbsp;&#8942;&nbsp; → <strong>Open in Browser</strong></div>
     </div>
+    <div id="signinPrimary">
     <div class="signin-sub">Sign in with your approved Google account<br>to access meal sign-ups</div>
     <div class="signin-gsi" id="signinGsi">
-      <button class="google-signin-btn" onclick="signInWithGoogle()">
+      <button class="google-signin-btn" id="googleSignInBtn" onclick="signInWithGoogle()">
         <svg width="18" height="18" viewBox="0 0 48 48" style="flex-shrink:0"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>
         Sign in with Google
       </button>
     </div>
     <div id="signinLoading" style="display:none;margin-top:14px;font-family:'Crimson Pro',serif;font-size:14px;color:var(--text-dim);font-style:italic;">Verifying your account&#8230;</div>
-    <div style="display:flex;align-items:center;gap:12px;margin:20px 0;"><div style="flex:1;height:1px;background:var(--border);"></div><span style="font-size:11px;color:var(--text-dim);letter-spacing:1px;text-transform:uppercase;">or</span><div style="flex:1;height:1px;background:var(--border);"></div></div>
-    <div style="display:flex;gap:8px;">
+    <div id="signinOrDivider" style="display:flex;align-items:center;gap:12px;margin:20px 0;"><div style="flex:1;height:1px;background:var(--border);"></div><span style="font-size:11px;color:var(--text-dim);letter-spacing:1px;text-transform:uppercase;">or</span><div style="flex:1;height:1px;background:var(--border);"></div></div>
+    <div id="signinGuestRow" style="display:flex;gap:8px;">
       <input type="text" id="accessCodeInput" placeholder="Guest access code" style="flex:1;">
       <button class="btn btn-secondary" style="width:auto;padding:13px 20px;" onclick="submitAccessCode()">Enter</button>
     </div>
@@ -450,6 +476,13 @@
       <div style="font-size:13px;color:var(--text-dim);font-family:'Crimson Pro',serif;font-style:italic;margin-bottom:12px;">Not a member yet? Submit a request and an admin will be notified.</div>
       <input type="text" id="requestName" placeholder="Your full name" style="margin-bottom:8px;width:100%;box-sizing:border-box;">
       <button class="btn btn-secondary" style="width:100%;" onclick="submitAccessRequest()">Request Access</button>
+
+    </div>
+    <div id="accessRequestSuccess" class="access-success" style="display:none;">
+      <h3>Request received</h3>
+      <p id="accessSuccessBody">We&rsquo;ll email you when an admin approves your account.</p>
+      <p class="muted">You can close this tab. Sign-in stays unavailable until you refresh after approval.</p>
+    </div>
       <div id="requestStatus" style="display:none;margin-top:12px;font-size:13px;font-family:'Crimson Pro',serif;"></div>
     </div>
   </div>
@@ -493,14 +526,16 @@
         </div>
       </div>
       <div class="field">
-        <label class="field-label" for="allergies">Allergies / Special Accommodations</label>
-        <input type="text" id="allergies" placeholder="e.g. peanut, tree nut, shellfish, dairy, no cheese">
+        <label class="field-label" for="allergies">Allergies</label>
+        <input type="text" id="allergies" placeholder="e.g. peanut, tree nut, shellfish, dairy">
+        <div class="field-hint">Food allergies or medical dietary needs the kitchen must know.</div>
       </div>
       <div class="field" style="margin-bottom:0;">
         <label class="option-pill">
           <input type="checkbox" id="gradGasman">
           <span class="pill-label" style="font-weight:600;letter-spacing:.5px;">Grad Gasman</span>
         </label>
+        <div class="field-hint">Check if you&rsquo;re a Grad Gasman dining under that arrangement.</div>
       </div>
     </div>
 
@@ -514,7 +549,12 @@
           <input type="date" id="weekSelect" style="flex:1;">
           <button class="btn btn-secondary" style="width:auto;padding:10px 14px;font-size:16px;" onclick="shiftWeek('weekSelect',7,loadWeekData)" title="Next week">&#8594;</button>
         </div>
-        <div style="text-align:right;margin-top:4px;"><a href="#" onclick="document.getElementById('weekSelect').value=getSignupMonday();loadWeekData();return false;" style="font-family:'Crimson Pro',serif;font-size:13px;font-style:italic;color:var(--accent);text-decoration:none;border-bottom:1px solid transparent;transition:border-color .15s;" onmouseover="this.style.borderBottomColor='var(--accent)'" onmouseout="this.style.borderBottomColor='transparent'">This week</a></div>
+        <div class="week-quick-links">
+          <a href="#" onclick="document.getElementById('weekSelect').value=getCurrentMonday();loadWeekData();return false;">This week</a>
+          <span class="sep">&middot;</span>
+          <a href="#" onclick="document.getElementById('weekSelect').value=getNextMonday();loadWeekData();return false;">Next week</a>
+        </div>
+        <div id="signupWeekLabel" class="field-hint" style="text-align:right;margin-top:2px;"></div>
       </div>
       <div id="loadingDays" style="display:none;text-align:center;padding:24px;color:var(--text-dim);" aria-live="polite"><div class="spinner"></div><div style="margin-top:10px;font-family:'Crimson Pro',serif;font-size:14px;font-style:italic;">Loading meals&hellip;</div></div>
       <div id="mySignupsSummary"></div>
@@ -523,14 +563,15 @@
 
     <div id="timeSection" class="card" style="display:none;">
       <div class="card-title">Meal Details <span style="color:var(--red);font-size:14px;">*</span></div>
-      <div class="card-sub">Select your time, early plate preference, and any accommodations for each day</div>
+      <div class="card-sub">Select your time, early plate preference, and any day-specific kitchen notes</div>
       <div id="timeSelectors"></div>
     </div>
 
     <div class="card">
       <div class="field" style="margin-bottom:0;">
-        <label class="field-label" for="notes">General Notes</label>
-        <textarea id="notes" placeholder="Other info that applies to all days"></textarea>
+        <label class="field-label" for="notes">Notes for the kitchen</label>
+        <textarea id="notes" placeholder="Anything that applies to all selected days (not allergies — use Allergies above)"></textarea>
+        <div class="field-hint">Allergies stay in Your Info. Day-specific plating notes go under each day above.</div>
       </div>
     </div>
 
@@ -550,7 +591,12 @@
         <input type="date" id="viewWeekSelect" style="flex:1;">
         <button class="btn btn-secondary" style="width:auto;padding:10px 14px;font-size:16px;" onclick="shiftWeek('viewWeekSelect',7,loadViewData)" title="Next week">&#8594;</button>
       </div>
-      <div style="text-align:right;margin-top:4px;"><a href="#" onclick="document.getElementById('viewWeekSelect').value=getCurrentMonday();loadViewData();return false;" style="font-family:'Crimson Pro',serif;font-size:13px;font-style:italic;color:var(--accent);text-decoration:none;border-bottom:1px solid transparent;transition:border-color .15s;" onmouseover="this.style.borderBottomColor='var(--accent)'" onmouseout="this.style.borderBottomColor='transparent'">This week</a></div>
+      <div class="week-quick-links">
+        <a href="#" onclick="document.getElementById('viewWeekSelect').value=getCurrentMonday();loadViewData();return false;">This week</a>
+        <span class="sep">&middot;</span>
+        <a href="#" onclick="document.getElementById('viewWeekSelect').value=getNextMonday();loadViewData();return false;">Next week</a>
+      </div>
+      <div id="viewWeekLabel" class="field-hint" style="text-align:right;margin-top:2px;"></div>
     </div>
     <div id="viewDayNav" style="display:none;margin-top:8px;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:10px 14px;">
       <button id="viewPrevDay" class="btn btn-secondary" style="width:auto;padding:8px 14px;font-size:16px;" onclick="changeViewDay(-1)">&#8592;</button>
@@ -609,7 +655,7 @@
       <div style="font-family:'Crimson Pro',serif;font-size:12px;color:var(--text-dim);text-align:center;padding:4px 0 16px;font-style:italic;">
         <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);margin-right:4px;vertical-align:middle;"></span>signed up&ensp;
         <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--border-light);margin-right:4px;vertical-align:middle;"></span>available&ensp;
-        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#5B8DEF;margin-right:4px;vertical-align:middle;"></span>event
+        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--event);margin-right:4px;vertical-align:middle;"></span>event
       </div>
     </div>
   </div>
@@ -667,16 +713,16 @@
           <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);margin-bottom:10px;">Default Slot Capacities</div>
           <div style="display:flex;gap:16px;flex-wrap:wrap;">
             <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);">
-              12:00 PM <input type="number" id="cap12" value="45" min="1" style="width:60px;text-align:center;" onchange="saveCaps()">
+              12:00 PM <input type="number" id="cap12" value="45" min="1" style="width:60px;text-align:center;" onchange="saveCaps(true)">
             </label>
             <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);">
-              1:00 PM <input type="number" id="cap1" value="45" min="1" style="width:60px;text-align:center;" onchange="saveCaps()">
+              1:00 PM <input type="number" id="cap1" value="45" min="1" style="width:60px;text-align:center;" onchange="saveCaps(true)">
             </label>
             <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);">
-              Dinner <input type="number" id="capDinner" value="90" min="1" style="width:60px;text-align:center;" onchange="saveCaps()">
+              Dinner <input type="number" id="capDinner" value="90" min="1" style="width:60px;text-align:center;" onchange="saveCaps(true)">
             </label>
             <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);">
-              Guests per person <input type="number" id="guestLimitPerSignup" value="0" min="0" style="width:60px;text-align:center;" onchange="saveCaps()">
+              Guests per person <input type="number" id="guestLimitPerSignup" value="0" min="0" style="width:60px;text-align:center;" onchange="saveCaps(true)">
             </label>
           </div>
           <div style="font-family:'Crimson Pro',serif;font-size:12px;color:var(--text-dim);font-style:italic;margin-top:6px;">Use 0 for no guest limit.</div>
@@ -831,7 +877,11 @@
     <div class="confirm-sub" id="confirmSub">Thank you for signing up for this week's meals.</div>
     <div class="confirm-days" id="confirmDays"></div>
     <div class="confirm-warnings" id="confirmWarnings" style="display:none;"></div>
-    <button class="confirm-btn" id="confirmDoneBtn" onclick="closeConfirm()">Done</button>
+    <div class="confirm-guest-receipt" id="confirmGuestReceipt" style="display:none;"></div>
+    <div class="confirm-actions" id="confirmActions">
+      <button class="confirm-btn primary" id="confirmViewBtn" onclick="viewConfirmWeek()">View this week</button>
+      <button class="confirm-btn" id="confirmDoneBtn" onclick="closeConfirm()">Done</button>
+    </div>
   </div>
 </div>
 
@@ -1015,28 +1065,41 @@ async function handleGoogleSignIn(response) {
   }
 }
 
+function showAccessRequestSuccess(email, alreadyPending) {
+  const primary = document.getElementById('signinPrimary');
+  const success = document.getElementById('accessRequestSuccess');
+  const body = document.getElementById('accessSuccessBody');
+  if (primary) primary.style.display = 'none';
+  if (success) success.style.display = 'block';
+  const addr = email || pendingEmail || 'you';
+  if (body) {
+    body.textContent = alreadyPending
+      ? ('You already have a pending request. We\u2019ll email ' + addr + ' when an admin reviews it.')
+      : ('We\u2019ll email ' + addr + ' when an admin approves your account.');
+  }
+  const gsiBtn = document.getElementById('googleSignInBtn');
+  if (gsiBtn) gsiBtn.disabled = true;
+}
+
 async function submitAccessRequest() {
   const name = document.getElementById('requestName').value.trim();
   const statusEl = document.getElementById('requestStatus');
   if (!name) { showToast('Enter your name', 'var(--red)'); return; }
   try {
     const result = await apiCall('requestAccess', { email: pendingEmail, name });
-    document.getElementById('requestAccessSection').style.display = 'none';
     document.getElementById('signinError').style.display = 'none';
     if (result.alreadyMember) {
       statusEl.style.color = 'var(--text-dim)';
-      statusEl.textContent = 'This email is already on the member list — try signing in again.';
-    } else if (result.alreadyPending) {
-      statusEl.style.color = 'var(--text-dim)';
-      statusEl.textContent = 'You already have a pending request. An admin will review it soon.';
+      statusEl.textContent = 'This email is already on the member list \u2014 try signing in again.';
+      statusEl.style.display = 'block';
+      const primary = document.getElementById('signinPrimary');
+      if (primary) primary.style.display = '';
     } else {
-      statusEl.style.color = 'var(--green)';
-      statusEl.textContent = 'Request sent! You\'ll receive an email when your account is approved.';
+      showAccessRequestSuccess(pendingEmail, !!result.alreadyPending);
     }
-    statusEl.style.display = 'block';
   } catch(e) {
     statusEl.style.color = 'var(--red)';
-    statusEl.textContent = 'Could not send request — try again.';
+    statusEl.textContent = 'Could not send request \u2014 try again.';
     statusEl.style.display = 'block';
   }
 }
@@ -1423,24 +1486,35 @@ function _toastUndo() {
   document.getElementById('toast').classList.remove('show');
 }
 
-function showConfirmation(name, daysList, count, wasUpdate, isEvent, warnings) {
+let _confirmMonday = null;
+let _confirmGuestReceipt = null;
+const TREASURER_EMAIL = 'delphicclubtreasurer@gmail.com';
+
+function showConfirmation(name, daysList, count, wasUpdate, isEvent, warnings, guestReceipt) {
   const overlay = document.getElementById('confirmOverlay');
   const title = document.getElementById('confirmTitle');
   const sub = document.getElementById('confirmSub');
   const days = document.getElementById('confirmDays');
   const warnEl = document.getElementById('confirmWarnings');
+  const receiptEl = document.getElementById('confirmGuestReceipt');
+  const viewBtn = document.getElementById('confirmViewBtn');
+
+  _confirmMonday = (!isEvent && currentWeekData && currentWeekData.monday) ? currentWeekData.monday : null;
+  _confirmGuestReceipt = guestReceipt || null;
 
   const firstName = name.split(' ')[0];
   if (isEvent) {
     title.textContent = "You're All Set, " + firstName;
-    sub.textContent = 'You\'re signed up for this event.';
+    sub.textContent = "You're signed up for this event.";
     days.textContent = '';
+    if (viewBtn) viewBtn.style.display = 'none';
   } else {
     title.textContent = wasUpdate ? 'Sign-Ups Updated' : "You're All Set, " + firstName;
     sub.textContent = wasUpdate
       ? 'Your sign-ups have been updated for this week.'
-      : 'Thank you for signing up for this week\u2019s meals.';
+      : 'Thank you for signing up for this week’s meals.';
     days.textContent = daysList;
+    if (viewBtn) viewBtn.style.display = '';
   }
 
   if (warnEl) {
@@ -1453,9 +1527,55 @@ function showConfirmation(name, daysList, count, wasUpdate, isEvent, warnings) {
     }
   }
 
+  if (receiptEl) {
+    if (guestReceipt && guestReceipt.total > 0) {
+      receiptEl.style.display = 'block';
+      receiptEl.innerHTML =
+        '<strong>Guest plate payment</strong><br>' +
+        'Send <strong>$' + guestReceipt.total + '</strong> for ' + guestReceipt.guests +
+        ' guest' + (guestReceipt.guests === 1 ? '' : 's') +
+        ' to <strong>' + TREASURER_EMAIL + '</strong>.' +
+        ' <button type="button" class="toast-undo" style="border-color:var(--border);color:var(--accent);margin-left:6px;" onclick="copyTreasurerEmail()">Copy email</button>';
+    } else {
+      receiptEl.style.display = 'none';
+      receiptEl.innerHTML = '';
+    }
+  }
+
   overlay.classList.add('show');
   lockScroll();
-  activateDialog(overlay, document.getElementById('confirmDoneBtn'));
+  activateDialog(overlay, viewBtn && viewBtn.style.display !== 'none' ? viewBtn : document.getElementById('confirmDoneBtn'));
+}
+
+function copyTreasurerEmail() {
+  const email = TREASURER_EMAIL;
+  const done = () => showToast('Copied ' + email, 'var(--green)');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(email).then(done).catch(() => {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = email; document.body.appendChild(ta); ta.select();
+        document.execCommand('copy'); document.body.removeChild(ta); done();
+      } catch (e) { showToast(email, 'var(--accent)'); }
+    });
+  } else {
+    showToast(email, 'var(--accent)');
+  }
+}
+
+function switchToTab(id) {
+  const tab = document.querySelector('.tab[data-tab="' + id + '"]');
+  if (tab) tab.click();
+}
+
+function viewConfirmWeek() {
+  const monday = _confirmMonday;
+  closeConfirm();
+  if (monday) {
+    const viewSel = document.getElementById('viewWeekSelect');
+    if (viewSel) viewSel.value = monday;
+  }
+  switchToTab('view');
 }
 
 function closeConfirm() {
@@ -1566,6 +1686,8 @@ function cancelMySignup(monday, dayIdx, name, time) {
       _pendingCancels.delete(dayIdx);
       delete _cancelData[dayIdx];
       await loadWeekData();
+      if (typeof viewMonday !== 'undefined' && viewMonday === monday) await loadViewData();
+      else if (document.querySelector('.tab.active[data-tab="view"]')) await loadViewData();
     } catch(e) {
       _pendingCancels.delete(dayIdx);
       renderMySignupsSummary();
@@ -1594,12 +1716,13 @@ function getCapForSlot(slot, dayConfig) {
   return caps.dinner;
 }
 
-function saveCaps() {
+function saveCaps(showSavedToast) {
   caps.slot12 = parseInt(document.getElementById('cap12').value) || 45;
   caps.slot1 = parseInt(document.getElementById('cap1').value) || 45;
   caps.dinner = parseInt(document.getElementById('capDinner').value) || 90;
   caps.guestLimitPerSignup = Math.max(0, parseInt((document.getElementById('guestLimitPerSignup') || {}).value || '0', 10) || 0);
   if (adminWeekData) adminWeekData.caps = { slot12: caps.slot12, slot1: caps.slot1, dinner: caps.dinner, guestLimitPerSignup: caps.guestLimitPerSignup };
+  if (showSavedToast) showToast('Caps saved', 'var(--green)');
 }
 
 // =============================================
@@ -1694,6 +1817,7 @@ let selectedTimes = {};
 let dayOptions = {};
 
 async function loadWeekData(autoAdvance) {
+  updateWeekLabels();
   const weekInput = document.getElementById('weekSelect').value;
   if (!weekInput) return;
   const monday = getMonday(weekInput);
@@ -1923,8 +2047,8 @@ function updateTimeSection() {
     }
 
     html += '<div>' +
-      '<label style="font-family:\'Jost\',sans-serif;font-size:11px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-dim);">Accommodations for ' + escapeHtml(day.day) + '</label>' +
-      '<input type="text" id="accom_' + i + '" placeholder="e.g. no cheese, extra rice" style="margin-top:6px;" oninput="dayOptions[' + i + '] = dayOptions[' + i + '] || {}; dayOptions[' + i + '].accommodations = this.value;">' +
+      '<label style="font-family:\'Jost\',sans-serif;font-size:11px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-dim);">Kitchen notes for ' + escapeHtml(day.day) + '</label>' +
+      '<input type="text" id="accom_' + i + '" placeholder="e.g. no cheese, extra rice (this day only)" style="margin-top:6px;" oninput="dayOptions[' + i + '] = dayOptions[' + i + '] || {}; dayOptions[' + i + '].accommodations = this.value;">' +
     '</div>';
 
     html += '</div>';
@@ -2059,6 +2183,7 @@ async function submitSignup() {
   const confirmedDays = entries.map(e => e.day + ' ' + e.meal).join('  ·  ');
   const memberNameVal = name;
   const totalGuests = getEntryGuestCount(entries);
+  let guestReceipt = null;
   if (totalGuests > 0) {
     const agreed = await showGuestPaymentAgreement(totalGuests);
     if (!agreed) {
@@ -2066,6 +2191,7 @@ async function submitSignup() {
       updateSubmitButtonLabel();
       return;
     }
+    guestReceipt = { guests: totalGuests, total: totalGuests * 20 };
   }
 
   try {
@@ -2075,7 +2201,7 @@ async function submitSignup() {
       if (result.full > 0) warnings.push(result.full + ' slot(s) were full and could not be added.');
       if (result.frozen > 0) warnings.push(result.frozen + ' closed day(s) were skipped.');
       if (result.guestLimit > 0) warnings.push(result.guestLimit + ' signup(s) exceeded the guest limit.');
-      showConfirmation(memberNameVal, confirmedDays, result.added, result.updated > 0, false, warnings);
+      showConfirmation(memberNameVal, confirmedDays, result.added, result.updated > 0, false, warnings, guestReceipt);
     } else if (result.full > 0) {
       showToast('Those slots are full', 'var(--red)');
     } else if (result.guestLimit > 0) {
@@ -2152,6 +2278,7 @@ function _applyViewData(data, preserveIdx) {
 }
 
 async function loadViewData(autoAdvance) {
+  updateWeekLabels();
   const weekInput = document.getElementById('viewWeekSelect').value;
   const nav = document.getElementById('viewDayNav');
   if (!weekInput) {
@@ -2272,9 +2399,9 @@ function renderViewDay(idx) {
       const slotCap = getCapForSlot(slot, day);
       const slotCount = signupGroupSize(slotSups);
 
-      html += '<div style="margin-top:16px;padding:12px 16px;background:var(--surface2);border-radius:12px;border-left:3px solid #5B8DEF;">';
+      html += '<div style="margin-top:16px;padding:12px 16px;background:var(--surface2);border-radius:12px;border-left:3px solid var(--accent);">';
       html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
-        '<span style="font-weight:700;font-size:15px;color:#5B8DEF;">' + slotLabel + '</span>' +
+        '<span style="font-weight:700;font-size:15px;color:var(--accent);">' + slotLabel + '</span>' +
         '<span style="font-size:12px;color:var(--text-dim);">' + slotCount + '/' + slotCap + ' signed up</span>' +
       '</div>';
 
@@ -2435,6 +2562,16 @@ function renderHorizontalGuestRows(signups) {
   return html;
 }
 
+function ownRowCancelBtn(monday, dayIdx, safeName, safeTime, isMyRow, isAdmin) {
+  if (isAdmin) {
+    return '<button class="remove-btn" title="Remove" onclick="event.stopPropagation();removeSignup(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')">&#215;</button>';
+  }
+  if (isMyRow) {
+    return '<button class="my-signups-cancel" style="margin-left:4px;" title="Cancel your sign-up" aria-label="Cancel your sign-up" onclick="event.stopPropagation();cancelMySignup(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')">&#215;</button>';
+  }
+  return '';
+}
+
 function renderHorizontalName(s, monday, dayIdx, slot, myName, isAdmin) {
   const spotStatus = s.spotUpStatus || '';
   const claimedBy = s.spotUpClaimedBy || '';
@@ -2502,9 +2639,11 @@ function renderHorizontalName(s, monday, dayIdx, slot, myName, isAdmin) {
   if (isAdmin && s.allergies) {
     html += '<span class="vn-admin-note">\u26A0\uFE0F ' + escapeHtml(s.allergies) + '</span>';
   }
-  // Admin remove button (inline with name)
-  if (isAdmin) {
-    html += '<button class="remove-btn" style="margin-left:auto;font-size:14px;flex-shrink:0;" title="Remove" onclick="event.stopPropagation();removeSignup(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')">&#215;</button>';
+  const cancelBtnH = ownRowCancelBtn(monday, dayIdx, safeName, safeTime, isMyRow, isAdmin);
+  if (cancelBtnH) {
+    html += cancelBtnH.includes('remove-btn')
+      ? cancelBtnH.replace('class="remove-btn"', 'class="remove-btn" style="margin-left:auto;font-size:14px;flex-shrink:0;"')
+      : cancelBtnH.replace('class="my-signups-cancel"', 'class="my-signups-cancel" style="margin-left:auto;flex-shrink:0;"');
   }
   html += '</div>';
 
@@ -2577,7 +2716,7 @@ function renderSignupItem(s, monday, dayIdx, slot) {
     : '';
 
   // Early plate — light blue row for everyone
-  const earlyRowStyle = s.early ? 'background:#E3F2FD;border-color:#90CAF9;border-left:3px solid #1E88E5;' : '';
+  const earlyRowStyle = s.early ? 'background:var(--accent-glow2);border-color:#8B691440;border-left:3px solid var(--accent-muted);' : '';
 
   let nameColor = 'var(--text-bright)';
   if ((isAdmin || isMyRow) && s.diet === 'Vegan') nameColor = '#3D7A4E';
@@ -2613,7 +2752,7 @@ function renderSignupItem(s, monday, dayIdx, slot) {
     return '<div class="signup-item ' + adminClass + (isServed ? ' served-item' : '') + '" ' + adminClick + ' style="display:flex;align-items:center;' + gradStyle + earlyRowStyle + '">' +
       servedCb +
       '<div style="flex:1;">' + nameHtml + metaHtml + '</div>' +
-      (isAdmin ? '<button class="remove-btn" title="Remove" onclick="event.stopPropagation();removeSignup(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')">&#215;</button>' : '') +
+      ownRowCancelBtn(monday, dayIdx, safeName, safeTime, isMyRow, isAdmin) +
     '</div>';
   }
 
@@ -2630,7 +2769,7 @@ function renderSignupItem(s, monday, dayIdx, slot) {
       '<div style="display:flex;gap:4px;align-items:center;">' +
         '<button class="spotup-claim-btn" onclick="openClaimModal(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')">Claim</button>' +
         (canCancelSpotUp ? '<button class="spotup-action-btn" onclick="event.stopPropagation();cancelSpotUpAction(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')" title="Cancel spot up">\u2715</button>' : '') +
-        (isAdmin ? '<button class="remove-btn" title="Remove" onclick="event.stopPropagation();removeSignup(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')">&#215;</button>' : '') +
+        ownRowCancelBtn(monday, dayIdx, safeName, safeTime, isMyRow, isAdmin) +
       '</div>' +
     '</div>';
   }
@@ -2649,7 +2788,7 @@ function renderSignupItem(s, monday, dayIdx, slot) {
         '<div style="display:flex;gap:4px;align-items:center;">' +
           (canManageClaimed ? '<button class="spotup-action-btn" onclick="event.stopPropagation();unclaimSpotUpAction(\'' + monday + '\',' + dayIdx + ',\'' + safeOrigName + '\',\'' + safeTime + '\')" title="Unclaim (revert to spot up)">Unclaim</button>' : '') +
           (canManageClaimed ? '<button class="spotup-action-btn" onclick="event.stopPropagation();reSpotUpAction(\'' + monday + '\',' + dayIdx + ',\'' + safeOrigName + '\',\'' + safeTime + '\')" title="Put this claimed spot back up">Re-Spot</button>' : '') +
-          (isAdmin ? '<button class="remove-btn" title="Remove" onclick="event.stopPropagation();removeSignup(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')">&#215;</button>' : '') +
+          ownRowCancelBtn(monday, dayIdx, safeName, safeTime, isMyRow, isAdmin) +
         '</div>' : '') +
     '</div>';
   }
@@ -2665,7 +2804,7 @@ function renderSignupItem(s, monday, dayIdx, slot) {
       (s.notes ? '<div class="meta">' + escapeHtml(s.notes) + '</div>' : '') +
     '</div>' +
     spotUpBtn +
-    (isAdmin ? '<button class="remove-btn" title="Remove" onclick="event.stopPropagation();removeSignup(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')">&#215;</button>' : '') +
+    ownRowCancelBtn(monday, dayIdx, safeName, safeTime, isMyRow, isAdmin) +
   '</div>';
 }
 
@@ -2839,7 +2978,7 @@ function openAdminSwapModal(monday, dayIdx, name, time, spotStatus, origName) {
   document.getElementById('spotupModalBody').innerHTML = bodyHtml;
 
   let actionsHtml = '<button class="btn btn-secondary" onclick="closeSpotUpModal()">Cancel</button>';
-  actionsHtml += '<button class="btn btn-primary" style="background:#5B8DEF;" onclick="doAdminSwap(\'' + monday + '\',' + dayIdx + ',\'' + name.replace(/'/g, "\\'") + '\',\'' + time.replace(/'/g, "\\'") + '\',\'' + (spotStatus||'') + '\',\'' + (origName||'').replace(/'/g, "\\'") + '\')">Assign</button>';
+  actionsHtml += '<button class="btn btn-primary" style="background:var(--accent);" onclick="doAdminSwap(\'' + monday + '\',' + dayIdx + ',\'' + name.replace(/'/g, "\\'") + '\',\'' + time.replace(/'/g, "\\'") + '\',\'' + (spotStatus||'') + '\',\'' + (origName||'').replace(/'/g, "\\'") + '\')">Assign</button>';
   if (spotStatus === 'claimed' || spotStatus === 'spotup') {
     const restoreName = origName || name;
     actionsHtml += '<button class="btn btn-secondary" style="margin-left:4px;" onclick="doAdminRestore(\'' + monday + '\',' + dayIdx + ',\'' + name.replace(/'/g, "\\'") + '\',\'' + time.replace(/'/g, "\\'") + '\',\'' + restoreName.replace(/'/g, "\\'") + '\',\'' + (spotStatus||'') + '\')">Restore to ' + restoreName + '</button>';
@@ -3866,7 +4005,7 @@ function renderCalendar(mealDays, events) {
     monthEvents.forEach(evt => {
       const dateStr = new Date(evt.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
       const spotsText = evt.capacity > 0 ? (evt.signupCount + '/' + evt.capacity) : evt.signupCount + ' signed up';
-      evtHtml += '<div style="border:1px solid var(--border);border-radius:4px;padding:12px 16px;margin-bottom:8px;background:var(--surface);cursor:pointer;border-left:3px solid #5B8DEF;" onclick="showEventFromCal(\'' + evt.eventId + '\')">' +
+      evtHtml += '<div style="border:1px solid var(--border);border-radius:4px;padding:12px 16px;margin-bottom:8px;background:var(--surface);cursor:pointer;border-left:3px solid var(--event);" onclick="showEventFromCal(\'' + evt.eventId + '\')">' +
         '<div style="display:flex;justify-content:space-between;align-items:center;">' +
           '<div><strong style="font-family:\'Crimson Pro\',serif;font-size:15px;color:var(--text-bright);">' + escapeHtml(evt.title) + '</strong>' +
           '<div style="font-size:12px;color:var(--text-dim);">' + dateStr + (evt.time ? ' at ' + evt.time : '') + '</div></div>' +
@@ -3916,7 +4055,30 @@ function getNextMonday() {
 }
 
 function getSignupMonday() {
+  // Default Sign Up week is the upcoming Monday (on Monday itself, next week).
   return getNextMonday();
+}
+
+function formatWeekOfLabel(mondayStr) {
+  if (!mondayStr) return '';
+  try {
+    const d = new Date(mondayStr + 'T12:00:00');
+    const weekOf = 'Week of ' + d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const thisMon = getCurrentMonday();
+    const nextMon = getNextMonday();
+    if (mondayStr === thisMon) return weekOf + ' \u00b7 This week';
+    if (mondayStr === nextMon) return weekOf + ' \u00b7 Next week';
+    return weekOf;
+  } catch (e) { return 'Week of ' + mondayStr; }
+}
+
+function updateWeekLabels() {
+  const s = document.getElementById('weekSelect');
+  const sl = document.getElementById('signupWeekLabel');
+  if (s && sl) sl.textContent = formatWeekOfLabel(s.value);
+  const v = document.getElementById('viewWeekSelect');
+  const vl = document.getElementById('viewWeekLabel');
+  if (v && vl) vl.textContent = formatWeekOfLabel(v.value);
 }
 
 function getViewMonday() {
@@ -3947,9 +4109,12 @@ const adminMon = getCurrentMonday();
 document.getElementById('weekSelect').value = signupMon;
 document.getElementById('viewWeekSelect').value = viewMon;
 document.getElementById('adminWeekSelect').value = adminMon;
+updateWeekLabels();
+document.getElementById('weekSelect').addEventListener('change', updateWeekLabels);
+document.getElementById('viewWeekSelect').addEventListener('change', updateWeekLabels);
 
-snapToMonday('weekSelect', loadWeekData);
-snapToMonday('viewWeekSelect', loadViewData);
+snapToMonday('weekSelect', function(){ updateWeekLabels(); loadWeekData(); });
+snapToMonday('viewWeekSelect', function(){ updateWeekLabels(); loadViewData(); });
 snapToMonday('adminWeekSelect', renderAdminWeek);
 
 loadWeekData(true);
@@ -3985,6 +4150,11 @@ let _mooseEvents = null;          // cached events array
 let _mooseLoadingWeeks = new Set(); // mondays currently being fetched
 let _mooseSelectedTime = null;    // selected time slot in the day sheet
 let _mooseInkChoice = 'ink';      // 'ink' or 'interest' for event sheet
+let _mooseMyInk = {};            // eventId -> 'ink' | 'interest' (session)
+try { _mooseMyInk = JSON.parse(sessionStorage.getItem('delphic_moose_ink') || '{}') || {}; } catch (e) { _mooseMyInk = {}; }
+function _saveMooseMyInk() {
+  try { sessionStorage.setItem('delphic_moose_ink', JSON.stringify(_mooseMyInk)); } catch (e) {}
+}
 let _mooseSheetDate = null;       // currently open day sheet date
 let _mooseSheetMealData = null;   // data for the open meal row
 
@@ -4315,7 +4485,7 @@ function openMooseDaySheet(dateStr) {
       const meta = [ev.time, ev.location].filter(Boolean).join(' · ');
       const cap = ev.capacity > 0 ? ev.signupCount + '/' + ev.capacity + ' signed up' : '';
       const safeId = ev.eventId.replace(/'/g, "\\'");
-      eventsHtml += '<div style="background:var(--surface);border:1px solid var(--border);border-left:3px solid #5B8DEF;border-radius:6px;padding:14px 16px;margin-bottom:10px;">' +
+      eventsHtml += '<div style="background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--event);border-radius:6px;padding:14px 16px;margin-bottom:10px;">' +
         '<div style="font-family:\'Cormorant Garamond\',serif;font-size:19px;font-weight:600;color:var(--text-bright);margin-bottom:2px;">' + escapeHtml(ev.title) + '</div>' +
         (meta || cap ? '<div style="font-family:\'Crimson Pro\',serif;font-size:13px;color:var(--text-dim);font-style:italic;margin-bottom:8px;">' + escapeHtml([meta, cap].filter(Boolean).join(' · ')) + '</div>' : '') +
         (ev.description ? '<div style="font-family:\'Crimson Pro\',serif;font-size:14px;color:var(--text);line-height:1.5;margin-bottom:10px;">' + escapeHtml(ev.description) + '</div>' : '') +
@@ -4439,8 +4609,8 @@ function openMooseEventSheet(eventId) {
   let prefs = {};
   try { prefs = JSON.parse(localStorage.getItem('delphic_prefs') || '{}'); } catch(e) {}
 
-  // Reset ink choice
-  _mooseInkChoice = ev.interestOnly ? 'interest' : 'ink';
+  const priorInk = _mooseMyInk[eventId] || null;
+  _mooseInkChoice = priorInk || (ev.interestOnly ? 'interest' : 'ink');
 
   const safeId = eventId.replace(/'/g, "\\'");
 
@@ -4455,29 +4625,40 @@ function openMooseEventSheet(eventId) {
   if (ev.capacity > 0) parts.push('cap ' + ev.capacity);
   if (parts.length) html += '<div class="ink-count-bar">' + parts.join(' &nbsp;&middot;&nbsp; ') + '</div>';
 
+  if (!ev.interestOnly) {
+    html += '<div class="ink-glossary">Ink In = attending. Interested = maybe / keep me posted.</div>';
+  }
+
+  if (priorInk) {
+    const statusLabel = priorInk === 'ink' ? 'You already inked in for this event.' : 'You already marked interest for this event.';
+    html += '<div class="ink-status-banner">' + statusLabel + ' You can update your response below.</div>';
+  }
+
   if (ev.description) {
-    html += '<div style="font-family:\'Crimson Pro\',serif;font-size:15px;color:var(--text);line-height:1.6;padding:12px 16px;background:var(--surface2);border-radius:6px;border-left:3px solid #5B8DEF;margin-bottom:16px;">' + escapeHtml(ev.description) + '</div>';
+    html += '<div style="font-family:\'Crimson Pro\',serif;font-size:15px;color:var(--text);line-height:1.6;padding:12px 16px;background:var(--surface2);border-radius:6px;border-left:3px solid var(--event);margin-bottom:16px;">' + escapeHtml(ev.description) + '</div>';
   }
 
   if (isFrozen) {
     html += '<div style="font-family:\'Crimson Pro\',serif;font-size:15px;color:var(--text-dim);font-style:italic;">Sign-ups are closed for this event.</div>';
-  } else if (isFull) {
+  } else if (isFull && !priorInk) {
     html += '<div style="font-family:\'Crimson Pro\',serif;font-size:15px;color:var(--red);">This event is full.</div>';
   } else {
     // Ink / Interested toggle (only when not interestOnly)
     if (!ev.interestOnly) {
+      const inkActive = _mooseInkChoice === 'ink' ? ' active' : '';
+      const intActive = _mooseInkChoice === 'interest' ? ' active' : '';
       html += '<div class="ink-choice-wrap">' +
-        '<button class="ink-choice active" id="inkChoice_ink" onclick="setInkChoice(\'ink\')">Ink In</button>' +
-        '<button class="ink-choice int-btn" id="inkChoice_interest" onclick="setInkChoice(\'interest\')">Interested</button>' +
+        '<button class="ink-choice' + inkActive + '" id="inkChoice_ink" onclick="setInkChoice(\'ink\')">Ink In</button>' +
+        '<button class="ink-choice int-btn' + intActive + '" id="inkChoice_interest" onclick="setInkChoice(\'interest\')">Interested</button>' +
       '</div>';
     } else {
-      html += '<div style="font-family:\'Crimson Pro\',serif;font-size:13px;font-style:italic;color:var(--text-dim);margin-bottom:16px;">No commitment needed — just mark your interest.</div>';
+      html += '<div style="font-family:\'Crimson Pro\',serif;font-size:13px;font-style:italic;color:var(--text-dim);margin-bottom:16px;">No commitment needed \u2014 just mark your interest.</div>';
     }
 
     html += '<div class="field"><label class="field-label">Name <span class="req">*</span></label>' +
       '<input type="text" id="mooseEvtName" value="' + myName.replace(/"/g,'&quot;') + '" placeholder="Your name"></div>';
     if (ev.collectGradYear) {
-      html += '<div class="field"><label class="field-label">Year</label><select id="mooseEvtGrad"><option value="">—</option>';
+      html += '<div class="field"><label class="field-label">Year</label><select id="mooseEvtGrad"><option value="">\u2014</option>';
       const yr = new Date().getFullYear();
       for (let y = yr; y <= yr + 6; y++) html += '<option>' + y + '</option>';
       html += '</select></div>';
@@ -4491,8 +4672,9 @@ function openMooseEventSheet(eventId) {
     }
     html += '<div class="field"><label class="field-label">Notes (optional)</label>' +
       '<textarea id="mooseEvtNotes" rows="2" placeholder="Any notes\u2026"></textarea></div>';
-    const btnLabel = ev.interestOnly ? 'Mark Interest \u2192' : 'Ink In \u2192';
-    html += '<button class="btn btn-primary" id="mooseEvtBtn" onclick="submitMooseInk(\'' + safeId + '\')">' + btnLabel + '</button>';
+    const btnLabel = ev.interestOnly ? 'Mark Interest \u2192' : (_mooseInkChoice === 'ink' ? 'Ink In \u2192' : 'Mark Interest \u2192');
+    const submitLabel = priorInk ? (ev.interestOnly ? 'Update Interest \u2192' : 'Update Response \u2192') : btnLabel;
+    html += '<button class="btn btn-primary" id="mooseEvtBtn" onclick="submitMooseInk(\'' + safeId + '\')">' + submitLabel + '</button>';
     html += '<div id="mooseEvtErr" style="display:none;font-family:\'Crimson Pro\',serif;font-size:14px;color:var(--red);margin-top:8px;"></div>';
   }
 
@@ -4530,6 +4712,8 @@ async function submitMooseInk(eventId) {
   };
   try {
     await apiCall('addEventSignup', { eventId, signup });
+    _mooseMyInk[eventId] = _mooseInkChoice;
+    _saveMooseMyInk();
     closeMooseEventSheet();
     const ev = (_mooseEvents || []).find(e => e.eventId === eventId);
     const label = _mooseInkChoice === 'ink' ? 'Inked in' : 'Interest marked';

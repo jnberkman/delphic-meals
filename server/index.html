@@ -140,13 +140,21 @@
   .time-chip .time-label { font-family: 'Cormorant Garamond', serif; font-weight: 600; font-size: 16px; color: var(--text-bright); }
   .time-chip .time-spots { font-size: 11px; color: var(--text-dim); margin-top: 3px; }
 
-  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 13px 28px; border-radius: 3px; font-family: 'Jost', sans-serif; font-size: 13px; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; transition: all .2s; border: none; }
+  /* Button size system: default (44px), .btn-sm (compact), .btn-icon (nav), .btn-inline (auto width) */
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; box-sizing: border-box; min-height: 44px; padding: 12px 24px; border-radius: 3px; font-family: 'Jost', sans-serif; font-size: 13px; font-weight: 500; letter-spacing: 1px; line-height: 1.2; text-transform: uppercase; white-space: nowrap; cursor: pointer; transition: all .2s; border: none; }
   .btn:focus-visible { outline: 2px solid var(--accent-muted); outline-offset: 2px; }
   .btn-primary { background: var(--accent); color: #fff; width: 100%; }
   .btn-primary:hover { background: var(--accent-muted); color: #fff; }
   .btn-secondary { background: transparent; color: var(--text); border: 1px solid var(--border); }
   .btn-secondary:hover { border-color: var(--border-light); background: var(--surface2); }
   .btn:disabled { opacity: .35; cursor: not-allowed; }
+  .btn-inline { width: auto; flex-shrink: 0; }
+  .btn-sm { min-height: 36px; padding: 8px 14px; font-size: 12px; letter-spacing: .8px; gap: 6px; }
+  .btn-icon { width: 44px; min-width: 44px; min-height: 44px; padding: 0; font-size: 16px; letter-spacing: 0; flex-shrink: 0; }
+  .btn-icon.btn-sm { width: 36px; min-width: 36px; min-height: 36px; }
+  .btn-wrap { white-space: normal; text-align: center; line-height: 1.3; }
+  .week-nav-row { display: flex; gap: 8px; align-items: center; }
+  .btn-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
   .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--green); color: #fff; padding: 12px 24px; border-radius: 3px; font-weight: 500; font-size: 13px; z-index: 999; transition: transform .4s cubic-bezier(.36,.66,.04,1); pointer-events: none; white-space: nowrap; max-width: calc(100vw - 32px); overflow: hidden; text-overflow: ellipsis; }
   .toast.show { transform: translateX(-50%) translateY(0); pointer-events: auto; }
@@ -171,15 +179,15 @@
   .guest-builder { margin-bottom: 10px; }
   .guest-row { display: flex; gap: 6px; align-items: center; margin-top: 6px; }
   .guest-row input { flex: 1; min-width: 0; margin: 0; }
-  .guest-add-btn { margin-top: 6px; background: transparent; border: 1px dashed var(--border); color: var(--accent); border-radius: 3px; padding: 7px 10px; font-family: 'Jost', sans-serif; font-size: 11px; font-weight: 500; letter-spacing: .8px; text-transform: uppercase; cursor: pointer; }
+  .guest-add-btn { display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; min-height: 36px; margin-top: 6px; background: transparent; border: 1px dashed var(--border); color: var(--accent); border-radius: 3px; padding: 8px 14px; font-family: 'Jost', sans-serif; font-size: 11px; font-weight: 500; letter-spacing: .8px; line-height: 1.2; text-transform: uppercase; white-space: nowrap; cursor: pointer; }
   .guest-add-btn:hover { border-color: var(--accent-muted); background: var(--accent-glow2); }
-  .guest-remove-btn { flex-shrink: 0; width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; background: transparent; border: 1px solid var(--border); border-radius: 3px; color: var(--red); cursor: pointer; font-size: 16px; line-height: 1; }
+  .guest-remove-btn { flex-shrink: 0; width: 36px; height: 36px; min-width: 36px; display: inline-flex; align-items: center; justify-content: center; background: transparent; border: 1px solid var(--border); border-radius: 3px; color: var(--red); cursor: pointer; font-size: 16px; line-height: 1; padding: 0; }
   .guest-remove-btn:hover { border-color: var(--red); }
   .guest-section-label { font-size: 11px; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin: 10px 0 4px; }
   .guest-display-item { display: flex; align-items: baseline; gap: 5px; padding: 7px 12px; border-radius: 3px; background: var(--accent-glow); border: 1px solid #8B691428; margin-bottom: 5px; font-size: 13px; }
   .guest-display-item .guest-name { font-family: 'Crimson Pro', serif; font-weight: 600; font-size: 15px; color: var(--text-bright); }
   .guest-display-item .guest-host { color: var(--text-dim); font-size: 12px; }
-  .remove-btn { background: none; border: none; color: var(--red); cursor: pointer; font-size: 16px; padding: 0 4px; opacity: .6; transition: opacity .2s; }
+  .remove-btn { display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; min-width: 36px; min-height: 36px; background: none; border: none; color: var(--red); cursor: pointer; font-size: 16px; padding: 8px; line-height: 1; opacity: .6; transition: opacity .2s; flex-shrink: 0; }
   .remove-btn:hover { opacity: 1; }
 
   .tag { display: inline-block; padding: 2px 10px; border-radius: 2px; font-size: 10px; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; }
@@ -227,11 +235,11 @@
   .confirm-title { font-family: 'Cormorant Garamond', serif; font-size: 26px; font-weight: 600; color: var(--text-bright); margin-bottom: 8px; line-height: 1.2; }
   .confirm-sub { font-family: 'Crimson Pro', serif; font-size: 15px; color: var(--text-dim); font-style: italic; line-height: 1.5; margin-bottom: 6px; }
   .confirm-days { font-family: 'Jost', sans-serif; font-size: 12px; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; color: var(--accent); margin: 16px 0 24px; line-height: 1.8; }
-  .confirm-btn { display: inline-flex; align-items: center; justify-content: center; padding: 12px 32px; border-radius: 3px; font-family: 'Jost', sans-serif; font-size: 12px; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase; cursor: pointer; transition: all .2s; border: 1px solid var(--border); background: transparent; color: var(--text); }
+  .confirm-btn { display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; min-height: 44px; padding: 12px 24px; border-radius: 3px; font-family: 'Jost', sans-serif; font-size: 13px; font-weight: 500; letter-spacing: 1px; line-height: 1.2; text-transform: uppercase; white-space: nowrap; cursor: pointer; transition: all .2s; border: 1px solid var(--border); background: transparent; color: var(--text); }
   .confirm-btn:hover { border-color: var(--accent-muted); color: var(--accent); background: var(--accent-glow2); }
   .confirm-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
   .confirm-btn.primary:hover { background: var(--accent-muted); color: #fff; border-color: var(--accent-muted); }
-  .confirm-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .confirm-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; align-items: center; }
   .confirm-guest-receipt { font-family: 'Crimson Pro', serif; font-size: 14px; color: var(--text); line-height: 1.55; margin: 0 0 18px; padding: 12px 14px; background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; text-align: left; }
   .confirm-guest-receipt strong { color: var(--text-bright); }
   .field-hint { font-family: 'Crimson Pro', serif; font-size: 13px; font-style: italic; color: var(--text-dim); margin-top: 6px; line-height: 1.4; }
@@ -277,8 +285,10 @@
   .spotup-overlay.show .spotup-modal { transform: scale(1) translateY(0); }
   .spotup-modal-title { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600; color: var(--text-bright); margin-bottom: 4px; }
   .spotup-modal-sub { font-family: 'Crimson Pro', serif; font-size: 14px; color: var(--text-dim); font-style: italic; margin-bottom: 16px; }
-  .spotup-modal-actions { display: flex; gap: 8px; margin-top: 16px; }
-  .spotup-modal-actions .btn { flex: 1; font-size: 12px; padding: 11px 16px; }
+  .spotup-modal-actions { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; align-items: stretch; }
+  .spotup-modal-actions .btn { flex: 1 1 calc(50% - 4px); min-width: 120px; width: auto; }
+  .signup-item-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; flex-shrink: 0; margin-left: 8px; }
+  .signup-item-actions .spotup-action-btn { margin-left: 0; }
     
 
   /* Sign-In Overlay */
@@ -338,6 +348,15 @@
     .tab { flex: 1 1 40%; letter-spacing: 0.5px; font-size: 12px; padding: 12px 6px; min-height: 44px; }
     .tab .tab-full { display: none; }
     .tab .tab-short { display: inline; }
+    .btn-sm { min-height: 44px; padding: 10px 16px; }
+    .btn-icon.btn-sm { width: 44px; min-width: 44px; min-height: 44px; }
+    .guest-remove-btn { width: 44px; height: 44px; min-width: 44px; }
+    .remove-btn { min-width: 44px; min-height: 44px; }
+    .spotup-modal-actions .btn { flex: 1 1 100%; }
+    .confirm-actions { flex-direction: column; }
+    .confirm-actions .confirm-btn { width: 100%; }
+    .your-info-summary { align-items: flex-start; }
+    .your-info-summary .btn { width: 100%; }
   }
 
   /* ── Desktop horizontal view (≥900px) ── */
@@ -375,11 +394,14 @@
     .vn-entry-wrap.vn-flagged.vn-clickable:hover { background: #EEE0F5; }
     .vn-admin-note { font-family: 'Jost', sans-serif; font-size: 9px; font-weight: 600; color: #4A148C; white-space: normal; word-break: break-word; }
     .vn-admin-notes-text { font-family: 'Crimson Pro', serif; font-size: 11px; font-style: italic; color: var(--text-dim); margin: 1px 0 0; padding-left: 1px; }
-    .vn-compact-claim { font-family: 'Jost', sans-serif; font-size: 11px; font-weight: 600; color: var(--green); background: none; border: 1px solid var(--green); border-radius: 2px; padding: 10px 12px; min-height: 44px; cursor: pointer; letter-spacing: .3px; display: inline-flex; align-items: center; margin: 2px 0 1px; }
+    .vn-compact-claim { font-family: 'Jost', sans-serif; font-size: 11px; font-weight: 600; color: var(--green); background: none; border: 1px solid var(--green); border-radius: 2px; padding: 8px 12px; min-height: 36px; line-height: 1.2; text-transform: uppercase; white-space: nowrap; cursor: pointer; letter-spacing: .3px; display: inline-flex; align-items: center; justify-content: center; margin: 2px 0 1px; }
     .vn-compact-claim:hover { background: var(--green); color: #fff; }
     .vn-compact-claim:focus-visible { outline: 2px solid var(--accent-muted); outline-offset: 2px; }
     .view-day-col .spotup-action-btn,
-    .view-day-col .spotup-offer-btn { min-height: 44px; padding: 10px 12px; font-size: 11px; }
+    .view-day-col .spotup-offer-btn { min-height: 36px; padding: 8px 12px; font-size: 11px; }
+    .view-day-col .signup-item-actions,
+    .view-col-name + .signup-item-actions,
+    .vn-entry-wrap .signup-item-actions { gap: 4px; margin-left: 0; }
   }
 
   /* ── Moose Tab ─────────────────────────────────────────────────────────── */
@@ -392,7 +414,7 @@
   .moose-evt-title { font-family: 'Cormorant Garamond', serif; font-size: 19px; font-weight: 600; color: var(--text-bright); margin-bottom: 2px; }
   .moose-evt-meta { font-family: 'Crimson Pro', serif; font-size: 13px; color: var(--text-dim); font-style: italic; margin-bottom: 8px; }
   .moose-evt-desc { font-family: 'Crimson Pro', serif; font-size: 14px; color: var(--text); line-height: 1.5; margin-bottom: 12px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-  .moose-evt-btn { font-family: 'Jost', sans-serif; font-size: 10px; font-weight: 600; letter-spacing: .5px; color: var(--event-text); background: var(--event-muted); border: 1px solid var(--event-border); border-radius: 3px; padding: 5px 12px; cursor: pointer; transition: background .15s; }
+  .moose-evt-btn { display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; min-height: 36px; font-family: 'Jost', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: .5px; line-height: 1.2; text-transform: uppercase; white-space: nowrap; color: var(--event-text); background: var(--event-muted); border: 1px solid var(--event-border); border-radius: 3px; padding: 8px 14px; cursor: pointer; transition: background .15s; }
   .moose-evt-btn:hover { background: var(--event-border); }
 
   /* Calendar */
@@ -440,7 +462,7 @@
   .moose-meal-menu { font-family: 'Crimson Pro', serif; font-size: 15px; font-style: italic; color: var(--text-dim); margin: 4px 0 12px; line-height: 1.5; }
   .moose-meal-signed { font-family: 'Crimson Pro', serif; font-size: 15px; color: var(--green); font-weight: 600; margin-bottom: 12px; }
   .moose-time-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
-  .moose-time-chip { font-family: 'Jost', sans-serif; font-size: 12px; font-weight: 500; padding: 9px 14px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); cursor: pointer; transition: all .15s; flex: 1; min-width: 0; text-align: center; }
+  .moose-time-chip { display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; min-height: 44px; font-family: 'Jost', sans-serif; font-size: 12px; font-weight: 500; line-height: 1.2; padding: 10px 14px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); cursor: pointer; transition: all .15s; flex: 1; min-width: 0; text-align: center; white-space: nowrap; }
   .moose-time-chip.sel { border-color: var(--accent-muted); background: var(--accent-glow2); color: var(--accent); font-weight: 600; }
   .moose-time-chip:disabled { opacity: .4; cursor: not-allowed; }
   #mooseEventOverlay { z-index: 501; }
@@ -479,7 +501,7 @@
     <div id="signinOrDivider" style="display:flex;align-items:center;gap:12px;margin:20px 0;"><div style="flex:1;height:1px;background:var(--border);"></div><span style="font-size:11px;color:var(--text-dim);letter-spacing:1px;text-transform:uppercase;">or</span><div style="flex:1;height:1px;background:var(--border);"></div></div>
     <div id="signinGuestRow" style="display:flex;gap:8px;">
       <input type="text" id="accessCodeInput" placeholder="Guest access code" style="flex:1;">
-      <button class="btn btn-secondary" style="width:auto;padding:13px 20px;" onclick="submitAccessCode()">Enter</button>
+      <button class="btn btn-secondary btn-inline" onclick="submitAccessCode()">Enter</button>
     </div>
     <div class="signin-error" id="signinError" style="display:none;"></div>
     <div id="requestAccessSection" style="display:none;margin-top:16px;">
@@ -522,7 +544,7 @@
       <div class="card-title">Your Info</div>
       <div id="yourInfoSummary" class="your-info-summary" style="display:none;">
         <div class="your-info-chips" id="yourInfoChips"></div>
-        <button type="button" class="btn btn-secondary" style="width:auto;padding:10px 18px;" onclick="expandYourInfo()">Edit</button>
+        <button type="button" class="btn btn-secondary btn-inline btn-sm" onclick="expandYourInfo()">Edit</button>
       </div>
       <div id="yourInfoFields">
         <div class="card-sub">Tell us who you are and any dietary needs</div>
@@ -553,7 +575,7 @@
           </label>
           <div class="field-hint">Check if you&rsquo;re a Grad Gasman dining under that arrangement.</div>
         </div>
-        <button type="button" id="yourInfoDoneBtn" class="btn btn-secondary" style="display:none;width:auto;margin-top:16px;padding:10px 18px;" onclick="collapseYourInfo()">Done</button>
+        <button type="button" id="yourInfoDoneBtn" class="btn btn-secondary btn-inline btn-sm" style="display:none;margin-top:16px;" onclick="collapseYourInfo()">Done</button>
       </div>
     </div>
 
@@ -562,10 +584,10 @@
       <div class="card-sub">Tap a day to add or edit. Signed days show your time — tap again to remove.</div>
       <div class="field">
         <label class="field-label" for="weekSelect">Week of (Monday)</label>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <button class="btn btn-secondary" style="width:auto;padding:10px 14px;font-size:16px;" onclick="shiftWeek('weekSelect',-7,loadWeekData)" title="Previous week">&#8592;</button>
+        <div class="week-nav-row">
+          <button class="btn btn-secondary btn-icon" onclick="shiftWeek('weekSelect',-7,loadWeekData)" title="Previous week">&#8592;</button>
           <input type="date" id="weekSelect" style="flex:1;">
-          <button class="btn btn-secondary" style="width:auto;padding:10px 14px;font-size:16px;" onclick="shiftWeek('weekSelect',7,loadWeekData)" title="Next week">&#8594;</button>
+          <button class="btn btn-secondary btn-icon" onclick="shiftWeek('weekSelect',7,loadWeekData)" title="Next week">&#8594;</button>
         </div>
         <div class="week-quick-links">
           <a href="#" onclick="document.getElementById('weekSelect').value=getCurrentMonday();loadWeekData();return false;">This week</a>
@@ -604,10 +626,10 @@
     </div>
     <div class="field">
       <label class="field-label" for="viewWeekSelect">Week of (Monday)</label>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <button class="btn btn-secondary" style="width:auto;padding:10px 14px;font-size:16px;" onclick="shiftWeek('viewWeekSelect',-7,loadViewData)" title="Previous week">&#8592;</button>
+      <div class="week-nav-row">
+        <button class="btn btn-secondary btn-icon" onclick="shiftWeek('viewWeekSelect',-7,loadViewData)" title="Previous week">&#8592;</button>
         <input type="date" id="viewWeekSelect" style="flex:1;">
-        <button class="btn btn-secondary" style="width:auto;padding:10px 14px;font-size:16px;" onclick="shiftWeek('viewWeekSelect',7,loadViewData)" title="Next week">&#8594;</button>
+        <button class="btn btn-secondary btn-icon" onclick="shiftWeek('viewWeekSelect',7,loadViewData)" title="Next week">&#8594;</button>
       </div>
       <div class="week-quick-links">
         <a href="#" onclick="document.getElementById('viewWeekSelect').value=getCurrentMonday();loadViewData();return false;">This week</a>
@@ -617,9 +639,9 @@
       <div id="viewWeekLabel" class="field-hint" style="text-align:right;margin-top:2px;"></div>
     </div>
     <div id="viewDayNav" style="display:none;margin-top:8px;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:10px 14px;">
-      <button id="viewPrevDay" class="btn btn-secondary" style="width:auto;padding:8px 14px;font-size:16px;" onclick="changeViewDay(-1)">&#8592;</button>
+      <button id="viewPrevDay" class="btn btn-secondary btn-icon" onclick="changeViewDay(-1)">&#8592;</button>
       <div id="viewDayLabel" style="flex:1;text-align:center;font-family:'Cormorant Garamond',serif;font-size:19px;font-weight:600;color:var(--text-bright);"></div>
-      <button id="viewNextDay" class="btn btn-secondary" style="width:auto;padding:8px 14px;font-size:16px;" onclick="changeViewDay(1)">&#8594;</button>
+      <button id="viewNextDay" class="btn btn-secondary btn-icon" onclick="changeViewDay(1)">&#8594;</button>
     </div>
     <div id="viewLoading" style="display:none;text-align:center;padding:24px;color:var(--text-dim);" aria-live="polite"><div class="spinner"></div><div style="margin-top:10px;font-family:'Crimson Pro',serif;font-size:14px;font-style:italic;">Loading signups&hellip;</div></div>
     <datalist id="adminAddMembersList"></datalist>
@@ -634,9 +656,9 @@
       <div class="field">
         <label class="field-label">View Month</label>
         <div style="display:flex;gap:8px;align-items:center;">
-          <button class="btn btn-secondary" style="width:auto;padding:10px 14px;font-size:16px;" onclick="shiftCalMonth(-1)" title="Previous month">&#8592;</button>
+          <button class="btn btn-secondary btn-icon" onclick="shiftCalMonth(-1)" title="Previous month">&#8592;</button>
           <div id="calMonthLabel" style="flex:1;text-align:center;font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;color:var(--text-bright);"></div>
-          <button class="btn btn-secondary" style="width:auto;padding:10px 14px;font-size:16px;" onclick="shiftCalMonth(1)" title="Next month">&#8594;</button>
+          <button class="btn btn-secondary btn-icon" onclick="shiftCalMonth(1)" title="Next month">&#8594;</button>
         </div>
       </div>
     </div>
@@ -664,9 +686,9 @@
       <div class="moose-sect-lbl">Calendar</div>
       <div class="moose-cal-wrap">
         <div class="moose-cal-head">
-          <button class="btn btn-secondary" style="width:auto;padding:8px 14px;font-size:16px;" onclick="shiftMooseCal(-1)">&#8592;</button>
+          <button class="btn btn-secondary btn-icon" onclick="shiftMooseCal(-1)">&#8592;</button>
           <div class="moose-cal-mlbl" id="mooseCalMonthLbl"></div>
-          <button class="btn btn-secondary" style="width:auto;padding:8px 14px;font-size:16px;" onclick="shiftMooseCal(1)">&#8594;</button>
+          <button class="btn btn-secondary btn-icon" onclick="shiftMooseCal(1)">&#8594;</button>
         </div>
         <div id="mooseCalGrid"></div>
       </div>
@@ -703,7 +725,7 @@
           </div>
           <div style="display:flex;align-items:center;">
             <span class="admin-unsaved-hint" id="adminUnsavedHint">Unsaved changes</span>
-            <button class="btn btn-primary" id="adminSaveBtn" onclick="pushWeekConfig()" style="width:auto;padding:10px 24px;font-size:14px;">Save</button>
+            <button class="btn btn-primary btn-inline" id="adminSaveBtn" onclick="pushWeekConfig()">Save</button>
           </div>
         </div>
 
@@ -711,10 +733,10 @@
         <div style="display:flex;gap:12px;align-items:flex-end;margin-bottom:20px;flex-wrap:wrap;">
           <div style="flex:1;min-width:180px;">
             <label class="field-label" style="font-size:10px;" for="adminWeekSelect">Week (starting Monday)</label>
-            <div style="display:flex;gap:6px;align-items:center;">
-              <button class="btn btn-secondary" style="width:auto;padding:8px 12px;font-size:15px;" onclick="shiftAdminWeek(-7)" title="Previous week">&#8592;</button>
+            <div class="week-nav-row">
+              <button class="btn btn-secondary btn-icon" onclick="shiftAdminWeek(-7)" title="Previous week">&#8592;</button>
               <input type="date" id="adminWeekSelect" style="flex:1;">
-              <button class="btn btn-secondary" style="width:auto;padding:8px 12px;font-size:15px;" onclick="shiftAdminWeek(7)" title="Next week">&#8594;</button>
+              <button class="btn btn-secondary btn-icon" onclick="shiftAdminWeek(7)" title="Next week">&#8594;</button>
             </div>
           </div>
           <div style="flex:1;min-width:180px;">
@@ -779,7 +801,7 @@
                 <input type="checkbox" id="newMemberAdmin">
                 <span class="pill-label" style="font-size:12px;">Admin</span>
               </label>
-              <button class="btn btn-primary" style="width:auto;padding:10px 20px;" onclick="adminAddMember()">Add</button>
+              <button class="btn btn-primary btn-inline" onclick="adminAddMember()">Add</button>
             </div>
           </div>
         </div>
@@ -911,7 +933,7 @@
     <div class="confirm-days" id="guestPaymentAmount" style="margin-bottom:20px;"></div>
     <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
       <button class="confirm-btn" onclick="resolveGuestPayment(false)">Cancel</button>
-      <button class="confirm-btn" style="background:var(--accent);color:#fff;border-color:var(--accent);" onclick="resolveGuestPayment(true)">I Agree</button>
+      <button class="confirm-btn primary" onclick="resolveGuestPayment(true)">I Agree</button>
     </div>
   </div>
 </div>
@@ -2920,25 +2942,25 @@ function renderHorizontalName(s, monday, dayIdx, slot, myName, isAdmin) {
   html += '</div>';
 
   if (spotUpBtn) {
-    html += '<div style="display:flex;gap:4px;align-items:center;margin-top:2px;">' + spotUpBtn + '</div>';
+    html += '<div class="signup-item-actions" style="margin-top:2px;margin-left:0;">' + spotUpBtn + '</div>';
   }
 
   // Spot-up state: show compact action buttons
   if (spotUpEnabled && spotStatus === 'spotup') {
-    html += '<div style="display:flex;gap:4px;align-items:center;margin-top:2px;flex-wrap:wrap;">';
+    html += '<div class="signup-item-actions" style="margin-top:2px;margin-left:0;">';
     html += '<button class="vn-compact-claim" onclick="event.stopPropagation();openClaimModal(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')">Claim</button>';
     if (canCancelSpotUp) {
-      html += '<button class="spotup-action-btn" style="margin-left:0;" onclick="event.stopPropagation();cancelSpotUpAction(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')" title="Cancel spot up">Cancel</button>';
+      html += '<button class="spotup-action-btn" onclick="event.stopPropagation();cancelSpotUpAction(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')" title="Cancel spot up">Cancel</button>';
     }
     html += '</div>';
   }
 
   // Claimed state: show compact unclaim/re-spot buttons
   if (spotUpEnabled && spotStatus === 'claimed' && (canManageClaimed || isAdmin)) {
-    html += '<div style="display:flex;gap:4px;align-items:center;margin-top:2px;flex-wrap:wrap;">';
+    html += '<div class="signup-item-actions" style="margin-top:2px;margin-left:0;">';
     if (canManageClaimed) {
-      html += '<button class="spotup-action-btn" style="margin-left:0;" onclick="event.stopPropagation();unclaimSpotUpAction(\'' + monday + '\',' + dayIdx + ',\'' + safeOrigName + '\',\'' + safeTime + '\')" title="Unclaim (revert to spot up)">Unclaim</button>';
-      html += '<button class="spotup-action-btn" style="margin-left:0;" onclick="event.stopPropagation();reSpotUpAction(\'' + monday + '\',' + dayIdx + ',\'' + safeOrigName + '\',\'' + safeTime + '\')" title="Put this claimed spot back up">Re-Spot</button>';
+      html += '<button class="spotup-action-btn" onclick="event.stopPropagation();unclaimSpotUpAction(\'' + monday + '\',' + dayIdx + ',\'' + safeOrigName + '\',\'' + safeTime + '\')" title="Unclaim (revert to spot up)">Unclaim</button>';
+      html += '<button class="spotup-action-btn" onclick="event.stopPropagation();reSpotUpAction(\'' + monday + '\',' + dayIdx + ',\'' + safeOrigName + '\',\'' + safeTime + '\')" title="Put this claimed spot back up">Re-Spot</button>';
     }
     html += '</div>';
   }
@@ -3038,7 +3060,7 @@ function renderSignupItem(s, monday, dayIdx, slot) {
         '<span class="spotup-badge">SPOT UP</span>' + allergyBadge + '</div>' +
         '<div class="meta" style="color:#E65100;">This spot is available to claim</div>' +
       '</div>' +
-      '<div style="display:flex;gap:4px;align-items:center;">' +
+      '<div class="signup-item-actions">' +
         '<button class="spotup-claim-btn" onclick="openClaimModal(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')">Claim</button>' +
         (canCancelSpotUp ? '<button class="spotup-action-btn" onclick="event.stopPropagation();cancelSpotUpAction(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')" title="Cancel spot up">\u2715</button>' : '') +
         ownRowCancelBtn(monday, dayIdx, safeName, safeTime, isMyRow, isAdmin) +
@@ -3057,7 +3079,7 @@ function renderSignupItem(s, monday, dayIdx, slot) {
         (s.notes ? '<div class="meta">' + escapeHtml(s.notes) + '</div>' : '') +
       '</div>' +
       (canManageClaimed || isAdmin ?
-        '<div style="display:flex;gap:4px;align-items:center;">' +
+        '<div class="signup-item-actions">' +
           (canManageClaimed ? '<button class="spotup-action-btn" onclick="event.stopPropagation();unclaimSpotUpAction(\'' + monday + '\',' + dayIdx + ',\'' + safeOrigName + '\',\'' + safeTime + '\')" title="Unclaim (revert to spot up)">Unclaim</button>' : '') +
           (canManageClaimed ? '<button class="spotup-action-btn" onclick="event.stopPropagation();reSpotUpAction(\'' + monday + '\',' + dayIdx + ',\'' + safeOrigName + '\',\'' + safeTime + '\')" title="Put this claimed spot back up">Re-Spot</button>' : '') +
           ownRowCancelBtn(monday, dayIdx, safeName, safeTime, isMyRow, isAdmin) +
@@ -3071,12 +3093,14 @@ function renderSignupItem(s, monday, dayIdx, slot) {
     : '';
   return '<div class="signup-item ' + (canSpotUp ? 'can-spotup' : '') + (isServed ? ' served-item' : '') + '" style="display:flex;align-items:center;' + gradStyle + earlyRowStyle + '">' +
     servedCb +
-    '<div style="flex:1;">' +
+    '<div style="flex:1;min-width:0;">' +
       '<span class="name" style="' + gradNameStyle + '">' + escapeHtml(display) + '</span>' + allergyBadge +
       (s.notes ? '<div class="meta">' + escapeHtml(s.notes) + '</div>' : '') +
     '</div>' +
-    spotUpBtn +
-    ownRowCancelBtn(monday, dayIdx, safeName, safeTime, isMyRow, isAdmin) +
+    '<div class="signup-item-actions">' +
+      spotUpBtn +
+      ownRowCancelBtn(monday, dayIdx, safeName, safeTime, isMyRow, isAdmin) +
+    '</div>' +
   '</div>';
 }
 
@@ -3253,7 +3277,7 @@ function openAdminSwapModal(monday, dayIdx, name, time, spotStatus, origName) {
   actionsHtml += '<button class="btn btn-primary" style="background:var(--accent);" onclick="doAdminSwap(\'' + monday + '\',' + dayIdx + ',\'' + name.replace(/'/g, "\\'") + '\',\'' + time.replace(/'/g, "\\'") + '\',\'' + (spotStatus||'') + '\',\'' + (origName||'').replace(/'/g, "\\'") + '\')">Assign</button>';
   if (spotStatus === 'claimed' || spotStatus === 'spotup') {
     const restoreName = origName || name;
-    actionsHtml += '<button class="btn btn-secondary" style="margin-left:4px;" onclick="doAdminRestore(\'' + monday + '\',' + dayIdx + ',\'' + name.replace(/'/g, "\\'") + '\',\'' + time.replace(/'/g, "\\'") + '\',\'' + restoreName.replace(/'/g, "\\'") + '\',\'' + (spotStatus||'') + '\')">Restore to ' + restoreName + '</button>';
+    actionsHtml += '<button class="btn btn-secondary btn-wrap" onclick="doAdminRestore(\'' + monday + '\',' + dayIdx + ',\'' + name.replace(/'/g, "\\'") + '\',\'' + time.replace(/'/g, "\\'") + '\',\'' + restoreName.replace(/'/g, "\\'") + '\',\'' + (spotStatus||'') + '\')">Restore to ' + escapeHtml(restoreName) + '</button>';
   }
   document.getElementById('spotupModalActions').innerHTML = actionsHtml;
 
@@ -3513,7 +3537,7 @@ function renderAdminWeekHTML() {
             '<div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text-dim);margin-bottom:8px;">Sign-up Time Slots</div>' +
             slotsHtml +
             '<div style="display:flex;align-items:center;gap:12px;margin-top:6px;">' +
-              '<button onclick="addSlot(' + i + ')" class="btn btn-secondary" style="font-size:12px;padding:5px 12px;width:auto;">+ Add Slot</button>' +
+              '<button onclick="addSlot(' + i + ')" class="btn btn-secondary btn-inline btn-sm">+ Add Slot</button>' +
               (slots.length > 0 ? '<a href="#" onclick="resetSlots(' + i + ');return false;" style="font-size:11px;color:var(--text-dim);text-decoration:underline;">Reset to defaults</a>' : '') +
             '</div>' +
           '</div>'
@@ -3853,7 +3877,7 @@ async function loadAccessRequests() {
           '<div class="setting-desc">' + (r.name || 'No name provided') + (dateStr ? ' — ' + dateStr : '') + '</div>' +
         '</div>' +
         '<div style="display:flex;gap:6px;align-items:center;">' +
-          '<button class="btn btn-secondary" style="width:auto;font-size:12px;padding:6px 14px;" onclick="adminApproveRequest(\'' + safeEmail + '\',\'' + safeName + '\')">Approve</button>' +
+          '<button class="btn btn-secondary btn-inline btn-sm" onclick="adminApproveRequest(\'' + safeEmail + '\',\'' + safeName + '\')">Approve</button>' +
           '<button class="remove-btn" onclick="adminDenyRequest(\'' + safeEmail + '\')" title="Deny">✕</button>' +
         '</div>' +
       '</div>';
@@ -3946,16 +3970,16 @@ function renderAdminAddNameBlock(monday, dayIdx, dayTimes) {
     : '<input type="hidden" id="' + blockId + '_time" value="' + escapeHtml(dayTimes[0] || '12:00 PM') + '">';
 
   return '<div class="admin-add-block" style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--border);">' +
-    '<button id="' + blockId + '_toggle" class="btn btn-secondary" style="font-size:12px;padding:6px 12px;width:auto;" ' +
+    '<button id="' + blockId + '_toggle" class="btn btn-secondary btn-inline btn-sm" ' +
       'onclick="toggleAdminAddBlock(\'' + monday + '\',' + dayIdx + ')">+ Add name</button>' +
-    '<div id="' + blockId + '_form" style="display:none;align-items:center;gap:6px;flex-wrap:wrap;">' +
+    '<div id="' + blockId + '_form" class="btn-row" style="display:none;">' +
       '<input type="text" id="' + blockId + '_name" list="adminAddMembersList" placeholder="Name" autocomplete="off" ' +
         'style="font-size:13px;padding:6px 8px;flex:1;min-width:140px;" ' +
         'onkeydown="if(event.key===\'Enter\'){event.preventDefault();submitAdminAddSignup(\'' + monday + '\',' + dayIdx + ');}">' +
       timeSelect +
-      '<button class="btn btn-primary" style="font-size:12px;padding:6px 12px;width:auto;" ' +
+      '<button class="btn btn-primary btn-inline btn-sm" ' +
         'onclick="submitAdminAddSignup(\'' + monday + '\',' + dayIdx + ')">Add</button>' +
-      '<button class="btn btn-secondary" style="font-size:12px;padding:6px 10px;width:auto;" ' +
+      '<button class="btn btn-secondary btn-icon" ' +
         'onclick="toggleAdminAddBlock(\'' + monday + '\',' + dayIdx + ')" title="Cancel">&#x2715;</button>' +
     '</div>' +
   '</div>';
@@ -4053,7 +4077,7 @@ function _adminEventRowHtml(evt) {
         '<div style="font-size:12px;color:var(--text-dim);">' + dateStr + ' &middot; ' + evt.signupCount + ' signed up</div>' +
       '</div>' +
       '<div style="display:flex;gap:8px;flex-shrink:0;margin-left:12px;">' +
-        '<button class="btn btn-secondary" style="width:auto;padding:5px 12px;font-size:12px;" onclick="editAdminEvent(\'' + safeId + '\')">Edit</button>' +
+        '<button class="btn btn-secondary btn-inline btn-sm" onclick="editAdminEvent(\'' + safeId + '\')">Edit</button>' +
         '<button class="remove-btn" title="Delete" onclick="deleteAdminEvent(\'' + safeId + '\',\'' + safeTitle + '\')">&#215;</button>' +
       '</div>' +
     '</div>' +
@@ -4096,8 +4120,10 @@ function editAdminEvent(eventId) {
         '<label class="option-pill"><input type="checkbox" id="editEvtInterestOnly_' + eventId + '"' + (evt.interestOnly ? ' checked' : '') + '><span class="pill-label" style="font-size:12px;">Interest Only</span></label>' +
       '</div>' +
       '<div style="display:flex;gap:10px;">' +
-        '<button class="btn btn-primary" style="width:auto;padding:9px 20px;font-size:13px;" onclick="saveAdminEvent(\'' + safeId + '\')">Save Changes</button>' +
-        '<button class="btn btn-secondary" style="width:auto;padding:9px 16px;font-size:13px;" onclick="loadAdminEvents()">Cancel</button>' +
+        '<div class="btn-row">' +
+        '<button class="btn btn-primary btn-inline" onclick="saveAdminEvent(\'' + safeId + '\')">Save Changes</button>' +
+        '<button class="btn btn-secondary btn-inline" onclick="loadAdminEvents()">Cancel</button>' +
+        '</div>' +
       '</div>' +
       '<div id="editEvtErr_' + eventId + '" style="display:none;color:var(--red);font-size:13px;margin-top:8px;"></div>';
   }).catch(() => showToast('Could not load event', 'var(--red)'));
@@ -4695,7 +4721,7 @@ function openMooseDaySheet(dateStr) {
           const tl = myEntry.time === '12:00 PM' ? '12:00\u20131:00 PM'
                    : myEntry.time === '1:00 PM' ? '1:00\u20132:00 PM' : (myEntry.time || '');
           mealHtml += '<div class="moose-meal-signed">&#10003; You\'re signed up' + (tl ? ' &middot; ' + tl : '') + '</div>' +
-            '<button class="btn btn-secondary" style="width:auto;padding:8px 20px;font-size:13px;" ' +
+            '<button class="btn btn-secondary btn-inline" ' +
             'onclick="removeMooseMeal(\'' + monday + '\',' + dayIdx + ',\'' + myEntry.name.replace(/'/g,"\\'") + '\',\'' + (myEntry.time||'').replace(/'/g,"\\'") + '\')">Remove Sign-Up</button>';
         } else if (isFrozen) {
           mealHtml += '<div style="font-family:\'Crimson Pro\',serif;font-size:14px;color:var(--text-dim);">Sign-ups are closed for this day.</div>';
@@ -4722,7 +4748,7 @@ function openMooseDaySheet(dateStr) {
           } else {
             _mooseSelectedTime = times[0]; // auto-select single slot
           }
-          mealHtml += '<button class="btn btn-primary" id="mooseMealBtn" style="width:auto;padding:10px 24px;font-size:14px;" ' +
+          mealHtml += '<button class="btn btn-primary btn-inline" id="mooseMealBtn" ' +
             'onclick="submitMooseMeal()">Sign Up for ' + escapeHtml(day.meal) + '</button>';
         }
         mealHtml += '</div>';

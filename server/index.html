@@ -97,12 +97,17 @@
   .card-title { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600; color: var(--text-bright); margin-bottom: 4px; }
   .card-sub { font-family: 'Crimson Pro', serif; color: var(--text-dim); font-size: 14px; font-style: italic; margin-bottom: 20px; }
 
-  .day-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(125px, 1fr)); gap: 10px; margin-bottom: 24px; }
+  .day-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(125px, 1fr)); gap: 10px; margin-bottom: 24px; align-items: start; }
+  .day-block { display: flex; flex-direction: column; min-width: 0; }
+  .day-block.expanded { grid-column: 1 / -1; }
   .day-card { border: 1px solid var(--border); border-radius: 4px; padding: 16px 12px; cursor: pointer; transition: all .2s; background: var(--surface); text-align: center; min-width: 0; font-family: inherit; color: inherit; width: 100%; appearance: none; -webkit-appearance: none; }
+  .day-block.expanded > .day-card { max-width: 160px; }
   .day-card:hover { border-color: var(--border-light); background: var(--surface2); }
   .day-card:focus-visible { outline: 2px solid var(--accent-muted); outline-offset: 2px; }
   .day-card.selected { border-color: var(--accent-muted); background: var(--accent-glow2); }
+  .day-card.signed:not(.selected) { border-color: var(--accent-muted); background: var(--accent-glow2); }
   .day-card.full, .day-card:disabled { border-color: var(--red); opacity: .4; cursor: not-allowed; }
+  .day-card.signed.full, .day-card.signed:disabled { opacity: 1; cursor: pointer; border-color: var(--accent-muted); }
   .day-card .day-name { font-family: 'Cormorant Garamond', serif; font-weight: 600; font-size: 16px; color: var(--text-bright); margin-bottom: 1px; }
   .day-card .day-meal { font-size: 10px; font-weight: 500; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); }
   .day-card .day-date { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
@@ -111,6 +116,14 @@
   .day-card .day-spots.almost { background: #B07A2A12; color: var(--orange); }
   .day-card .day-spots.full-tag { background: #B1424212; color: var(--red); }
   .day-card .day-menu-preview { font-family: 'Crimson Pro', serif; font-size: 11px; font-style: italic; color: var(--text-dim); margin-top: 6px; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .day-signed-badge { margin-top: 8px; font-family: 'Jost', sans-serif; font-size: 10px; font-weight: 600; letter-spacing: .6px; text-transform: uppercase; color: var(--accent); }
+  .day-inline-details { margin-top: 10px; padding: 16px; background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; text-align: left; }
+  .day-inline-details .day-remove-link { font-family: 'Jost', sans-serif; font-size: 12px; font-weight: 500; letter-spacing: .4px; color: var(--text-dim); background: none; border: none; cursor: pointer; padding: 6px 0; text-decoration: underline; text-underline-offset: 2px; }
+  .day-inline-details .day-remove-link:hover { color: var(--red); }
+  .your-info-summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .your-info-chips { font-family: 'Crimson Pro', serif; font-size: 16px; color: var(--text-bright); line-height: 1.4; }
+  .your-info-chips .sep { color: var(--text-dim); margin: 0 6px; }
+  .your-info-chips .muted { color: var(--text-dim); font-style: italic; font-size: 14px; }
 
   #mySignupsSummary { overflow: hidden; max-width: 100%; }
   .my-signups-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 0; border-bottom: 1px solid var(--border); font-family: 'Crimson Pro', serif; font-size: 15px; color: var(--text-bright); }
@@ -507,41 +520,48 @@
 
   <!-- ========== SIGN UP ========== -->
   <div id="tab-signup" class="section active">
-    <div class="card">
+    <div class="card" id="yourInfoCard">
       <div class="card-title">Your Info</div>
-      <div class="card-sub">Tell us who you are and any dietary needs</div>
-      <div class="field">
-        <label class="field-label" for="memberName">Name <span class="req">*</span></label>
-        <input type="text" id="memberName" placeholder="e.g. Robby Meek">
+      <div id="yourInfoSummary" class="your-info-summary" style="display:none;">
+        <div class="your-info-chips" id="yourInfoChips"></div>
+        <button type="button" class="btn btn-secondary" style="width:auto;padding:10px 18px;" onclick="expandYourInfo()">Edit</button>
       </div>
-      <div class="field">
-        <label class="field-label">Dietary Preference <span class="req">*</span></label>
-        <div class="option-grid">
-          <label class="option-pill"><input type="radio" name="diet" value="No Dietary Restrictions" checked><span class="pill-label">No Restrictions</span></label>
-          <label class="option-pill"><input type="radio" name="diet" value="Vegan"><span class="pill-label">Vegan</span></label>
-          <label class="option-pill"><input type="radio" name="diet" value="Vegetarian"><span class="pill-label">Vegetarian</span></label>
-          <label class="option-pill"><input type="radio" name="diet" value="Gluten-Free"><span class="pill-label">Gluten-Free</span></label>
-          <label class="option-pill"><input type="radio" name="diet" value="No Pork"><span class="pill-label">No Pork</span></label>
-          <label class="option-pill"><input type="radio" name="diet" value="No Beef"><span class="pill-label">No Beef</span></label>
+      <div id="yourInfoFields">
+        <div class="card-sub">Tell us who you are and any dietary needs</div>
+        <div class="field">
+          <label class="field-label" for="memberName">Name <span class="req">*</span></label>
+          <input type="text" id="memberName" placeholder="e.g. Robby Meek" oninput="onYourInfoChanged()">
         </div>
-      </div>
-      <div class="field">
-        <label class="field-label" for="allergies">Allergies</label>
-        <input type="text" id="allergies" placeholder="e.g. peanut, tree nut, shellfish, dairy">
-        <div class="field-hint">Food allergies or medical dietary needs the kitchen must know.</div>
-      </div>
-      <div class="field" style="margin-bottom:0;">
-        <label class="option-pill">
-          <input type="checkbox" id="gradGasman">
-          <span class="pill-label" style="font-weight:600;letter-spacing:.5px;">Grad Gasman</span>
-        </label>
-        <div class="field-hint">Check if you&rsquo;re a Grad Gasman dining under that arrangement.</div>
+        <div class="field">
+          <label class="field-label">Dietary Preference <span class="req">*</span></label>
+          <div class="option-grid">
+            <label class="option-pill"><input type="radio" name="diet" value="No Dietary Restrictions" checked onchange="onYourInfoChanged()"><span class="pill-label">No Restrictions</span></label>
+            <label class="option-pill"><input type="radio" name="diet" value="Vegan" onchange="onYourInfoChanged()"><span class="pill-label">Vegan</span></label>
+            <label class="option-pill"><input type="radio" name="diet" value="Vegetarian" onchange="onYourInfoChanged()"><span class="pill-label">Vegetarian</span></label>
+            <label class="option-pill"><input type="radio" name="diet" value="Gluten-Free" onchange="onYourInfoChanged()"><span class="pill-label">Gluten-Free</span></label>
+            <label class="option-pill"><input type="radio" name="diet" value="No Pork" onchange="onYourInfoChanged()"><span class="pill-label">No Pork</span></label>
+            <label class="option-pill"><input type="radio" name="diet" value="No Beef" onchange="onYourInfoChanged()"><span class="pill-label">No Beef</span></label>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label" for="allergies">Allergies</label>
+          <input type="text" id="allergies" placeholder="e.g. peanut, tree nut, shellfish, dairy" oninput="onYourInfoChanged()">
+          <div class="field-hint">Food allergies or medical dietary needs the kitchen must know.</div>
+        </div>
+        <div class="field" style="margin-bottom:0;">
+          <label class="option-pill">
+            <input type="checkbox" id="gradGasman" onchange="onYourInfoChanged()">
+            <span class="pill-label" style="font-weight:600;letter-spacing:.5px;">Grad Gasman</span>
+          </label>
+          <div class="field-hint">Check if you&rsquo;re a Grad Gasman dining under that arrangement.</div>
+        </div>
+        <button type="button" id="yourInfoDoneBtn" class="btn btn-secondary" style="display:none;width:auto;margin-top:16px;padding:10px 18px;" onclick="collapseYourInfo()">Done</button>
       </div>
     </div>
 
     <div class="card">
       <div class="card-title">Select Meals</div>
-      <div class="card-sub">Pick the days you'd like to attend this week</div>
+      <div class="card-sub">Tap a day to add or edit. Signed days show your time — tap again to remove.</div>
       <div class="field">
         <label class="field-label" for="weekSelect">Week of (Monday)</label>
         <div style="display:flex;gap:8px;align-items:center;">
@@ -561,7 +581,7 @@
       <div id="dayCards" class="day-grid"></div>
     </div>
 
-    <div id="timeSection" class="card" style="display:none;">
+    <div id="timeSection" class="card" style="display:none;" aria-hidden="true">
       <div class="card-title">Meal Details <span style="color:var(--red);font-size:14px;">*</span></div>
       <div class="card-sub">Select your time, early plate preference, and any day-specific kitchen notes</div>
       <div id="timeSelectors"></div>
@@ -571,12 +591,12 @@
       <div class="field" style="margin-bottom:0;">
         <label class="field-label" for="notes">Notes for the kitchen</label>
         <textarea id="notes" placeholder="Anything that applies to all selected days (not allergies — use Allergies above)"></textarea>
-        <div class="field-hint">Allergies stay in Your Info. Day-specific plating notes go under each day above.</div>
+        <div class="field-hint">Allergies stay in Your Info. Day-specific plating notes go under each selected day.</div>
       </div>
     </div>
 
     <button class="btn btn-primary" id="submitBtn" onclick="submitSignup()">Submit Sign-Up</button>
-    <div style="font-size:12px;color:var(--text-dim);margin-top:8px;font-family:'Crimson Pro',serif;font-style:italic;text-align:center;">To update your sign-ups, re-submit with all the days you want for this week.</div>
+    <div style="font-size:12px;color:var(--text-dim);margin-top:8px;font-family:'Crimson Pro',serif;font-style:italic;text-align:center;">Save updates the days you&rsquo;ve selected. Uncheck a signed day to remove it.</div>
   </div>
 
   <!-- ========== VIEW ========== -->
@@ -1144,6 +1164,7 @@ document.addEventListener('keydown', function(e) {
 function prefillName(name) {
   const el = document.getElementById('memberName');
   if (el && !el.value) el.value = name;
+  refreshYourInfoCollapse();
 }
 
 // ── Preferences (localStorage) ──
@@ -1169,6 +1190,67 @@ function restorePreferences() {
     if (prefs.allergies) { const el = document.getElementById('allergies'); if (el && !el.value) el.value = prefs.allergies; }
     if (prefs.gradGasman) { const el = document.getElementById('gradGasman'); if (el) el.checked = prefs.gradGasman; }
   } catch(e) {}
+  refreshYourInfoCollapse();
+}
+
+let _yourInfoExpanded = false;
+
+function dietShortLabel(value) {
+  if (!value || value === 'No Dietary Restrictions') return 'No restrictions';
+  return value;
+}
+
+function refreshYourInfoCollapse() {
+  const nameEl = document.getElementById('memberName');
+  const name = nameEl ? nameEl.value.trim() : '';
+  const diet = (document.querySelector('input[name="diet"]:checked') || {}).value || 'No Dietary Restrictions';
+  const allergies = (document.getElementById('allergies') || {}).value || '';
+  const grad = !!(document.getElementById('gradGasman') || {}).checked;
+  const summary = document.getElementById('yourInfoSummary');
+  const fields = document.getElementById('yourInfoFields');
+  const chips = document.getElementById('yourInfoChips');
+  const doneBtn = document.getElementById('yourInfoDoneBtn');
+  if (!summary || !fields || !chips) return;
+
+  const returning = !!name;
+  if (returning && !_yourInfoExpanded) {
+    let html = '<strong>' + escapeHtml(name) + '</strong>';
+    html += '<span class="sep">&middot;</span>' + escapeHtml(dietShortLabel(diet));
+    if (allergies.trim()) html += '<span class="sep">&middot;</span><span class="muted">' + escapeHtml(allergies.trim()) + '</span>';
+    if (grad) html += '<span class="sep">&middot;</span><span class="muted">Grad Gasman</span>';
+    chips.innerHTML = html;
+    summary.style.display = 'flex';
+    fields.style.display = 'none';
+    if (doneBtn) doneBtn.style.display = 'none';
+  } else {
+    summary.style.display = 'none';
+    fields.style.display = 'block';
+    if (doneBtn) doneBtn.style.display = returning ? 'inline-block' : 'none';
+  }
+}
+
+function expandYourInfo() {
+  _yourInfoExpanded = true;
+  refreshYourInfoCollapse();
+  const nameEl = document.getElementById('memberName');
+  if (nameEl) nameEl.focus();
+}
+
+function collapseYourInfo() {
+  savePreferences();
+  _yourInfoExpanded = false;
+  refreshYourInfoCollapse();
+}
+
+function onYourInfoChanged() {
+  // Keep submit / my-row identity in sync when guest edits name
+  if (selectedDays.size > 0 || currentWeekData) {
+    // Re-hydrate signed badges if name identity changes
+    if (currentWeekData && document.getElementById('dayCards')) {
+      // Don't wipe in-progress edits — only refresh summary chips when collapsed
+    }
+  }
+  if (!_yourInfoExpanded) refreshYourInfoCollapse();
 }
 
 // ── Open Access & Session Restore ──
@@ -1670,11 +1752,26 @@ function updateSubmitButtonLabel() {
 
 function cancelMySignup(monday, dayIdx, name, time) {
   _pendingCancels.add(dayIdx);
+  _cancelData[dayIdx] = { monday, name, time, selectedTime: selectedTimes[dayIdx], opts: dayOptions[dayIdx] ? Object.assign({}, dayOptions[dayIdx]) : null };
+  selectedDays.delete(dayIdx);
+  delete selectedTimes[dayIdx];
+  delete dayOptions[dayIdx];
+  if (focusedDay === dayIdx) focusedDay = selectedDays.size ? [...selectedDays].sort()[0] : null;
+  syncDayCardDom(dayIdx);
+  updateTimeSection();
   renderMySignupsSummary();
 
   showToast('Sign-up removed', '#4A4A4A', () => {
     _pendingCancels.delete(dayIdx);
+    const saved = _cancelData[dayIdx];
     delete _cancelData[dayIdx];
+    selectedDays.add(dayIdx);
+    if (saved && saved.selectedTime) selectedTimes[dayIdx] = saved.selectedTime;
+    else if (saved && saved.time) selectedTimes[dayIdx] = saved.time;
+    if (saved && saved.opts) dayOptions[dayIdx] = saved.opts;
+    focusedDay = dayIdx;
+    syncDayCardDom(dayIdx);
+    updateTimeSection();
     renderMySignupsSummary();
   });
 
@@ -1690,7 +1787,9 @@ function cancelMySignup(monday, dayIdx, name, time) {
       else if (document.querySelector('.tab.active[data-tab="view"]')) await loadViewData();
     } catch(e) {
       _pendingCancels.delete(dayIdx);
+      delete _cancelData[dayIdx];
       renderMySignupsSummary();
+      if (currentWeekData) renderDayCards();
       showToast('Could not remove \u2014 please try again', 'var(--red)');
     }
   }, 3400);
@@ -1815,6 +1914,90 @@ let currentWeekData = null;
 let selectedDays = new Set();
 let selectedTimes = {};
 let dayOptions = {};
+let focusedDay = null; // day index whose inline details are expanded
+
+function formatSlotLabel(time) {
+  if (time === '12:00 PM') return '12\u20131';
+  if (time === '1:00 PM') return '1\u20132';
+  if (time === '7:30 PM') return '7:30';
+  return time || '';
+}
+
+function findMySignup(dayIdx) {
+  const myName = getMyName();
+  if (!myName || !currentWeekData) return null;
+  if (_pendingCancels.has(dayIdx)) return null;
+  return (currentWeekData.signups[dayIdx] || []).find(s => s.name && s.name.toLowerCase().trim() === myName) || null;
+}
+
+function isDaySignedByMe(dayIdx) {
+  return !!findMySignup(dayIdx);
+}
+
+function extractDayAccommodations(signupAllergies) {
+  const memberAllergies = ((document.getElementById('allergies') || {}).value || '').trim();
+  let accom = (signupAllergies || '').trim();
+  if (!accom) return '';
+  if (memberAllergies && accom.toLowerCase().startsWith(memberAllergies.toLowerCase())) {
+    accom = accom.slice(memberAllergies.length).replace(/^,\s*/, '');
+  }
+  return accom;
+}
+
+function hydrateSelectionsFromSignups() {
+  if (!currentWeekData) return;
+  const myName = getMyName();
+  const { config, signups } = currentWeekData;
+  selectedDays.clear();
+  selectedTimes = {};
+  dayOptions = {};
+  focusedDay = null;
+  if (!myName) return;
+
+  const signedIdxs = [];
+  config.forEach((day, i) => {
+    if (!day.enabled || _pendingCancels.has(i)) return;
+    const mine = (signups[i] || []).find(s => s.name && s.name.toLowerCase().trim() === myName);
+    if (!mine) return;
+    selectedDays.add(i);
+    signedIdxs.push(i);
+    if (mine.time) selectedTimes[i] = mine.time;
+    dayOptions[i] = {
+      early: mine.early === true || mine.early === 'true' || mine.early === 'TRUE',
+      guests: normalizeGuestNames(mine.guests),
+      accommodations: extractDayAccommodations(mine.allergies)
+    };
+  });
+  if (signedIdxs.length) focusedDay = signedIdxs[0];
+}
+
+function syncDayCardDom(dayIdx) {
+  const block = document.querySelector('.day-block[data-day-block="' + dayIdx + '"]');
+  const card = document.querySelector('.day-card[data-day="' + dayIdx + '"]');
+  if (!card) return;
+  const isSelected = selectedDays.has(dayIdx);
+  const isSigned = isDaySignedByMe(dayIdx);
+  const isFocused = focusedDay === dayIdx && isSelected;
+  card.classList.toggle('selected', isSelected);
+  card.classList.toggle('signed', isSigned);
+  card.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+  if (block) block.classList.toggle('expanded', isFocused);
+  let badge = card.querySelector('.day-signed-badge');
+  if (isSigned) {
+    const mine = findMySignup(dayIdx);
+    const label = 'Signed \u00b7 ' + formatSlotLabel(mine && mine.time);
+    if (!badge) {
+      badge = document.createElement('div');
+      badge.className = 'day-signed-badge';
+      card.appendChild(badge);
+    }
+    badge.textContent = label;
+  } else if (badge) {
+    badge.remove();
+  }
+  const details = document.getElementById('dayDetails_' + dayIdx);
+  if (details) details.style.display = isFocused ? 'block' : 'none';
+}
 
 async function loadWeekData(autoAdvance) {
   updateWeekLabels();
@@ -1825,8 +2008,10 @@ async function loadWeekData(autoAdvance) {
   selectedDays.clear();
   selectedTimes = {};
   dayOptions = {};
+  focusedDay = null;
   document.getElementById('dayCards').textContent = '';
-  document.getElementById('timeSection').style.display = 'none';
+  const timeSection = document.getElementById('timeSection');
+  if (timeSection) timeSection.style.display = 'none';
 
   // Show cached data instantly if available
   const cachedWeek = weekCache[monday] || getCache('week_' + monday);
@@ -1920,6 +2105,8 @@ function buildDefaultWeek(monday) {
 function renderDayCards() {
   if (!currentWeekData) return;
   _pendingCancels.clear(); // fresh data, reset optimistic state
+  _cancelData = {};
+  hydrateSelectionsFromSignups();
   const { config, signups } = currentWeekData;
 
   let html = '';
@@ -1930,10 +2117,10 @@ function renderDayCards() {
       const msg = reopenedDays.length > 0
         ? 'Sign-ups for this week are closed, except for ' + reopenedDays.join(', ') + '.'
         : 'Sign-ups for this week are closed.';
-      html += '<div style="background:#B1424210;border:1px solid #B1424230;border-radius:4px;padding:14px 18px;font-family:\'Crimson Pro\',serif;font-size:14px;color:var(--red);margin-bottom:16px;line-height:1.5;">' + escapeHtml(msg) + '</div>';
+      html += '<div style="background:#B1424210;border:1px solid #B1424230;border-radius:4px;padding:14px 18px;font-family:\'Crimson Pro\',serif;font-size:14px;color:var(--red);margin-bottom:16px;line-height:1.5;grid-column:1/-1;">' + escapeHtml(msg) + '</div>';
     } else {
       const fd = new Date(currentWeekData.freezeDate);
-      html += '<div style="background:#B07A2A10;border:1px solid #B07A2A25;border-radius:4px;padding:12px 16px;font-family:\'Crimson Pro\',serif;font-size:13px;color:var(--orange);margin-bottom:16px;font-style:italic;">Sign-ups close ' + fd.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}) + ' at ' + fd.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}) + '</div>';
+      html += '<div style="background:#B07A2A10;border:1px solid #B07A2A25;border-radius:4px;padding:12px 16px;font-family:\'Crimson Pro\',serif;font-size:13px;color:var(--orange);margin-bottom:16px;font-style:italic;grid-column:1/-1;">Sign-ups close ' + fd.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}) + ' at ' + fd.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}) + '</div>';
     }
   }
 
@@ -1946,114 +2133,202 @@ function renderDayCards() {
     const isFull = total >= maxTotal;
     const isClosed = !isDayOpenForSignups(currentWeekData, i);
     const pct = total / maxTotal;
+    const mine = findMySignup(i);
+    const iAmSigned = !!mine;
+    const isSelected = selectedDays.has(i);
+    const isFocused = focusedDay === i && isSelected;
 
     let spotsClass = 'open', spotsText = (maxTotal - total) + ' spots left';
-    if (isClosed) { spotsClass = 'full-tag'; spotsText = 'CLOSED'; }
-    else if (isFull) { spotsClass = 'full-tag'; spotsText = 'FULL'; }
-    else if (pct > 0.8) { spotsClass = 'almost'; spotsText = (maxTotal - total) + ' spots left'; }
+    if (isClosed && !iAmSigned) { spotsClass = 'full-tag'; spotsText = 'CLOSED'; }
+    else if (isFull && !iAmSigned) { spotsClass = 'full-tag'; spotsText = 'FULL'; }
+    else if (pct > 0.8 && !iAmSigned) { spotsClass = 'almost'; spotsText = (maxTotal - total) + ' spots left'; }
+    else if (iAmSigned) { spotsClass = 'open'; spotsText = (maxTotal - total) + ' spots left'; }
 
     const menuPreview = day.menu ? (day.menu.length > 32 ? day.menu.slice(0, 32) + '\u2026' : day.menu) : '';
-    const isSelected = selectedDays.has(i);
-    const unavailable = isFull || isClosed;
-    html += '<button type="button" class="day-card ' + (unavailable ? 'full' : '') + (isSelected ? ' selected' : '') + '" data-day="' + i + '" aria-pressed="' + (isSelected ? 'true' : 'false') + '"' +
+    const unavailable = ((isFull && !iAmSigned) || (isClosed && !iAmSigned));
+    const signedBadge = iAmSigned
+      ? '<div class="day-signed-badge">Signed \u00b7 ' + escapeHtml(formatSlotLabel(mine.time)) + '</div>'
+      : '';
+
+    html += '<div class="day-block' + (isFocused ? ' expanded' : '') + '" data-day-block="' + i + '">' +
+      '<button type="button" class="day-card ' + (unavailable ? 'full' : '') + (isSelected ? ' selected' : '') + (iAmSigned ? ' signed' : '') + '" data-day="' + i + '" aria-pressed="' + (isSelected ? 'true' : 'false') + '"' +
       (unavailable ? ' disabled' : ' onclick="toggleDay(' + i + ')"') + '>' +
       '<div class="day-meal">' + escapeHtml(day.meal) + '</div>' +
       '<div class="day-name">' + escapeHtml(day.day) + '</div>' +
       '<div class="day-date">' + new Date(day.date + 'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}) + '</div>' +
       (menuPreview ? '<div class="day-menu-preview">' + menuPreview + '</div>' : '') +
       '<div class="day-spots ' + spotsClass + '">' + spotsText + '</div>' +
-    '</button>';
+      signedBadge +
+    '</button>' +
+    '<div class="day-inline-details" id="dayDetails_' + i + '" style="display:' + (isFocused ? 'block' : 'none') + '"></div>' +
+    '</div>';
   });
-  document.getElementById('dayCards').innerHTML = html || '<div class="info-banner">No meals configured for this week. Try selecting a different week.</div>';
+  document.getElementById('dayCards').innerHTML = html || '<div class="info-banner" style="grid-column:1/-1;">No meals configured for this week. Try selecting a different week.</div>';
+  updateTimeSection();
   renderMySignupsSummary();
+  refreshYourInfoCollapse();
+}
+
+function attemptDeselectDay(idx) {
+  const mine = findMySignup(idx);
+  if (mine && currentWeekData) {
+    cancelMySignup(currentWeekData.monday, idx, mine.name, mine.time || '');
+    return;
+  }
+  selectedDays.delete(idx);
+  delete selectedTimes[idx];
+  delete dayOptions[idx];
+  if (focusedDay === idx) focusedDay = selectedDays.size ? [...selectedDays].sort()[0] : null;
+  syncDayCardDom(idx);
+  if (focusedDay != null) syncDayCardDom(focusedDay);
+  updateTimeSection();
+  updateSubmitButtonLabel();
 }
 
 function toggleDay(idx) {
   const card = document.querySelector('.day-card[data-day="' + idx + '"]');
-  if (!card || card.disabled) return;
-  if (!isDayOpenForSignups(currentWeekData, idx)) {
+  if (!card || (card.disabled && !isDaySignedByMe(idx))) return;
+  const iAmSigned = isDaySignedByMe(idx);
+  if (!iAmSigned && !isDayOpenForSignups(currentWeekData, idx)) {
     showToast('Sign-ups are closed for this day', 'var(--red)');
     return;
   }
-  if (selectedDays.has(idx)) { selectedDays.delete(idx); card.classList.remove('selected'); card.setAttribute('aria-pressed', 'false'); }
-  else { selectedDays.add(idx); card.classList.add('selected'); card.setAttribute('aria-pressed', 'true'); }
+
+  // Re-selecting a day mid-cancel undoes the pending remove
+  if (_pendingCancels.has(idx)) {
+    _pendingCancels.delete(idx);
+    const saved = _cancelData[idx];
+    delete _cancelData[idx];
+    selectedDays.add(idx);
+    if (saved && saved.selectedTime) selectedTimes[idx] = saved.selectedTime;
+    else if (saved && saved.time) selectedTimes[idx] = saved.time;
+    if (saved && saved.opts) dayOptions[idx] = saved.opts;
+    focusedDay = idx;
+    if (_toastTimer) { clearTimeout(_toastTimer); _toastTimer = null; }
+    _toastUndoFn = null;
+    const toast = document.getElementById('toast');
+    if (toast) toast.classList.remove('show');
+    syncDayCardDom(idx);
+    updateTimeSection();
+    renderMySignupsSummary();
+    return;
+  }
+
+  if (selectedDays.has(idx)) {
+    if (focusedDay === idx) {
+      // Second tap on the focused day removes / deselects
+      attemptDeselectDay(idx);
+      return;
+    }
+    // First tap on an already-selected day just expands its details
+    const prev = focusedDay;
+    focusedDay = idx;
+    if (prev != null) syncDayCardDom(prev);
+    syncDayCardDom(idx);
+    updateTimeSection();
+    return;
+  }
+
+  selectedDays.add(idx);
+  const prev = focusedDay;
+  focusedDay = idx;
+  if (prev != null) syncDayCardDom(prev);
+  syncDayCardDom(idx);
   updateTimeSection();
+  updateSubmitButtonLabel();
+}
+
+function buildDayDetailsHtml(i) {
+  if (!currentWeekData || (!isDayOpenForSignups(currentWeekData, i) && !isDaySignedByMe(i))) {
+    return '<div style="font-family:\'Crimson Pro\',serif;font-size:14px;color:var(--text-dim);font-style:italic;">Sign-ups are closed for this day.</div>';
+  }
+  const { config, signups } = currentWeekData;
+  const day = config[i];
+  const daySups = signups[i] || [];
+  const times = getDayTimes(day);
+  const guestsAllowed = day.guestsAllowed || false;
+  const iAmSigned = isDaySignedByMe(i);
+  let html = '';
+  html += '<div style="font-family:\'Cormorant Garamond\',serif;font-weight:600;font-size:18px;color:var(--text-bright);margin-bottom:12px;">' + escapeHtml(day.day) + ' — ' + escapeHtml(day.meal) + '</div>';
+  if (day.menu) html += '<div class="menu-display"><strong>Menu:</strong> ' + escapeHtml(day.menu) + '</div>';
+
+  if (times.length > 1) {
+    html += '<div style="font-family:\'Jost\',sans-serif;font-size:11px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px;">Time Slot <span style="color:var(--red);">*</span></div>';
+  }
+  html += '<div class="time-row" style="margin-bottom:14px;">';
+  times.forEach(t => {
+    const count = signupGroupSize(daySups.filter(s => slotMatchesSignup(s, t)));
+    const cap = getCapForSlot(t, day);
+    const full = count >= cap && selectedTimes[i] !== t;
+    const label = t === '12:00 PM' ? '12:00\u20131:00 PM' : t === '1:00 PM' ? '1:00\u20132:00 PM' : t;
+    const autoSelected = times.length === 1 && !full;
+    html += '<button type="button" class="time-chip ' + (full ? 'disabled' : '') + (autoSelected || selectedTimes[i] === t ? ' selected' : '') + '" data-day="' + i + '" data-time="' + t + '" aria-pressed="' + ((autoSelected || selectedTimes[i] === t) ? 'true' : 'false') + '"' +
+      (full ? ' disabled' : ' onclick="selectTime(this,' + i + ',\'' + t + '\')"') + '>' +
+      '<div class="time-label">' + label + '</div>' +
+      '<div class="time-spots">' + (full ? 'FULL' : count + '/' + cap) + '</div>' +
+    '</button>';
+  });
+  html += '</div>';
+
+  if (times.length === 1) { selectedTimes[i] = times[0]; }
+
+  const earlyChecked = !!(dayOptions[i] && dayOptions[i].early);
+  html += '<div style="margin-bottom:10px;">' +
+    '<label class="option-pill">' +
+      '<input type="checkbox" id="early_' + i + '"' + (earlyChecked ? ' checked' : '') + ' onchange="dayOptions[' + i + '] = dayOptions[' + i + '] || {}; dayOptions[' + i + '].early = this.checked;">' +
+      '<span class="pill-label">Early plate</span>' +
+    '</label>' +
+  '</div>';
+
+  if (guestsAllowed) {
+    const guests = normalizeGuestNames((dayOptions[i] || {}).guests);
+    const guestLimit = getGuestLimitPerSignup(currentWeekData);
+    html += '<div class="guest-builder">' +
+      '<label style="font-family:\'Jost\',sans-serif;font-size:11px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-dim);">Guests ($20/pp)' + (guestLimit > 0 ? ' (max ' + guestLimit + ')' : '') + '</label>' +
+      '<div id="guestRows_' + i + '">' + renderGuestRowsHtml(i, guests) + '</div>' +
+      '<button type="button" class="guest-add-btn" onclick="addGuestInput(' + i + ')">+ Add Guest</button>' +
+    '</div>';
+    dayOptions[i] = dayOptions[i] || {};
+    dayOptions[i].guests = guests;
+  }
+
+  const accomVal = escapeHtml((dayOptions[i] && dayOptions[i].accommodations) || '');
+  html += '<div>' +
+    '<label style="font-family:\'Jost\',sans-serif;font-size:11px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-dim);">Kitchen notes for ' + escapeHtml(day.day) + '</label>' +
+    '<input type="text" id="accom_' + i + '" value="' + accomVal + '" placeholder="e.g. no cheese, extra rice (this day only)" style="margin-top:6px;" oninput="dayOptions[' + i + '] = dayOptions[' + i + '] || {}; dayOptions[' + i + '].accommodations = this.value;">' +
+  '</div>';
+
+  if (iAmSigned) {
+    html += '<div style="margin-top:14px;"><button type="button" class="day-remove-link" onclick="attemptDeselectDay(' + i + ')">Remove this sign-up</button></div>';
+  }
+
+  return html;
 }
 
 function updateTimeSection() {
   if (currentWeekData) {
     [...selectedDays].forEach(i => {
-      if (!isDayOpenForSignups(currentWeekData, i)) {
+      if (!isDaySignedByMe(i) && !isDayOpenForSignups(currentWeekData, i)) {
         selectedDays.delete(i);
-        const card = document.querySelector('.day-card[data-day="' + i + '"]');
-        if (card) card.classList.remove('selected');
+        syncDayCardDom(i);
       }
     });
   }
-  if (!currentWeekData || selectedDays.size === 0) {
-    document.getElementById('timeSection').style.display = 'none'; return;
-  }
-  document.getElementById('timeSection').style.display = 'block';
-  const { config, signups } = currentWeekData;
+  const timeSection = document.getElementById('timeSection');
+  if (timeSection) timeSection.style.display = 'none';
 
-  let html = '';
-  [...selectedDays].sort().forEach(i => {
-    if (!isDayOpenForSignups(currentWeekData, i)) return;
-    const day = config[i];
-    const daySups = signups[i] || [];
-    const times = getDayTimes(day);
-    const guestsAllowed = day.guestsAllowed || false;
-    html += '<div style="margin-bottom:20px;padding:16px;background:var(--surface2);border-radius:4px;border:1px solid var(--border);">' +
-      '<div style="font-family:\'Cormorant Garamond\',serif;font-weight:600;font-size:18px;color:var(--text-bright);margin-bottom:12px;">' + escapeHtml(day.day) + ' — ' + escapeHtml(day.meal) + '</div>';
-    if (day.menu) html += '<div class="menu-display"><strong>Menu:</strong> ' + escapeHtml(day.menu) + '</div>';
+  if (!currentWeekData) return;
 
-    if (times.length > 1) {
-      html += '<div style="font-family:\'Jost\',sans-serif;font-size:11px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px;">Time Slot <span style="color:var(--red);">*</span></div>';
-    }
-    html += '<div class="time-row" style="margin-bottom:14px;">';
-    times.forEach(t => {
-      const count = signupGroupSize(daySups.filter(s => slotMatchesSignup(s, t)));
-      const cap = getCapForSlot(t, day);
-      const full = count >= cap;
-      const label = t === '12:00 PM' ? '12:00\u20131:00 PM' : t === '1:00 PM' ? '1:00\u20132:00 PM' : t;
-      const autoSelected = times.length === 1 && !full;
-      html += '<button type="button" class="time-chip ' + (full ? 'disabled' : '') + (autoSelected || selectedTimes[i] === t ? ' selected' : '') + '" data-day="' + i + '" data-time="' + t + '" aria-pressed="' + ((autoSelected || selectedTimes[i] === t) ? 'true' : 'false') + '"' +
-        (full ? ' disabled' : ' onclick="selectTime(this,' + i + ',\'' + t + '\')"') + '>' +
-        '<div class="time-label">' + label + '</div>' +
-        '<div class="time-spots">' + (full ? 'FULL' : count + '/' + cap) + '</div>' +
-      '</button>';
-    });
-    html += '</div>';
-
-    if (times.length === 1) { selectedTimes[i] = times[0]; }
-
-    html += '<div style="margin-bottom:10px;">' +
-      '<label class="option-pill">' +
-        '<input type="checkbox" id="early_' + i + '" onchange="dayOptions[' + i + '] = dayOptions[' + i + '] || {}; dayOptions[' + i + '].early = this.checked;">' +
-        '<span class="pill-label">Early plate</span>' +
-      '</label>' +
-    '</div>';
-
-    if (guestsAllowed) {
-      const guests = normalizeGuestNames((dayOptions[i] || {}).guests);
-      const guestLimit = getGuestLimitPerSignup(currentWeekData);
-      html += '<div class="guest-builder">' +
-        '<label style="font-family:\'Jost\',sans-serif;font-size:11px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-dim);">Guests ($20/pp)' + (guestLimit > 0 ? ' (max ' + guestLimit + ')' : '') + '</label>' +
-        '<div id="guestRows_' + i + '">' + renderGuestRowsHtml(i, guests) + '</div>' +
-        '<button type="button" class="guest-add-btn" onclick="addGuestInput(' + i + ')">+ Add Guest</button>' +
-      '</div>';
-      dayOptions[i] = dayOptions[i] || {};
-      dayOptions[i].guests = guests;
-    }
-
-    html += '<div>' +
-      '<label style="font-family:\'Jost\',sans-serif;font-size:11px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-dim);">Kitchen notes for ' + escapeHtml(day.day) + '</label>' +
-      '<input type="text" id="accom_' + i + '" placeholder="e.g. no cheese, extra rice (this day only)" style="margin-top:6px;" oninput="dayOptions[' + i + '] = dayOptions[' + i + '] || {}; dayOptions[' + i + '].accommodations = this.value;">' +
-    '</div>';
-
-    html += '</div>';
+  // Clear unfocused detail panels; fill the focused one
+  currentWeekData.config.forEach((day, i) => {
+    if (!day.enabled) return;
+    const details = document.getElementById('dayDetails_' + i);
+    if (!details) return;
+    const isFocused = focusedDay === i && selectedDays.has(i);
+    details.style.display = isFocused ? 'block' : 'none';
+    if (isFocused) details.innerHTML = buildDayDetailsHtml(i);
+    else details.innerHTML = '';
   });
-  document.getElementById('timeSelectors').innerHTML = html;
 }
 
 function selectTime(el, dayIdx, time) {

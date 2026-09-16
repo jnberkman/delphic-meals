@@ -97,11 +97,9 @@
   .card-title { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600; color: var(--text-bright); margin-bottom: 4px; }
   .card-sub { font-family: 'Crimson Pro', serif; color: var(--text-dim); font-size: 14px; font-style: italic; margin-bottom: 20px; }
 
-  .day-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(125px, 1fr)); gap: 10px; margin-bottom: 24px; align-items: start; }
-  .day-block { display: flex; flex-direction: column; min-width: 0; }
-  .day-block.expanded { grid-column: 1 / -1; }
+  .day-grid { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
+  .day-grid-inner { display: grid; grid-template-columns: repeat(auto-fill, minmax(125px, 1fr)); gap: 10px; align-items: start; }
   .day-card { border: 1px solid var(--border); border-radius: 4px; padding: 16px 12px; cursor: pointer; transition: all .2s; background: var(--surface); text-align: center; min-width: 0; font-family: inherit; color: inherit; width: 100%; appearance: none; -webkit-appearance: none; }
-  .day-block.expanded > .day-card { max-width: 160px; }
   .day-card:hover { border-color: var(--border-light); background: var(--surface2); }
   .day-card:focus-visible { outline: 2px solid var(--accent-muted); outline-offset: 2px; }
   .day-card.selected { border-color: var(--accent-muted); background: var(--accent-glow2); }
@@ -117,7 +115,7 @@
   .day-card .day-spots.full-tag { background: #B1424212; color: var(--red); }
   .day-card .day-menu-preview { font-family: 'Crimson Pro', serif; font-size: 11px; font-style: italic; color: var(--text-dim); margin-top: 6px; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .day-signed-badge { margin-top: 8px; font-family: 'Jost', sans-serif; font-size: 10px; font-weight: 600; letter-spacing: .6px; text-transform: uppercase; color: var(--accent); }
-  .day-inline-details { margin-top: 10px; padding: 16px; background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; text-align: left; }
+  .day-inline-details { padding: 16px; background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; text-align: left; }
   .day-inline-details .day-remove-link { font-family: 'Jost', sans-serif; font-size: 12px; font-weight: 500; letter-spacing: .4px; color: var(--text-dim); background: none; border: none; cursor: pointer; padding: 6px 0; text-decoration: underline; text-underline-offset: 2px; }
   .day-inline-details .day-remove-link:hover { color: var(--red); }
   .your-info-summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
@@ -1972,16 +1970,13 @@ function hydrateSelectionsFromSignups() {
 }
 
 function syncDayCardDom(dayIdx) {
-  const block = document.querySelector('.day-block[data-day-block="' + dayIdx + '"]');
   const card = document.querySelector('.day-card[data-day="' + dayIdx + '"]');
   if (!card) return;
   const isSelected = selectedDays.has(dayIdx);
   const isSigned = isDaySignedByMe(dayIdx);
-  const isFocused = focusedDay === dayIdx && isSelected;
   card.classList.toggle('selected', isSelected);
   card.classList.toggle('signed', isSigned);
   card.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
-  if (block) block.classList.toggle('expanded', isFocused);
   let badge = card.querySelector('.day-signed-badge');
   if (isSigned) {
     const mine = findMySignup(dayIdx);
@@ -1995,8 +1990,6 @@ function syncDayCardDom(dayIdx) {
   } else if (badge) {
     badge.remove();
   }
-  const details = document.getElementById('dayDetails_' + dayIdx);
-  if (details) details.style.display = isFocused ? 'block' : 'none';
 }
 
 async function loadWeekData(autoAdvance) {
@@ -2109,21 +2102,21 @@ function renderDayCards() {
   hydrateSelectionsFromSignups();
   const { config, signups } = currentWeekData;
 
-  let html = '';
-
+  let banners = '';
   if (currentWeekData.freezeDate) {
     if (isWeekFrozen(currentWeekData)) {
       const reopenedDays = config.filter(day => day.enabled && isDayReopened(day)).map(day => day.day);
       const msg = reopenedDays.length > 0
         ? 'Sign-ups for this week are closed, except for ' + reopenedDays.join(', ') + '.'
         : 'Sign-ups for this week are closed.';
-      html += '<div style="background:#B1424210;border:1px solid #B1424230;border-radius:4px;padding:14px 18px;font-family:\'Crimson Pro\',serif;font-size:14px;color:var(--red);margin-bottom:16px;line-height:1.5;grid-column:1/-1;">' + escapeHtml(msg) + '</div>';
+      banners += '<div style="background:#B1424210;border:1px solid #B1424230;border-radius:4px;padding:14px 18px;font-family:\'Crimson Pro\',serif;font-size:14px;color:var(--red);margin-bottom:6px;line-height:1.5;">' + escapeHtml(msg) + '</div>';
     } else {
       const fd = new Date(currentWeekData.freezeDate);
-      html += '<div style="background:#B07A2A10;border:1px solid #B07A2A25;border-radius:4px;padding:12px 16px;font-family:\'Crimson Pro\',serif;font-size:13px;color:var(--orange);margin-bottom:16px;font-style:italic;grid-column:1/-1;">Sign-ups close ' + fd.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}) + ' at ' + fd.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}) + '</div>';
+      banners += '<div style="background:#B07A2A10;border:1px solid #B07A2A25;border-radius:4px;padding:12px 16px;font-family:\'Crimson Pro\',serif;font-size:13px;color:var(--orange);margin-bottom:6px;font-style:italic;">Sign-ups close ' + fd.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}) + ' at ' + fd.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}) + '</div>';
     }
   }
 
+  let cardsHtml = '';
   config.forEach((day, i) => {
     if (!day.enabled) return;
     const daySups = signups[i] || [];
@@ -2136,7 +2129,6 @@ function renderDayCards() {
     const mine = findMySignup(i);
     const iAmSigned = !!mine;
     const isSelected = selectedDays.has(i);
-    const isFocused = focusedDay === i && isSelected;
 
     let spotsClass = 'open', spotsText = (maxTotal - total) + ' spots left';
     if (isClosed && !iAmSigned) { spotsClass = 'full-tag'; spotsText = 'CLOSED'; }
@@ -2150,8 +2142,7 @@ function renderDayCards() {
       ? '<div class="day-signed-badge">Signed \u00b7 ' + escapeHtml(formatSlotLabel(mine.time)) + '</div>'
       : '';
 
-    html += '<div class="day-block' + (isFocused ? ' expanded' : '') + '" data-day-block="' + i + '">' +
-      '<button type="button" class="day-card ' + (unavailable ? 'full' : '') + (isSelected ? ' selected' : '') + (iAmSigned ? ' signed' : '') + '" data-day="' + i + '" aria-pressed="' + (isSelected ? 'true' : 'false') + '"' +
+    cardsHtml += '<button type="button" class="day-card ' + (unavailable ? 'full' : '') + (isSelected ? ' selected' : '') + (iAmSigned ? ' signed' : '') + '" data-day="' + i + '" aria-pressed="' + (isSelected ? 'true' : 'false') + '"' +
       (unavailable ? ' disabled' : ' onclick="toggleDay(' + i + ')"') + '>' +
       '<div class="day-meal">' + escapeHtml(day.meal) + '</div>' +
       '<div class="day-name">' + escapeHtml(day.day) + '</div>' +
@@ -2159,11 +2150,17 @@ function renderDayCards() {
       (menuPreview ? '<div class="day-menu-preview">' + menuPreview + '</div>' : '') +
       '<div class="day-spots ' + spotsClass + '">' + spotsText + '</div>' +
       signedBadge +
-    '</button>' +
-    '<div class="day-inline-details" id="dayDetails_' + i + '" style="display:' + (isFocused ? 'block' : 'none') + '"></div>' +
-    '</div>';
+    '</button>';
   });
-  document.getElementById('dayCards').innerHTML = html || '<div class="info-banner" style="grid-column:1/-1;">No meals configured for this week. Try selecting a different week.</div>';
+
+  const empty = !cardsHtml
+    ? '<div class="info-banner">No meals configured for this week. Try selecting a different week.</div>'
+    : '';
+
+  document.getElementById('dayCards').innerHTML =
+    banners +
+    '<div class="day-grid-inner">' + (cardsHtml || empty) + '</div>' +
+    '<div class="day-inline-details" id="dayInlinePanel" style="display:none;"></div>';
   updateTimeSection();
   renderMySignupsSummary();
   refreshYourInfoCollapse();
@@ -2317,18 +2314,15 @@ function updateTimeSection() {
   const timeSection = document.getElementById('timeSection');
   if (timeSection) timeSection.style.display = 'none';
 
-  if (!currentWeekData) return;
-
-  // Clear unfocused detail panels; fill the focused one
-  currentWeekData.config.forEach((day, i) => {
-    if (!day.enabled) return;
-    const details = document.getElementById('dayDetails_' + i);
-    if (!details) return;
-    const isFocused = focusedDay === i && selectedDays.has(i);
-    details.style.display = isFocused ? 'block' : 'none';
-    if (isFocused) details.innerHTML = buildDayDetailsHtml(i);
-    else details.innerHTML = '';
-  });
+  const panel = document.getElementById('dayInlinePanel');
+  if (!panel) return;
+  if (!currentWeekData || focusedDay == null || !selectedDays.has(focusedDay)) {
+    panel.style.display = 'none';
+    panel.innerHTML = '';
+    return;
+  }
+  panel.style.display = 'block';
+  panel.innerHTML = buildDayDetailsHtml(focusedDay);
 }
 
 function selectTime(el, dayIdx, time) {

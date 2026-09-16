@@ -2242,7 +2242,10 @@ function buildDayDetailsHtml(i) {
   const { config, signups } = currentWeekData;
   const day = config[i];
   const daySups = signups[i] || [];
-  const times = getDayTimes(day);
+  let times = getDayTimes(day).slice();
+  if (selectedTimes[i] && times.indexOf(selectedTimes[i]) === -1) {
+    times.push(selectedTimes[i]);
+  }
   const guestsAllowed = day.guestsAllowed || false;
   const iAmSigned = isDaySignedByMe(i);
   let html = '';

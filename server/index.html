@@ -1388,9 +1388,35 @@ let weekCacheTs = {};  // monday => timestamp of last fetch
 let spotUpEnabled = true; // controlled by admin Settings toggle
 let _pendingCancels = new Set(); // dayIdx of optimistically-removed signups
 let _cancelData = {};            // dayIdx => stored entry for undo
+let _signupDraftDirty = false;   // in-progress day picks / edits — skip hydrate wipe
 let _toastTimer = null;
 let _toastUndoFn = null;
 let _guestPaymentResolver = null;
+
+function markSignupDraftDirty() {
+  _signupDraftDirty = true;
+}
+
+function clearSignupDraftDirty() {
+  _signupDraftDirty = false;
+}
+
+function snapshotSignupDraft() {
+  return {
+    selectedDays: new Set(selectedDays),
+    selectedTimes: Object.assign({}, selectedTimes),
+    dayOptions: JSON.parse(JSON.stringify(dayOptions)),
+    focusedDay: focusedDay
+  };
+}
+
+function restoreSignupDraft(draft) {
+  if (!draft) return;
+  selectedDays = draft.selectedDays instanceof Set ? draft.selectedDays : new Set(draft.selectedDays || []);
+  selectedTimes = draft.selectedTimes || {};
+  dayOptions = draft.dayOptions || {};
+  focusedDay = draft.focusedDay != null ? draft.focusedDay : null;
+}
 
 // =============================================
 //  LOCAL CACHE (localStorage, 5-min TTL)
@@ -1767,6 +1793,13 @@ function userHasSignupsThisWeek() {
 function updateSubmitButtonLabel() {
   const btn = document.getElementById('submitBtn');
   if (!btn || btn.disabled) return;
+  if (selectedDays.size > 0 && currentWeekData) {
+    const openSelected = [...selectedDays].filter(i => isDayOpenForSignups(currentWeekData, i));
+    if (openSelected.length === 0) {
+      btn.textContent = 'Days closed — remove only';
+      return;
+    }
+  }
   btn.textContent = userHasSignupsThisWeek() ? 'Update Sign-Ups' : 'Submit Sign-Up';
 }
 
@@ -1802,7 +1835,23 @@ function cancelMySignup(monday, dayIdx, name, time) {
       delete weekCacheTs[monday];
       _pendingCancels.delete(dayIdx);
       delete _cancelData[dayIdx];
-      await loadWeekData();
+      // Optimistically drop the row so a sibling pending cancel is not wiped by hydrate
+      if (currentWeekData && currentWeekData.monday === monday && currentWeekData.signups[dayIdx]) {
+        const lower = String(name || '').toLowerCase().trim();
+        currentWeekData.signups[dayIdx] = currentWeekData.signups[dayIdx].filter(
+          s => !(s.name && s.name.toLowerCase().trim() === lower)
+        );
+        if (weekCache[monday]) weekCache[monday] = currentWeekData;
+      }
+      // Only full-reload when no other cancels are still pending (avoids aborting them)
+      if (_pendingCancels.size === 0) {
+        clearSignupDraftDirty();
+        await loadWeekData();
+      } else {
+        syncDayCardDom(dayIdx);
+        renderMySignupsSummary();
+        updateSubmitButtonLabel();
+      }
       if (typeof viewMonday !== 'undefined' && viewMonday === monday) await loadViewData();
       else if (document.querySelector('.tab.active[data-tab="view"]')) await loadViewData();
     } catch(e) {
@@ -1982,10 +2031,14 @@ function hydrateSelectionsFromSignups() {
     selectedDays.add(i);
     signedIdxs.push(i);
     if (mine.time) selectedTimes[i] = mine.time;
+    const allergiesKnown = Object.prototype.hasOwnProperty.call(mine, 'allergies');
     dayOptions[i] = {
       early: mine.early === true || mine.early === 'true' || mine.early === 'TRUE',
       guests: normalizeGuestNames(mine.guests),
-      accommodations: extractDayAccommodations(mine.allergies)
+      // When getWeek strips allergies, leave accommodations empty but mark preserve
+      // so Update Sign-Ups does not wipe existing kitchen notes.
+      accommodations: allergiesKnown ? extractDayAccommodations(mine.allergies) : '',
+      _preserveAllergies: !allergiesKnown
     };
   });
   if (signedIdxs.length) focusedDay = signedIdxs[0];
@@ -2020,10 +2073,18 @@ async function loadWeekData(autoAdvance) {
   if (!weekInput) return;
   const monday = getMonday(weekInput);
 
-  selectedDays.clear();
-  selectedTimes = {};
-  dayOptions = {};
-  focusedDay = null;
+  // Preserve in-progress draft across tab refetch / cache reload for the same week
+  const sameWeek = currentWeekData && currentWeekData.monday === monday;
+  const preserveDraft = _signupDraftDirty && sameWeek;
+  const savedDraft = preserveDraft ? snapshotSignupDraft() : null;
+  if (!sameWeek) clearSignupDraftDirty();
+
+  if (!preserveDraft) {
+    selectedDays.clear();
+    selectedTimes = {};
+    dayOptions = {};
+    focusedDay = null;
+  }
   document.getElementById('dayCards').textContent = '';
   const timeSection = document.getElementById('timeSection');
   if (timeSection) timeSection.style.display = 'none';
@@ -2039,7 +2100,7 @@ async function loadWeekData(autoAdvance) {
       caps.dinner = cachedWeek.caps.dinner || 90;
       caps.guestLimitPerSignup = parseInt(cachedWeek.caps.guestLimitPerSignup || 0, 10) || 0;
     }
-    renderDayCards();
+    renderDayCards(savedDraft);
   } else {
     document.getElementById('loadingDays').style.display = 'block';
   }
@@ -2054,7 +2115,8 @@ async function loadWeekData(autoAdvance) {
   }
 
   try {
-    const result = await apiCall('getWeek', { monday });
+    const forName = getMyDisplayName();
+    const result = await apiCall('getWeek', forName ? { monday, forName } : { monday });
     currentWeekData = result;
     weekCache[monday] = result;
     weekCacheTs[monday] = Date.now();
@@ -2065,7 +2127,7 @@ async function loadWeekData(autoAdvance) {
       caps.dinner = result.caps.dinner || 90;
       caps.guestLimitPerSignup = parseInt(result.caps.guestLimitPerSignup || 0, 10) || 0;
     }
-    renderDayCards();
+    renderDayCards(savedDraft);
   } catch (e) {
     if (!cachedWeek) currentWeekData = buildDefaultWeek(monday);
   }
@@ -2079,12 +2141,14 @@ async function loadWeekData(autoAdvance) {
 
 async function advanceToNextActiveWeek(fromMonday) {
   // Look ahead up to 4 weeks for a week with at least one meal enabled
+  clearSignupDraftDirty();
   const d = new Date(fromMonday + 'T12:00:00');
   for (let i = 0; i < 4; i++) {
     d.setDate(d.getDate() + 7);
     const nextMonday = d.toISOString().slice(0, 10);
     try {
-      const result = await apiCall('getWeek', { monday: nextMonday });
+      const forName = getMyDisplayName();
+      const result = await apiCall('getWeek', forName ? { monday: nextMonday, forName } : { monday: nextMonday });
       weekCache[nextMonday] = result;
       weekCacheTs[nextMonday] = Date.now();
       setCache('week_' + nextMonday, result);
@@ -2117,11 +2181,26 @@ function buildDefaultWeek(monday) {
   };
 }
 
-function renderDayCards() {
+function renderDayCards(preservedDraft) {
   if (!currentWeekData) return;
-  _pendingCancels.clear(); // fresh data, reset optimistic state
-  _cancelData = {};
-  hydrateSelectionsFromSignups();
+  // Keep in-flight cancels for this week; drop stale ones from other weeks.
+  // Never blanket-clear — that aborts sibling multi-day cancels.
+  for (const dayIdx of [..._pendingCancels]) {
+    const saved = _cancelData[dayIdx];
+    if (!saved || saved.monday !== currentWeekData.monday) {
+      _pendingCancels.delete(dayIdx);
+      delete _cancelData[dayIdx];
+    }
+  }
+
+  if (preservedDraft) {
+    restoreSignupDraft(preservedDraft);
+  } else if (_signupDraftDirty) {
+    // Keep current selectedDays / dayOptions; do not re-hydrate from server
+  } else {
+    hydrateSelectionsFromSignups();
+  }
+
   const { config, signups } = currentWeekData;
 
   let banners = '';
@@ -2153,7 +2232,8 @@ function renderDayCards() {
     const isSelected = selectedDays.has(i);
 
     let spotsClass = 'open', spotsText = (maxTotal - total) + ' spots left';
-    if (isClosed && !iAmSigned) { spotsClass = 'full-tag'; spotsText = 'CLOSED'; }
+    if (isClosed && iAmSigned) { spotsClass = 'full-tag'; spotsText = 'CLOSED \u00b7 signed'; }
+    else if (isClosed && !iAmSigned) { spotsClass = 'full-tag'; spotsText = 'CLOSED'; }
     else if (isFull && !iAmSigned) { spotsClass = 'full-tag'; spotsText = 'FULL'; }
     else if (pct > 0.8 && !iAmSigned) { spotsClass = 'almost'; spotsText = (maxTotal - total) + ' spots left'; }
     else if (iAmSigned) { spotsClass = 'open'; spotsText = (maxTotal - total) + ' spots left'; }
@@ -2164,12 +2244,12 @@ function renderDayCards() {
       ? '<div class="day-signed-badge">Signed \u00b7 ' + escapeHtml(formatSlotLabel(mine.time)) + '</div>'
       : '';
 
-    cardsHtml += '<button type="button" class="day-card ' + (unavailable ? 'full' : '') + (isSelected ? ' selected' : '') + (iAmSigned ? ' signed' : '') + '" data-day="' + i + '" aria-pressed="' + (isSelected ? 'true' : 'false') + '"' +
+    cardsHtml += '<button type="button" class="day-card ' + (unavailable ? 'full' : '') + (isSelected ? ' selected' : '') + (iAmSigned ? ' signed' : '') + (isClosed && iAmSigned ? ' day-closed-signed' : '') + '" data-day="' + i + '" aria-pressed="' + (isSelected ? 'true' : 'false') + '"' +
       (unavailable ? ' disabled' : ' onclick="toggleDay(' + i + ')"') + '>' +
       '<div class="day-meal">' + escapeHtml(day.meal) + '</div>' +
       '<div class="day-name">' + escapeHtml(day.day) + '</div>' +
       '<div class="day-date">' + new Date(day.date + 'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}) + '</div>' +
-      (menuPreview ? '<div class="day-menu-preview">' + menuPreview + '</div>' : '') +
+      (menuPreview ? '<div class="day-menu-preview">' + escapeHtml(menuPreview) + '</div>' : '') +
       '<div class="day-spots ' + spotsClass + '">' + spotsText + '</div>' +
       signedBadge +
     '</button>';
@@ -2194,6 +2274,7 @@ function attemptDeselectDay(idx) {
     cancelMySignup(currentWeekData.monday, idx, mine.name, mine.time || '');
     return;
   }
+  markSignupDraftDirty();
   selectedDays.delete(idx);
   delete selectedTimes[idx];
   delete dayOptions[idx];
@@ -2248,6 +2329,7 @@ function toggleDay(idx) {
     return;
   }
 
+  markSignupDraftDirty();
   selectedDays.add(idx);
   const prev = focusedDay;
   focusedDay = idx;
@@ -2264,12 +2346,35 @@ function buildDayDetailsHtml(i) {
   const { config, signups } = currentWeekData;
   const day = config[i];
   const daySups = signups[i] || [];
+  const isClosed = !isDayOpenForSignups(currentWeekData, i);
+  const iAmSigned = isDaySignedByMe(i);
   let times = getDayTimes(day).slice();
   if (selectedTimes[i] && times.indexOf(selectedTimes[i]) === -1) {
     times.push(selectedTimes[i]);
   }
   const guestsAllowed = day.guestsAllowed || false;
-  const iAmSigned = isDaySignedByMe(i);
+
+  // Closed signed days: read-only summary + remove only (no silent edit discard)
+  if (isClosed && iAmSigned) {
+    const mine = findMySignup(i);
+    const timeLabel = (mine && mine.time) || selectedTimes[i] || (times[0] || '');
+    const guests = normalizeGuestNames((mine && mine.guests) || (dayOptions[i] && dayOptions[i].guests));
+    const early = mine
+      ? (mine.early === true || mine.early === 'true' || mine.early === 'TRUE')
+      : !!(dayOptions[i] && dayOptions[i].early);
+    let html = '';
+    html += '<div style="font-family:\'Cormorant Garamond\',serif;font-weight:600;font-size:18px;color:var(--text-bright);margin-bottom:8px;">' + escapeHtml(day.day) + ' — ' + escapeHtml(day.meal) + '</div>';
+    html += '<div style="font-family:\'Crimson Pro\',serif;font-size:14px;color:var(--orange);margin-bottom:12px;font-style:italic;">Sign-ups are closed for this day. You can view or remove your sign-up, but not edit it.</div>';
+    if (day.menu) html += '<div class="menu-display"><strong>Menu:</strong> ' + escapeHtml(day.menu) + '</div>';
+    html += '<div style="font-family:\'Crimson Pro\',serif;font-size:15px;color:var(--text);line-height:1.6;margin-bottom:10px;">';
+    html += '<div><strong>Time:</strong> ' + escapeHtml(timeLabel) + '</div>';
+    if (early) html += '<div><strong>Early plate:</strong> yes</div>';
+    if (guests.length) html += '<div><strong>Guests:</strong> ' + escapeHtml(guests.join(', ')) + '</div>';
+    html += '</div>';
+    html += '<div style="margin-top:14px;"><button type="button" class="day-remove-link" onclick="attemptDeselectDay(' + i + ')">Remove this sign-up</button></div>';
+    return html;
+  }
+
   let html = '';
   html += '<div style="font-family:\'Cormorant Garamond\',serif;font-weight:600;font-size:18px;color:var(--text-bright);margin-bottom:12px;">' + escapeHtml(day.day) + ' — ' + escapeHtml(day.meal) + '</div>';
   if (day.menu) html += '<div class="menu-display"><strong>Menu:</strong> ' + escapeHtml(day.menu) + '</div>';
@@ -2297,7 +2402,7 @@ function buildDayDetailsHtml(i) {
   const earlyChecked = !!(dayOptions[i] && dayOptions[i].early);
   html += '<div style="margin-bottom:10px;">' +
     '<label class="option-pill">' +
-      '<input type="checkbox" id="early_' + i + '"' + (earlyChecked ? ' checked' : '') + ' onchange="dayOptions[' + i + '] = dayOptions[' + i + '] || {}; dayOptions[' + i + '].early = this.checked;">' +
+      '<input type="checkbox" id="early_' + i + '"' + (earlyChecked ? ' checked' : '') + ' onchange="markSignupDraftDirty(); dayOptions[' + i + '] = dayOptions[' + i + '] || {}; dayOptions[' + i + '].early = this.checked;">' +
       '<span class="pill-label">Early plate</span>' +
     '</label>' +
   '</div>';
@@ -2315,9 +2420,12 @@ function buildDayDetailsHtml(i) {
   }
 
   const accomVal = escapeHtml((dayOptions[i] && dayOptions[i].accommodations) || '');
+  const accomHint = (dayOptions[i] && dayOptions[i]._preserveAllergies)
+    ? ' (saved notes kept unless you edit)'
+    : ' (this day only)';
   html += '<div>' +
-    '<label style="font-family:\'Jost\',sans-serif;font-size:11px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-dim);">Kitchen notes for ' + escapeHtml(day.day) + '</label>' +
-    '<input type="text" id="accom_' + i + '" value="' + accomVal + '" placeholder="e.g. no cheese, extra rice (this day only)" style="margin-top:6px;" oninput="dayOptions[' + i + '] = dayOptions[' + i + '] || {}; dayOptions[' + i + '].accommodations = this.value;">' +
+    '<label style="font-family:\'Jost\',sans-serif;font-size:11px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-dim);">Kitchen notes for ' + escapeHtml(day.day) + escapeHtml(accomHint) + '</label>' +
+    '<input type="text" id="accom_' + i + '" value="' + accomVal + '" placeholder="e.g. no cheese, extra rice" style="margin-top:6px;" oninput="markSignupDraftDirty(); dayOptions[' + i + '] = dayOptions[' + i + '] || {}; dayOptions[' + i + '].accommodations = this.value; dayOptions[' + i + ']._accomDirty = true; dayOptions[' + i + ']._preserveAllergies = false;">' +
   '</div>';
 
   if (iAmSigned) {
@@ -2351,6 +2459,7 @@ function updateTimeSection() {
 }
 
 function selectTime(el, dayIdx, time) {
+  markSignupDraftDirty();
   el.parentElement.querySelectorAll('.time-chip').forEach(c => {
     c.classList.remove('selected');
     c.setAttribute('aria-pressed', 'false');
@@ -2378,6 +2487,7 @@ function renderGuestRows(dayIdx) {
 }
 
 function addGuestInput(dayIdx) {
+  markSignupDraftDirty();
   dayOptions[dayIdx] = dayOptions[dayIdx] || {};
   const guests = normalizeGuestNames(dayOptions[dayIdx].guests);
   const guestLimit = getGuestLimitPerSignup(currentWeekData);
@@ -2401,6 +2511,7 @@ function addGuestInput(dayIdx) {
 }
 
 function updateGuestName(dayIdx, guestIdx, value) {
+  markSignupDraftDirty();
   dayOptions[dayIdx] = dayOptions[dayIdx] || {};
   const guests = Array.isArray(dayOptions[dayIdx].guests) ? dayOptions[dayIdx].guests.slice() : normalizeGuestNames(dayOptions[dayIdx].guests);
   guests[guestIdx] = value;
@@ -2408,6 +2519,7 @@ function updateGuestName(dayIdx, guestIdx, value) {
 }
 
 function removeGuestInput(dayIdx, guestIdx) {
+  markSignupDraftDirty();
   dayOptions[dayIdx] = dayOptions[dayIdx] || {};
   const guests = Array.isArray(dayOptions[dayIdx].guests) ? dayOptions[dayIdx].guests.slice() : normalizeGuestNames(dayOptions[dayIdx].guests);
   guests.splice(guestIdx, 1);
@@ -2433,14 +2545,20 @@ async function submitSignup() {
   const generalNotes = document.getElementById('notes').value.trim();
   const monday = currentWeekData.monday;
 
+  const closedSelected = [...selectedDays].filter(i => !isDayOpenForSignups(currentWeekData, i));
+  const openSelected = [...selectedDays].filter(i => isDayOpenForSignups(currentWeekData, i));
+  if (openSelected.length === 0) {
+    showToast('Selected day(s) are closed — remove a sign-up from the day panel, or wait for reopen', 'var(--orange)');
+    return;
+  }
+
   const btn = document.getElementById('submitBtn');
   btn.disabled = true;
   const submittingLabel = userHasSignupsThisWeek() ? 'Updating...' : 'Submitting...';
   btn.innerHTML = '<span class="spinner spinner-sm"></span> ' + submittingLabel;
 
   const entries = [];
-  for (const dayIdx of selectedDays) {
-    if (!isDayOpenForSignups(currentWeekData, dayIdx)) continue;
+  for (const dayIdx of openSelected) {
     const day = currentWeekData.config[dayIdx];
     const times = getDayTimes(day);
     const time = selectedTimes[dayIdx];
@@ -2462,8 +2580,13 @@ async function submitSignup() {
       updateSubmitButtonLabel();
       return;
     }
-    const allNotes = [allergies, accom].filter(Boolean).join(', ');
-    entries.push({ dayIndex: dayIdx, day: day.day, date: day.date, meal: day.meal, time: finalTime, name, diet, allergies: allNotes, early, notes: generalNotes, guests, gradGasman });
+    const entry = { dayIndex: dayIdx, day: day.day, date: day.date, meal: day.meal, time: finalTime, name, diet, early, notes: generalNotes, guests, gradGasman };
+    // Omit allergies when getWeek stripped them and the user did not edit kitchen notes,
+    // so addSignups preserves the existing row value instead of wiping it.
+    if (!(opts._preserveAllergies && !opts._accomDirty)) {
+      entry.allergies = [allergies, accom].filter(Boolean).join(', ');
+    }
+    entries.push(entry);
   }
 
   if (entries.length === 0) {
@@ -2493,7 +2616,10 @@ async function submitSignup() {
     if (result.added > 0) {
       const warnings = [];
       if (result.full > 0) warnings.push(result.full + ' slot(s) were full and could not be added.');
-      if (result.frozen > 0) warnings.push(result.frozen + ' closed day(s) were skipped.');
+      if (result.frozen > 0 || closedSelected.length > 0) {
+        const skipped = Math.max(result.frozen || 0, closedSelected.length);
+        warnings.push(skipped + ' closed day(s) were left unchanged.');
+      }
       if (result.guestLimit > 0) warnings.push(result.guestLimit + ' signup(s) exceeded the guest limit.');
       showConfirmation(memberNameVal, confirmedDays, result.added, result.updated > 0, false, warnings, guestReceipt);
     } else if (result.full > 0) {
@@ -2506,6 +2632,7 @@ async function submitSignup() {
     selectedDays.clear();
     selectedTimes = {};
     dayOptions = {};
+    clearSignupDraftDirty();
     delete weekCacheTs[monday]; // force fresh fetch after signup
     await loadWeekData();
   } catch (e) {
@@ -4432,8 +4559,10 @@ document.addEventListener('visibilitychange', () => {
   if (!weekVal) return;
   const mon = getMonday(weekVal);
   if (!weekCacheTs[mon] || Date.now() - weekCacheTs[mon] > 55000) {
-    apiCall('getWeek', { monday: mon }).then(data => {
+    const forName = getMyDisplayName();
+    apiCall('getWeek', forName ? { monday: mon, forName } : { monday: mon }).then(data => {
       weekCache[mon] = data; weekCacheTs[mon] = Date.now(); setCache('week_' + mon, data);
+      // renderDayCards skips hydrate when _signupDraftDirty — draft survives tab return
       if (currentWeekData && currentWeekData.monday === mon) { currentWeekData = data; renderDayCards(); }
       if (viewMonday === mon) _applyViewData(data, true);
     }).catch(() => {});

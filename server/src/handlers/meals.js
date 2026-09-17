@@ -135,12 +135,19 @@ async function addSignups(monday, entries, caps) {
     const deleted = await signupsDb.deleteByDayAndName(monday, dayIdx, entry.name);
     if (deleted > 0) updated++;
 
+    // When allergies is omitted (client couldn't read stripped getWeek fields),
+    // preserve the existing row's kitchen notes instead of wiping them.
+    const allergiesProvided = Object.prototype.hasOwnProperty.call(entry, 'allergies');
+    const allergiesVal = allergiesProvided
+      ? (entry.allergies || '')
+      : (existing ? (existing.allergies || '') : '');
+
     await signupsDb.insert({
       monday,
       day_index: dayIdx,
       name: entry.name,
       diet: entry.diet || 'No Dietary Restrictions',
-      allergies: entry.allergies || '',
+      allergies: allergiesVal,
       time: timeStr,
       early: entry.early || false,
       notes: entry.notes || '',

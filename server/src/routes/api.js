@@ -67,10 +67,17 @@ async function dispatch(req, res) {
   try {
     let result = await handler(data);
 
-    // Strip sensitive fields from getWeek for non-admin callers
+    // Strip diet/allergies from getWeek for non-admins, but keep own-row
+    // fields so Update Sign-Ups can hydrate kitchen notes without wiping them.
+    // forName is only honored for Google-authenticated callers (not guests).
     if (action === 'getWeek' && result && result.signups && !(req.user && req.user.isAdmin)) {
+      const ownNames = new Set();
+      if (req.user && req.user.name) ownNames.add(String(req.user.name).toLowerCase().trim());
+      if (req.user && data.forName) ownNames.add(String(data.forName).toLowerCase().trim());
       for (const dayIdx of Object.keys(result.signups)) {
         result.signups[dayIdx] = result.signups[dayIdx].map(s => {
+          const isOwn = s.name && ownNames.has(String(s.name).toLowerCase().trim());
+          if (isOwn) return s;
           const { diet, allergies, ...rest } = s;
           return rest;
         });

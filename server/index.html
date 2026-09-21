@@ -956,6 +956,7 @@
   </div>
 </div>
 
+<script src="/js/week-draft.js"></script>
 <script>
 // =============================================
 //  BACKEND API URL
@@ -966,6 +967,11 @@
 const SCRIPT_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
   ? window.location.origin
   : 'https://meals.delphicclub.org';
+
+// Live views into WeekDraft collections (mutated in place — do not reassign)
+const selectedDays = weekDraft.selectedDays;
+const selectedTimes = weekDraft.selectedTimes;
+const dayOptions = weekDraft.dayOptions;
 
 // =============================================
 //  AUTH
@@ -1386,37 +1392,12 @@ let caps = { slot12: 45, slot1: 45, dinner: 90, guestLimitPerSignup: 0 };
 let weekCache = {};    // monday => {config, signups}
 let weekCacheTs = {};  // monday => timestamp of last fetch
 let spotUpEnabled = true; // controlled by admin Settings toggle
-let _pendingCancels = new Set(); // dayIdx of optimistically-removed signups
-let _cancelData = {};            // dayIdx => stored entry for undo
-let _signupDraftDirty = false;   // in-progress day picks / edits — skip hydrate wipe
 let _toastTimer = null;
 let _toastUndoFn = null;
 let _guestPaymentResolver = null;
 
-function markSignupDraftDirty() {
-  _signupDraftDirty = true;
-}
-
-function clearSignupDraftDirty() {
-  _signupDraftDirty = false;
-}
-
-function snapshotSignupDraft() {
-  return {
-    selectedDays: new Set(selectedDays),
-    selectedTimes: Object.assign({}, selectedTimes),
-    dayOptions: JSON.parse(JSON.stringify(dayOptions)),
-    focusedDay: focusedDay
-  };
-}
-
-function restoreSignupDraft(draft) {
-  if (!draft) return;
-  selectedDays = draft.selectedDays instanceof Set ? draft.selectedDays : new Set(draft.selectedDays || []);
-  selectedTimes = draft.selectedTimes || {};
-  dayOptions = draft.dayOptions || {};
-  focusedDay = draft.focusedDay != null ? draft.focusedDay : null;
-}
+function markSignupDraftDirty() { weekDraft.markDirty(); }
+function clearSignupDraftDirty() { weekDraft.clearDirty(); }
 
 // =============================================
 //  LOCAL CACHE (localStorage, 5-min TTL)
@@ -1751,7 +1732,7 @@ function renderMySignupsSummary() {
   const { config, signups, monday } = currentWeekData;
   const myEntries = [];
   config.forEach((day, i) => {
-    if (!day.enabled || _pendingCancels.has(i)) return;
+    if (!day.enabled || weekDraft.hasPendingCancel(i)) return;
     (signups[i] || []).forEach(s => {
       if (s.name && s.name.toLowerCase().trim() === myName)
         myEntries.push({ day, dayIdx: i, name: s.name, time: s.time });
@@ -1784,7 +1765,7 @@ function userHasSignupsThisWeek() {
   if (!myName || !currentWeekData) return false;
   const { config, signups } = currentWeekData;
   for (let i = 0; i < config.length; i++) {
-    if (!config[i].enabled || _pendingCancels.has(i)) continue;
+    if (!config[i].enabled || weekDraft.hasPendingCancel(i)) continue;
     if ((signups[i] || []).some(s => s.name && s.name.toLowerCase().trim() === myName)) return true;
   }
   return false;
@@ -1804,37 +1785,24 @@ function updateSubmitButtonLabel() {
 }
 
 function cancelMySignup(monday, dayIdx, name, time) {
-  _pendingCancels.add(dayIdx);
-  _cancelData[dayIdx] = { monday, name, time, selectedTime: selectedTimes[dayIdx], opts: dayOptions[dayIdx] ? Object.assign({}, dayOptions[dayIdx]) : null };
-  selectedDays.delete(dayIdx);
-  delete selectedTimes[dayIdx];
-  delete dayOptions[dayIdx];
-  if (focusedDay === dayIdx) focusedDay = selectedDays.size ? [...selectedDays].sort()[0] : null;
+  weekDraft.beginRemove(monday, dayIdx, name, time);
   syncDayCardDom(dayIdx);
   updateTimeSection();
   renderMySignupsSummary();
 
   showToast('Sign-up removed', '#4A4A4A', () => {
-    _pendingCancels.delete(dayIdx);
-    const saved = _cancelData[dayIdx];
-    delete _cancelData[dayIdx];
-    selectedDays.add(dayIdx);
-    if (saved && saved.selectedTime) selectedTimes[dayIdx] = saved.selectedTime;
-    else if (saved && saved.time) selectedTimes[dayIdx] = saved.time;
-    if (saved && saved.opts) dayOptions[dayIdx] = saved.opts;
-    focusedDay = dayIdx;
+    weekDraft.restorePendingCancel(dayIdx);
     syncDayCardDom(dayIdx);
     updateTimeSection();
     renderMySignupsSummary();
   });
 
   setTimeout(async () => {
-    if (!_pendingCancels.has(dayIdx)) return; // undo was clicked
+    if (!weekDraft.hasPendingCancel(dayIdx)) return; // undo was clicked
     try {
       await apiCall('removeSignup', { monday, dayIndex: dayIdx, name, time });
       delete weekCacheTs[monday];
-      _pendingCancels.delete(dayIdx);
-      delete _cancelData[dayIdx];
+      weekDraft.clearPendingCancel(dayIdx);
       // Optimistically drop the row so a sibling pending cancel is not wiped by hydrate
       if (currentWeekData && currentWeekData.monday === monday && currentWeekData.signups[dayIdx]) {
         const lower = String(name || '').toLowerCase().trim();
@@ -1844,7 +1812,7 @@ function cancelMySignup(monday, dayIdx, name, time) {
         if (weekCache[monday]) weekCache[monday] = currentWeekData;
       }
       // Only full-reload when no other cancels are still pending (avoids aborting them)
-      if (_pendingCancels.size === 0) {
+      if (weekDraft.pendingCancelCount() === 0) {
         clearSignupDraftDirty();
         await loadWeekData();
       } else {
@@ -1855,8 +1823,7 @@ function cancelMySignup(monday, dayIdx, name, time) {
       if (typeof viewMonday !== 'undefined' && viewMonday === monday) await loadViewData();
       else if (document.querySelector('.tab.active[data-tab="view"]')) await loadViewData();
     } catch(e) {
-      _pendingCancels.delete(dayIdx);
-      delete _cancelData[dayIdx];
+      weekDraft.clearPendingCancel(dayIdx);
       renderMySignupsSummary();
       if (currentWeekData) renderDayCards();
       showToast('Could not remove \u2014 please try again', 'var(--red)');
@@ -1980,10 +1947,7 @@ window.matchMedia('(min-width: 900px)').addEventListener('change', () => {
 //  SIGN-UP TAB
 // =============================================
 let currentWeekData = null;
-let selectedDays = new Set();
-let selectedTimes = {};
-let dayOptions = {};
-let focusedDay = null; // day index whose inline details are expanded
+// Day draft state lives in weekDraft (selectedDays/times/options aliases above)
 
 function formatSlotLabel(time) {
   if (time === '12:00 PM') return '12\u20131';
@@ -1995,7 +1959,7 @@ function formatSlotLabel(time) {
 function findMySignup(dayIdx) {
   const myName = getMyName();
   if (!myName || !currentWeekData) return null;
-  if (_pendingCancels.has(dayIdx)) return null;
+  if (weekDraft.hasPendingCancel(dayIdx)) return null;
   return (currentWeekData.signups[dayIdx] || []).find(s => s.name && s.name.toLowerCase().trim() === myName) || null;
 }
 
@@ -2015,33 +1979,13 @@ function extractDayAccommodations(signupAllergies) {
 
 function hydrateSelectionsFromSignups() {
   if (!currentWeekData) return;
-  const myName = getMyName();
-  const { config, signups } = currentWeekData;
-  selectedDays.clear();
-  selectedTimes = {};
-  dayOptions = {};
-  focusedDay = null;
-  if (!myName) return;
-
-  const signedIdxs = [];
-  config.forEach((day, i) => {
-    if (!day.enabled || _pendingCancels.has(i)) return;
-    const mine = (signups[i] || []).find(s => s.name && s.name.toLowerCase().trim() === myName);
-    if (!mine) return;
-    selectedDays.add(i);
-    signedIdxs.push(i);
-    if (mine.time) selectedTimes[i] = mine.time;
-    const allergiesKnown = Object.prototype.hasOwnProperty.call(mine, 'allergies');
-    dayOptions[i] = {
-      early: mine.early === true || mine.early === 'true' || mine.early === 'TRUE',
-      guests: normalizeGuestNames(mine.guests),
-      // When getWeek strips allergies, leave accommodations empty but mark preserve
-      // so Update Sign-Ups does not wipe existing kitchen notes.
-      accommodations: allergiesKnown ? extractDayAccommodations(mine.allergies) : '',
-      _preserveAllergies: !allergiesKnown
-    };
+  weekDraft.hydrateFromServer({
+    config: currentWeekData.config,
+    signups: currentWeekData.signups,
+    myName: getMyName(),
+    normalizeGuests: normalizeGuestNames,
+    extractAccommodations: extractDayAccommodations
   });
-  if (signedIdxs.length) focusedDay = signedIdxs[0];
 }
 
 function syncDayCardDom(dayIdx) {
@@ -2075,16 +2019,11 @@ async function loadWeekData(autoAdvance) {
 
   // Preserve in-progress draft across tab refetch / cache reload for the same week
   const sameWeek = currentWeekData && currentWeekData.monday === monday;
-  const preserveDraft = _signupDraftDirty && sameWeek;
-  const savedDraft = preserveDraft ? snapshotSignupDraft() : null;
+  const preserveDraft = weekDraft.isDirty() && sameWeek;
+  const savedDraft = preserveDraft ? weekDraft.snapshot() : null;
   if (!sameWeek) clearSignupDraftDirty();
 
-  if (!preserveDraft) {
-    selectedDays.clear();
-    selectedTimes = {};
-    dayOptions = {};
-    focusedDay = null;
-  }
+  if (!preserveDraft) weekDraft.clearSelection();
   document.getElementById('dayCards').textContent = '';
   const timeSection = document.getElementById('timeSection');
   if (timeSection) timeSection.style.display = 'none';
@@ -2185,21 +2124,14 @@ function renderDayCards(preservedDraft) {
   if (!currentWeekData) return;
   // Keep in-flight cancels for this week; drop stale ones from other weeks.
   // Never blanket-clear — that aborts sibling multi-day cancels.
-  for (const dayIdx of [..._pendingCancels]) {
-    const saved = _cancelData[dayIdx];
-    if (!saved || saved.monday !== currentWeekData.monday) {
-      _pendingCancels.delete(dayIdx);
-      delete _cancelData[dayIdx];
-    }
-  }
+  weekDraft.pruneStaleCancels(currentWeekData.monday);
 
   if (preservedDraft) {
-    restoreSignupDraft(preservedDraft);
-  } else if (_signupDraftDirty) {
-    // Keep current selectedDays / dayOptions; do not re-hydrate from server
-  } else {
+    weekDraft.restore(preservedDraft);
+  } else if (!weekDraft.isDirty()) {
     hydrateSelectionsFromSignups();
   }
+  // else: dirty draft is sacred — keep current selection / dayOptions
 
   const { config, signups } = currentWeekData;
 
@@ -2274,15 +2206,19 @@ function attemptDeselectDay(idx) {
     cancelMySignup(currentWeekData.monday, idx, mine.name, mine.time || '');
     return;
   }
-  markSignupDraftDirty();
-  selectedDays.delete(idx);
-  delete selectedTimes[idx];
-  delete dayOptions[idx];
-  if (focusedDay === idx) focusedDay = selectedDays.size ? [...selectedDays].sort()[0] : null;
+  const prevFocus = weekDraft.focusedDay;
+  weekDraft.deselectLocal(idx);
   syncDayCardDom(idx);
-  if (focusedDay != null) syncDayCardDom(focusedDay);
+  if (weekDraft.focusedDay != null && weekDraft.focusedDay !== prevFocus) syncDayCardDom(weekDraft.focusedDay);
   updateTimeSection();
   updateSubmitButtonLabel();
+}
+
+function dismissToastUi() {
+  if (_toastTimer) { clearTimeout(_toastTimer); _toastTimer = null; }
+  _toastUndoFn = null;
+  const toast = document.getElementById('toast');
+  if (toast) toast.classList.remove('show');
 }
 
 function toggleDay(idx) {
@@ -2294,20 +2230,10 @@ function toggleDay(idx) {
     return;
   }
 
-  // Re-selecting a day mid-cancel undoes the pending remove
-  if (_pendingCancels.has(idx)) {
-    _pendingCancels.delete(idx);
-    const saved = _cancelData[idx];
-    delete _cancelData[idx];
-    selectedDays.add(idx);
-    if (saved && saved.selectedTime) selectedTimes[idx] = saved.selectedTime;
-    else if (saved && saved.time) selectedTimes[idx] = saved.time;
-    if (saved && saved.opts) dayOptions[idx] = saved.opts;
-    focusedDay = idx;
-    if (_toastTimer) { clearTimeout(_toastTimer); _toastTimer = null; }
-    _toastUndoFn = null;
-    const toast = document.getElementById('toast');
-    if (toast) toast.classList.remove('show');
+  // Re-selecting a day mid-cancel undoes the pending remove (same owner as toast undo)
+  if (weekDraft.hasPendingCancel(idx)) {
+    weekDraft.restorePendingCancel(idx);
+    dismissToastUi();
     syncDayCardDom(idx);
     updateTimeSection();
     renderMySignupsSummary();
@@ -2315,24 +2241,22 @@ function toggleDay(idx) {
   }
 
   if (selectedDays.has(idx)) {
-    if (focusedDay === idx) {
+    if (weekDraft.focusedDay === idx) {
       // Second tap on the focused day removes / deselects
       attemptDeselectDay(idx);
       return;
     }
     // First tap on an already-selected day just expands its details
-    const prev = focusedDay;
-    focusedDay = idx;
+    const prev = weekDraft.focusedDay;
+    weekDraft.focus(idx);
     if (prev != null) syncDayCardDom(prev);
     syncDayCardDom(idx);
     updateTimeSection();
     return;
   }
 
-  markSignupDraftDirty();
-  selectedDays.add(idx);
-  const prev = focusedDay;
-  focusedDay = idx;
+  const prev = weekDraft.focusedDay;
+  weekDraft.select(idx);
   if (prev != null) syncDayCardDom(prev);
   syncDayCardDom(idx);
   updateTimeSection();
@@ -2402,7 +2326,7 @@ function buildDayDetailsHtml(i) {
   const earlyChecked = !!(dayOptions[i] && dayOptions[i].early);
   html += '<div style="margin-bottom:10px;">' +
     '<label class="option-pill">' +
-      '<input type="checkbox" id="early_' + i + '"' + (earlyChecked ? ' checked' : '') + ' onchange="markSignupDraftDirty(); dayOptions[' + i + '] = dayOptions[' + i + '] || {}; dayOptions[' + i + '].early = this.checked;">' +
+      '<input type="checkbox" id="early_' + i + '"' + (earlyChecked ? ' checked' : '') + ' onchange="markSignupDraftDirty(); weekDraft.ensureDayOptions(' + i + ').early = this.checked;">' +
       '<span class="pill-label">Early plate</span>' +
     '</label>' +
   '</div>';
@@ -2425,7 +2349,7 @@ function buildDayDetailsHtml(i) {
     : ' (this day only)';
   html += '<div>' +
     '<label style="font-family:\'Jost\',sans-serif;font-size:11px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-dim);">Kitchen notes for ' + escapeHtml(day.day) + escapeHtml(accomHint) + '</label>' +
-    '<input type="text" id="accom_' + i + '" value="' + accomVal + '" placeholder="e.g. no cheese, extra rice" style="margin-top:6px;" oninput="markSignupDraftDirty(); dayOptions[' + i + '] = dayOptions[' + i + '] || {}; dayOptions[' + i + '].accommodations = this.value; dayOptions[' + i + ']._accomDirty = true; dayOptions[' + i + ']._preserveAllergies = false;">' +
+    '<input type="text" id="accom_' + i + '" value="' + accomVal + '" placeholder="e.g. no cheese, extra rice" style="margin-top:6px;" oninput="markSignupDraftDirty(); var o=weekDraft.ensureDayOptions(' + i + '); o.accommodations = this.value; o._accomDirty = true; o._preserveAllergies = false;">' +
   '</div>';
 
   if (iAmSigned) {
@@ -2437,36 +2361,36 @@ function buildDayDetailsHtml(i) {
 
 function updateTimeSection() {
   if (currentWeekData) {
-    [...selectedDays].forEach(i => {
-      if (!isDaySignedByMe(i) && !isDayOpenForSignups(currentWeekData, i)) {
-        selectedDays.delete(i);
-        syncDayCardDom(i);
-      }
-    });
+    const before = Array.from(selectedDays);
+    weekDraft.dropClosedUnsigned(
+      (i) => isDaySignedByMe(i),
+      (i) => isDayOpenForSignups(currentWeekData, i)
+    );
+    before.forEach(i => { if (!selectedDays.has(i)) syncDayCardDom(i); });
   }
   const timeSection = document.getElementById('timeSection');
   if (timeSection) timeSection.style.display = 'none';
 
   const panel = document.getElementById('dayInlinePanel');
   if (!panel) return;
-  if (!currentWeekData || focusedDay == null || !selectedDays.has(focusedDay)) {
+  const focused = weekDraft.focusedDay;
+  if (!currentWeekData || focused == null || !selectedDays.has(focused)) {
     panel.style.display = 'none';
     panel.innerHTML = '';
     return;
   }
   panel.style.display = 'block';
-  panel.innerHTML = buildDayDetailsHtml(focusedDay);
+  panel.innerHTML = buildDayDetailsHtml(focused);
 }
 
 function selectTime(el, dayIdx, time) {
-  markSignupDraftDirty();
+  weekDraft.setTime(dayIdx, time);
   el.parentElement.querySelectorAll('.time-chip').forEach(c => {
     c.classList.remove('selected');
     c.setAttribute('aria-pressed', 'false');
   });
   el.classList.add('selected');
   el.setAttribute('aria-pressed', 'true');
-  selectedTimes[dayIdx] = time;
 }
 
 function renderGuestRowsHtml(dayIdx, guests) {
@@ -2629,9 +2553,7 @@ async function submitSignup() {
     } else if (result.frozen > 0) {
       showToast('Sign-ups are closed for the selected day(s)', 'var(--red)');
     }
-    selectedDays.clear();
-    selectedTimes = {};
-    dayOptions = {};
+    weekDraft.clearSelection();
     clearSignupDraftDirty();
     delete weekCacheTs[monday]; // force fresh fetch after signup
     await loadWeekData();
@@ -4562,7 +4484,7 @@ document.addEventListener('visibilitychange', () => {
     const forName = getMyDisplayName();
     apiCall('getWeek', forName ? { monday: mon, forName } : { monday: mon }).then(data => {
       weekCache[mon] = data; weekCacheTs[mon] = Date.now(); setCache('week_' + mon, data);
-      // renderDayCards skips hydrate when _signupDraftDirty — draft survives tab return
+      // renderDayCards skips hydrate when weekDraft is dirty — draft survives tab return
       if (currentWeekData && currentWeekData.monday === mon) { currentWeekData = data; renderDayCards(); }
       if (viewMonday === mon) _applyViewData(data, true);
     }).catch(() => {});

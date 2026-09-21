@@ -20,6 +20,9 @@ app.use('/claim', require('./routes/claim'));
 app.use('/health', require('./routes/health'));
 app.use('/groupme', require('./routes/groupme'));
 
+// Plain static scripts (no bundler) — WeekDraft and future split modules
+app.use(express.static(path.resolve(__dirname, '../public')));
+
 // Serve frontend
 app.get('/', (req, res) => {
   res.sendFile(path.resolve(__dirname, '../index.html'));

@@ -8,7 +8,8 @@
     "migrate": "knex migrate:latest",
     "migrate:rollback": "knex migrate:rollback",
     "seed": "knex seed:run",
-    "import": "node scripts/migrate-from-sheets.js"
+    "import": "node scripts/migrate-from-sheets.js",
+    "test:week-draft": "node scripts/test-week-draft.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

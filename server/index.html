@@ -2098,6 +2098,9 @@ function renderViewDay(idx) {
 
   const myName = (currentUser && currentUser.name && !currentUser.guest)
     ? currentUser.name.toLowerCase().trim() : '';
+  // Dinner spot-ups are only for members not already on that night's list (server enforces too)
+  const dinnerClaimBlocked = !!myName && !(currentUser && currentUser.isAdmin) && /dinner/i.test(day.meal || '') &&
+    sups.some(s => s.name && s.name.toLowerCase().trim() === myName);
 
   let html = '<div class="card">';
   html += '<div style="display:flex;justify-content:space-between;align-items:start;">' +
@@ -2139,12 +2142,12 @@ function renderViewDay(idx) {
         html += '<div class="signup-list">';
         if (mySignups.length > 0) {
           html += '<div style="font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin:0 0 4px;">Your Spot</div>';
-          mySignups.forEach(s => { html += renderSignupItem(s, viewMonday, i, slot); });
+          mySignups.forEach(s => { html += renderSignupItem(s, viewMonday, i, slot, dinnerClaimBlocked); });
           if (others.length > 0) html += '<div style="height:1px;background:var(--border);margin:8px 0;"></div>';
         }
         if (earlyMembers.length > 0) {
           html += '<div style="font-size:11px;font-weight:600;color:#1565C0;text-transform:uppercase;letter-spacing:1px;margin:8px 0 4px;">Early Plate</div>';
-          earlyMembers.forEach(s => { html += renderSignupItem(s, viewMonday, i, slot); });
+          earlyMembers.forEach(s => { html += renderSignupItem(s, viewMonday, i, slot, dinnerClaimBlocked); });
         }
         if (viewIsAdmin) {
           // Admins see signups grouped by dietary category
@@ -2163,11 +2166,11 @@ function renderViewDay(idx) {
             if (cat === 'No Pork' || cat === 'No Beef') catColor = '#AB47BC';
             if (cat === 'Allergies') catColor = '#E05555';
             html += '<div style="font-size:11px;font-weight:600;color:' + catColor + ';text-transform:uppercase;letter-spacing:1px;margin:8px 0 4px;">' + cat + '</div>';
-            grouped[cat].forEach(s => { html += renderSignupItem(s, viewMonday, i, slot); });
+            grouped[cat].forEach(s => { html += renderSignupItem(s, viewMonday, i, slot, dinnerClaimBlocked); });
           });
         } else {
           // Non-admins see a flat list without dietary grouping
-          nonEarlyMembers.forEach(s => { html += renderSignupItem(s, viewMonday, i, slot); });
+          nonEarlyMembers.forEach(s => { html += renderSignupItem(s, viewMonday, i, slot, dinnerClaimBlocked); });
         }
         html += renderGuestSection(slotSups);
         html += '</div>';
@@ -2213,6 +2216,10 @@ function renderHorizontalView() {
       (day.menu ? '<div class="view-day-col-menu" title="' + escapeHtml(day.menu) + '">' + escapeHtml(day.menu) + '</div>' : '') +
     '</div>';
 
+    // Dinner spot-ups are only for members not already on that night's list (server enforces too)
+    const dinnerClaimBlocked = !!myName && !isAdmin && /dinner/i.test(day.meal || '') &&
+      sups.some(s => s.name && s.name.toLowerCase().trim() === myName);
+
     // Column body
     html += '<div class="view-day-col-body">';
     if (dayCount === 0) {
@@ -2228,7 +2235,7 @@ function renderHorizontalView() {
           html += '<div class="view-col-no-sups" style="padding:2px 0;">\u2014</div>';
         }
         const sortedSups = [...slotSups].sort((a, b) => (b.early ? 1 : 0) - (a.early ? 1 : 0));
-        sortedSups.forEach(s => { html += renderHorizontalName(s, viewMonday, i, slot, myName, isAdmin); });
+        sortedSups.forEach(s => { html += renderHorizontalName(s, viewMonday, i, slot, myName, isAdmin, dinnerClaimBlocked); });
         html += renderHorizontalGuestRows(slotSups);
       });
     }
@@ -2283,7 +2290,7 @@ function renderHorizontalGuestRows(signups) {
   return html;
 }
 
-function renderHorizontalName(s, monday, dayIdx, slot, myName, isAdmin) {
+function renderHorizontalName(s, monday, dayIdx, slot, myName, isAdmin, claimBlocked) {
   const spotStatus = s.spotUpStatus || '';
   const claimedBy = s.spotUpClaimedBy || '';
   const origName = s.spotUpOrigName || '';
@@ -2358,7 +2365,9 @@ function renderHorizontalName(s, monday, dayIdx, slot, myName, isAdmin) {
   // Spot-up state: show compact action buttons
   if (spotUpEnabled && spotStatus === 'spotup') {
     html += '<div style="display:flex;gap:4px;align-items:center;margin-top:2px;">';
-    html += '<button class="spotup-action-btn" style="font-size:11px;padding:2px 6px;color:var(--green);border-color:var(--green);margin-left:0;" onclick="event.stopPropagation();openClaimModal(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')">Claim</button>';
+    if (!claimBlocked) {
+      html += '<button class="spotup-action-btn" style="font-size:11px;padding:2px 6px;color:var(--green);border-color:var(--green);margin-left:0;" onclick="event.stopPropagation();openClaimModal(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')">Claim</button>';
+    }
     if (canCancelSpotUp) {
       html += '<button class="spotup-action-btn" style="font-size:11px;padding:2px 6px;" onclick="event.stopPropagation();cancelSpotUpAction(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')" title="Cancel spot up">Cancel</button>';
     }
@@ -2383,7 +2392,7 @@ function renderHorizontalName(s, monday, dayIdx, slot, myName, isAdmin) {
 }
 
 
-function renderSignupItem(s, monday, dayIdx, slot) {
+function renderSignupItem(s, monday, dayIdx, slot, claimBlocked) {
   // Resolve identity + permissions
   const isAdmin = !!(currentUser && currentUser.isAdmin);
   // myName is set for any user with a known name (Google sign-in OR named open-access)
@@ -2472,7 +2481,9 @@ function renderSignupItem(s, monday, dayIdx, slot) {
         '<div class="meta" style="color:#E65100;">This spot is available to claim</div>' +
       '</div>' +
       '<div style="display:flex;gap:4px;align-items:center;">' +
-        '<button class="spotup-claim-btn" onclick="openClaimModal(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')">Claim</button>' +
+        (claimBlocked
+          ? '<span class="meta" style="color:var(--text-dim);" title="Dinner spot-ups are for members who missed sign-ups">You\'re already signed up</span>'
+          : '<button class="spotup-claim-btn" onclick="openClaimModal(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')">Claim</button>') +
         (canCancelSpotUp ? '<button class="spotup-action-btn" onclick="event.stopPropagation();cancelSpotUpAction(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')" title="Cancel spot up">\u2715</button>' : '') +
         (isAdmin ? '<button class="remove-btn" title="Remove" onclick="event.stopPropagation();removeSignup(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')">&#215;</button>' : '') +
       '</div>' +

@@ -7,6 +7,7 @@ const signupsDb = require('../db/queries/signups');
 const { normalizeTime } = require('../utils/time');
 const { buildClaimResultPage } = require('../services/emailTemplates');
 const sheetsSync = require('../services/sheetsSync');
+const { checkClaimAllowed } = require('../services/claimRules');
 
 /**
  * Port of handleEmailClaim() + claimViaToken() from Code.gs:52-1331.
@@ -19,7 +20,10 @@ router.get('/', async (req, res) => {
   try {
     const result = await claimViaToken(token);
     const success = result.status === 'ok';
-    const title = success ? 'Spot Claimed!' : (result.error === 'claim_failed' ? 'Already Claimed' : 'Error');
+    const title = success ? 'Spot Claimed!'
+      : result.error === 'claim_failed' ? 'Already Claimed'
+      : result.error === 'not_eligible' ? 'Already Signed Up'
+      : 'Error';
     const msg = success
       ? `You've claimed <strong>${result.origName}'s</strong> spot. You're on the list.`
       : (result.message || 'Something went wrong.');
@@ -57,6 +61,9 @@ async function claimViaToken(token) {
     const timeNorm = normalizeTime(time);
     const signup = await signupsDb.findSpotUpForUpdate(trx, monday, dayIdx, origName, timeNorm);
     if (!signup) return { error: 'claim_failed', message: 'This spot was already claimed by someone else.' };
+
+    const blocked = await checkClaimAllowed(trx, signup, claimerName);
+    if (blocked) return { error: 'not_eligible', message: blocked };
 
     await trx('signups').where('id', signup.id).update({
       name: claimerName,

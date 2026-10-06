@@ -52,8 +52,9 @@ function isPastFreeze(freezeDate) {
 }
 
 function isDayOpenForSignups(weekCfg, dayIdx) {
-  if (!isPastFreeze(weekCfg.freeze_date)) return true;
   const day = weekCfg && weekCfg.config && weekCfg.config[dayIdx];
+  if (day && day.enabled === false) return false;
+  if (!isPastFreeze(weekCfg.freeze_date)) return true;
   return !!(day && day.reopenSignups === true);
 }
 

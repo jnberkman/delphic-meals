@@ -5,6 +5,7 @@ const { normalizeTime } = require('../utils/time');
 const sheetsSync = require('../services/sheetsSync');
 const emailService = require('../services/email');
 const groupme = require('../services/groupme');
+const { checkClaimAllowed } = require('../services/claimRules');
 
 /**
  * Port of spotUp() from Code.gs:212-242.
@@ -71,6 +72,9 @@ async function claimSpotUp(monday, dayIndex, originalName, time, claimerName) {
   const result = await db.transaction(async (trx) => {
     const signup = await signupsDb.findSpotUpForUpdate(trx, monday, dayIndex, originalName, timeNorm);
     if (!signup) return { error: 'Spot up not found or already claimed' };
+
+    const blocked = await checkClaimAllowed(trx, signup, claimerName);
+    if (blocked) return { error: blocked };
 
     await trx('signups').where('id', signup.id).update({
       name: claimerName,

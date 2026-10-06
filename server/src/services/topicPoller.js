@@ -5,6 +5,7 @@ const signupsDb = require('../db/queries/signups');
 const weeksDb = require('../db/queries/weeks');
 const groupme = require('./groupme');
 const sheetsSync = require('./sheetsSync');
+const { checkClaimAllowed, toMondayKey } = require('./claimRules');
 
 let ws = null;
 let clientId = null;
@@ -52,6 +53,9 @@ async function executeClaimById(spotId, claimerName) {
     const signup = await signupsDb.findSpotUpByIdForUpdate(trx, spotId);
     if (!signup) return null;
 
+    const blocked = await checkClaimAllowed(trx, signup, claimerName);
+    if (blocked) return { blocked };
+
     await trx('signups').where('id', signup.id).update({
       name: claimerName,
       spot_up_status: 'claimed',
@@ -66,11 +70,9 @@ async function executeClaimById(spotId, claimerName) {
     return signup;
   });
 
-  if (!result) return null;
+  if (!result || result.blocked) return result;
 
-  const monday = typeof result.monday === 'string'
-    ? result.monday
-    : result.monday.toISOString().split('T')[0];
+  const monday = toMondayKey(result.monday);
 
   const label = await getSpotLabel(result);
   groupme.postToTopic(`${claimerName} claimed ${label} spot`);
@@ -82,15 +84,22 @@ async function executeClaim(claimerName, claimNum) {
   const spots = await signupsDb.findAllAvailableSpotUps();
   if (spots.length === 0) return;
 
-  let spot;
+  let candidates;
   if (claimNum !== null) {
-    if (claimNum < 1 || claimNum > spots.length) return;
-    spot = spots[claimNum - 1];
+    if (claimNum < 1 || claimNum > spots.length) return; // silently ignore bad numbers
+    candidates = [spots[claimNum - 1]];
   } else {
-    spot = spots[0];
+    candidates = spots;
   }
 
-  await executeClaimById(spot.id, claimerName);
+  // Plain "claim" takes the first spot this person is eligible for
+  let blocked = null;
+  for (const spot of candidates) {
+    const result = await executeClaimById(spot.id, claimerName);
+    if (result && !result.blocked) return;
+    if (result && result.blocked && !blocked) blocked = result.blocked;
+  }
+  if (blocked) groupme.postToTopic(blocked);
 }
 
 async function handleMessage(subject) {

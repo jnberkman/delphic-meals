@@ -40,7 +40,7 @@ const NICKNAME_MAP = {
   "Jacob Gokongwei": "Jacob Gokongwei",
   "Jafloko": "Jacobo Alvarez-Martinez",
   "Jap and Knees": "Nick Torres",
-  "Jared Maznik": "Wyatt Wiggins",
+  "Jared Maznik": "Jared Maznik",
   "Jason Coreas": "Jason Coreas",
   "Johnnie Walker's Bitch": "Brian Thomas",
   "Jung": "Ryan Jung",

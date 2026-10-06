@@ -220,6 +220,7 @@ async function rebuildDisplaySheet(monday, signups, weekCfg) {
   const byDay = {};
   for (const s of signups) {
     const d = s.day_index;
+    if (config_[d] && config_[d].enabled === false) continue; // day closed (e.g. holiday)
     if (!byDay[d]) byDay[d] = [];
     byDay[d].push(s);
   }

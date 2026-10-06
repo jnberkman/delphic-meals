@@ -5,12 +5,18 @@ function toMondayKey(monday) {
   return typeof monday === 'string' ? monday : monday.toISOString().split('T')[0];
 }
 
+// Custom-named meals carry functionsAs ('Lunch' | 'Dinner'), same as sheetsSync
+function isDinnerDay(day, dayIndex, time) {
+  const meal = day && (day.functionsAs || day.meal);
+  if (meal) return /dinner/i.test(meal);
+  if (normalizeTime(time) === '7:30 PM') return true;
+  return DEFAULT_MEALS[dayIndex] === 'Dinner';
+}
+
 async function isDinner(trx, monday, dayIndex, time) {
   const weekCfg = await trx('week_configs').where('monday', monday).first();
   const day = weekCfg && weekCfg.config ? weekCfg.config[dayIndex] : null;
-  if (day && day.meal) return /dinner/i.test(day.meal);
-  if (normalizeTime(time) === '7:30 PM') return true;
-  return DEFAULT_MEALS[dayIndex] === 'Dinner';
+  return isDinnerDay(day, dayIndex, time);
 }
 
 /**
@@ -43,4 +49,4 @@ async function checkClaimAllowed(trx, spot, claimerName) {
   return `${displayName} is already signed up for dinner that night — dinner spot-ups are only for members who missed sign-ups`;
 }
 
-module.exports = { checkClaimAllowed, toMondayKey };
+module.exports = { checkClaimAllowed, isDinnerDay, toMondayKey };

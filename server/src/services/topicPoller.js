@@ -84,22 +84,16 @@ async function executeClaim(claimerName, claimNum) {
   const spots = await signupsDb.findAllAvailableSpotUps();
   if (spots.length === 0) return;
 
-  let candidates;
+  let spot;
   if (claimNum !== null) {
     if (claimNum < 1 || claimNum > spots.length) return; // silently ignore bad numbers
-    candidates = [spots[claimNum - 1]];
+    spot = spots[claimNum - 1];
   } else {
-    candidates = spots;
+    spot = spots[0];
   }
 
-  // Plain "claim" takes the first spot this person is eligible for
-  let blocked = null;
-  for (const spot of candidates) {
-    const result = await executeClaimById(spot.id, claimerName);
-    if (result && !result.blocked) return;
-    if (result && result.blocked && !blocked) blocked = result.blocked;
-  }
-  if (blocked) groupme.postToTopic(blocked);
+  const result = await executeClaimById(spot.id, claimerName);
+  if (result && result.blocked) groupme.postToTopic(result.blocked);
 }
 
 async function handleMessage(subject) {

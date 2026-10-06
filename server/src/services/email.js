@@ -4,6 +4,8 @@ const config = require('../config');
 const claimTokensDb = require('../db/queries/claimTokens');
 const membersDb = require('../db/queries/members');
 const templates = require('./emailTemplates');
+const signupsDb = require('../db/queries/signups');
+const { isDinnerDay } = require('./claimRules');
 
 const SITE_URL = () => config.frontendUrl;
 
@@ -45,8 +47,16 @@ async function sendSpotUpEmails(monday, dayIdx, origName, time, weekConfig) {
   const dayMeal = (dayName && mealType) ? `${dayName} ${mealType}` : 'a meal';
   const subject = `\uD83D\uDD14 Spot Up \u2014 ${dayMeal} at Delphic`;
 
+  // Dinner spot-ups can't be claimed by anyone already on that night's list
+  let alreadySignedUp = new Set();
+  if (isDinnerDay(weekConfig && weekConfig[dayIdx], dayIdx, time)) {
+    const daySignups = await signupsDb.getByMondayAndDay(monday, dayIdx);
+    alreadySignedUp = new Set(daySignups.map(s => String(s.name || '').trim().toLowerCase()));
+  }
+
   for (const member of members) {
     if (!member.email) continue;
+    if (alreadySignedUp.has(String(member.name || '').trim().toLowerCase())) continue;
 
     const token = uuidv4();
     await claimTokensDb.create({

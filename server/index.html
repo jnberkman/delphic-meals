@@ -2099,7 +2099,7 @@ function renderViewDay(idx) {
   const myName = (currentUser && currentUser.name && !currentUser.guest)
     ? currentUser.name.toLowerCase().trim() : '';
   // Dinner spot-ups are only for members not already on that night's list (server enforces too)
-  const dinnerClaimBlocked = !!myName && !(currentUser && currentUser.isAdmin) && /dinner/i.test(day.meal || '') &&
+  const dinnerClaimBlocked = !!myName && !(currentUser && currentUser.isAdmin) && /dinner/i.test(day.functionsAs || day.meal || '') &&
     sups.some(s => s.name && s.name.toLowerCase().trim() === myName);
 
   let html = '<div class="card">';
@@ -2217,7 +2217,7 @@ function renderHorizontalView() {
     '</div>';
 
     // Dinner spot-ups are only for members not already on that night's list (server enforces too)
-    const dinnerClaimBlocked = !!myName && !isAdmin && /dinner/i.test(day.meal || '') &&
+    const dinnerClaimBlocked = !!myName && !isAdmin && /dinner/i.test(day.functionsAs || day.meal || '') &&
       sups.some(s => s.name && s.name.toLowerCase().trim() === myName);
 
     // Column body
@@ -2365,7 +2365,7 @@ function renderHorizontalName(s, monday, dayIdx, slot, myName, isAdmin, claimBlo
   // Spot-up state: show compact action buttons
   if (spotUpEnabled && spotStatus === 'spotup') {
     html += '<div style="display:flex;gap:4px;align-items:center;margin-top:2px;">';
-    if (!claimBlocked) {
+    if (!claimBlocked || isMyRow) {
       html += '<button class="spotup-action-btn" style="font-size:11px;padding:2px 6px;color:var(--green);border-color:var(--green);margin-left:0;" onclick="event.stopPropagation();openClaimModal(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')">Claim</button>';
     }
     if (canCancelSpotUp) {
@@ -2481,7 +2481,7 @@ function renderSignupItem(s, monday, dayIdx, slot, claimBlocked) {
         '<div class="meta" style="color:#E65100;">This spot is available to claim</div>' +
       '</div>' +
       '<div style="display:flex;gap:4px;align-items:center;">' +
-        (claimBlocked
+        (claimBlocked && !isMyRow
           ? '<span class="meta" style="color:var(--text-dim);" title="Dinner spot-ups are for members who missed sign-ups">You\'re already signed up</span>'
           : '<button class="spotup-claim-btn" onclick="openClaimModal(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')">Claim</button>') +
         (canCancelSpotUp ? '<button class="spotup-action-btn" onclick="event.stopPropagation();cancelSpotUpAction(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')" title="Cancel spot up">\u2715</button>' : '') +

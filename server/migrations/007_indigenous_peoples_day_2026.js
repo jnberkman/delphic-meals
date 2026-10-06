@@ -7,7 +7,9 @@ const NOTE = "No lunch — Indigenous Peoples' Day";
 
 exports.up = async function (knex) {
   const existing = await knex('week_configs').where('monday', MONDAY).first();
-  const config = existing ? existing.config : buildDefaultConfig(MONDAY);
+  const config = existing && Array.isArray(existing.config) && existing.config[DAY_INDEX]
+    ? existing.config
+    : buildDefaultConfig(MONDAY);
   config[DAY_INDEX] = { ...config[DAY_INDEX], enabled: false, menu: NOTE };
 
   if (existing) {

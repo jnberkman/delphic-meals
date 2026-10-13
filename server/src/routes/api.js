@@ -9,6 +9,7 @@ const settingsHandler = require('../handlers/settings');
 const eventsHandler = require('../handlers/events');
 
 const config = require('../config');
+const { hasValidAccessCode } = require('../middleware/auth');
 
 const handlers = {
   ping:               () => ({ status: 'ok' }),
@@ -77,11 +78,15 @@ async function dispatch(req, res) {
       }
     }
 
-    // Event attendees: names, type and guest count only for non-admin callers
+    // Event attendees: full details for admins, name/type/guests for members and
+    // guest-code users, nothing for anonymous callers (counts stay)
     if (action === 'getEvents' && result && result.events && !(req.user && req.user.isAdmin)) {
+      const canSeeNames = !!req.user || hasValidAccessCode(data);
       result.events = result.events.map(e => ({
         ...e,
-        attendees: (e.attendees || []).map(a => ({ name: a.name, inkType: a.inkType, guestCount: a.guests.length }))
+        attendees: canSeeNames
+          ? (e.attendees || []).map(a => ({ name: a.name, inkType: a.inkType, guests: a.guests }))
+          : []
       }));
     }
 

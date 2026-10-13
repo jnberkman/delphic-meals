@@ -4,8 +4,8 @@ const sheetsSync = require('../services/sheetsSync');
 
 // event_signups.guests is a comma-joined list of guest names
 function parseGuests(guests) {
-  const list = Array.isArray(guests) ? guests : String(guests || '').split(',');
-  return list.map(g => String(g).trim()).filter(Boolean);
+  const list = Array.isArray(guests) ? guests : [guests];
+  return list.flatMap(g => String(g || '').split(',')).map(g => g.trim()).filter(Boolean);
 }
 
 // Seats a signup takes: the member plus their guests. Interest takes no seat.

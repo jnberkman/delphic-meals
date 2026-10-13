@@ -133,20 +133,27 @@ async function addEventSignup(eventId, signup) {
       }
     }
 
-    await trx('event_signups')
+    const existing = await trx('event_signups')
       .where('event_id', eventId)
       .whereRaw('LOWER(name) = ?', [name.toLowerCase()])
-      .del();
+      .first();
+    // Fields left out of the request keep their previous value (members edit
+    // guests without seeing the private details they entered before)
+    const keep = (field, col) => signup[field] !== undefined ? (signup[field] || '') : (existing ? existing[col] : '');
+
+    if (existing) await trx('event_signups').where('id', existing.id).del();
 
     await trx('event_signups').insert({
       event_id: eventId,
       name,
-      grad_year: signup.gradYear || '',
-      diet: signup.diet || '',
-      allergies: signup.allergies || '',
-      notes: signup.notes || '',
+      grad_year: keep('gradYear', 'grad_year'),
+      diet: keep('diet', 'diet'),
+      allergies: keep('allergies', 'allergies'),
+      notes: keep('notes', 'notes'),
       guests: row.guests,
-      ink_type: inkType
+      ink_type: inkType,
+      // Editing keeps your place in the signup order
+      ...(existing ? { timestamp: existing.timestamp } : {})
     });
     return { status: 'ok', added: 1 };
   });

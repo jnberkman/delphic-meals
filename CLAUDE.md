@@ -146,7 +146,7 @@ server/                     # Backend + frontend — Node.js + Express + Postgre
 - "Ink" (formerly RSVP) = interest/attendance tracking on events. In the UI, `ink` = "Going" and `interest` = "Interested"
 - The Moose tab is for club events only (not meals): agenda list + month calendar, and an event sheet that adapts to the member's signup (matched by name, case-insensitive)
 - **Event capacity** counts only `ink` signups plus their guests (`goingCount`); `interest` never takes a seat. `addEventSignup` locks the event row and checks capacity before replacing an existing signup. Fields omitted from `signup` keep their saved value. Names match on `LOWER(TRIM(name))`. Guests are capped at `max_guests` (a member may keep guests they already had)
-- **Event attendee privacy**: `getEvents` is public, but `api.js` returns attendee names/guests only to callers who can sign up (verified Google user or guest code), and year/diet/allergies/notes only to admins
+- **Event attendee privacy**: `getEvents` is public, but `api.js` returns attendee names/guests only to members (verified Google token + members table) and guest-code users, and year/diet/allergies/notes only to admins
 - Admin features are gated by `isAdmin` flag from the members table, enforced server-side
 - `interestOnly` admin setting controls whether events show full signup or just interest tracking
 - **Sheets sync constraint**: Do NOT modify the live Google Sheet directly — the sync service only writes chef-facing display sheets (`Week_YYYY-MM-DD`). Postgres is the source of truth

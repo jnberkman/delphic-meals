@@ -78,11 +78,11 @@ async function dispatch(req, res) {
       }
     }
 
-    // Event attendees: full details for admins; name/type/guests for anyone allowed
-    // to sign up (verified Google user or guest code, same as MEMBER_ACTIONS);
-    // nothing for anonymous callers (counts stay)
+    // Event attendees: full details for admins; name/type/guests for members and
+    // guest-code users; nothing for anyone else (counts stay). Non-member Google
+    // accounts can't get past the app's checkMember gate, so they never need names.
     if (action === 'getEvents' && result && result.events && !(req.user && req.user.isAdmin)) {
-      const canSeeNames = !!req.user || hasValidAccessCode(data);
+      const canSeeNames = !!(req.user && req.user.isMember) || hasValidAccessCode(data);
       result.events = result.events.map(e => ({
         ...e,
         attendees: canSeeNames

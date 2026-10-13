@@ -77,6 +77,14 @@ async function dispatch(req, res) {
       }
     }
 
+    // Event attendees: names, type and guest count only for non-admin callers
+    if (action === 'getEvents' && result && result.events && !(req.user && req.user.isAdmin)) {
+      result.events = result.events.map(e => ({
+        ...e,
+        attendees: (e.attendees || []).map(a => ({ name: a.name, inkType: a.inkType, guestCount: a.guests.length }))
+      }));
+    }
+
     res.json(result);
   } catch (err) {
     console.error(`Action ${action} error:`, err);

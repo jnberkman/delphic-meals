@@ -2,21 +2,37 @@ const db = require('../db/knex');
 const eventsDb = require('../db/queries/events');
 const sheetsSync = require('../services/sheetsSync');
 
+// event_signups.guests is a comma-joined list of guest names
+function parseGuests(guests) {
+  const list = Array.isArray(guests) ? guests : String(guests || '').split(',');
+  return list.map(g => String(g).trim()).filter(Boolean);
+}
+
+// Seats a signup takes: the member plus their guests. Interest takes no seat.
+function seatsFor(row) {
+  return row.ink_type === 'interest' ? 0 : 1 + parseGuests(row.guests).length;
+}
+
 /**
  * Port of getEvents() from Code.gs:419-458.
+ * Includes each event's attendee list; api.js strips private fields for non-admins.
  */
 async function getEvents() {
   const eventRows = await eventsDb.getAll();
-  const events = [];
+  const signupRows = await db('event_signups').orderBy('timestamp');
+  const byEvent = {};
+  for (const s of signupRows) (byEvent[s.event_id] = byEvent[s.event_id] || []).push(s);
 
+  const events = [];
   for (const row of eventRows) {
     if (!row.event_id) continue;
 
-    const signupRows = await db('event_signups').where('event_id', row.event_id);
-    let inkCount = 0, interestCount = 0;
-    for (const s of signupRows) {
+    const rows = byEvent[row.event_id] || [];
+    let inkCount = 0, interestCount = 0, goingCount = 0;
+    for (const s of rows) {
       if (s.ink_type === 'interest') interestCount++;
       else inkCount++;
+      goingCount += seatsFor(s);
     }
 
     events.push({
@@ -26,14 +42,26 @@ async function getEvents() {
       time: row.time || '',
       location: row.location || '',
       description: row.description || '',
+      category: row.category || '',
       capacity: row.capacity || 0,
+      maxGuests: row.max_guests || 0,
       collectGradYear: row.collect_grad_year,
       collectDiet: row.collect_diet,
       freezeDate: row.freeze_date || '',
       interestOnly: row.interest_only,
       signupCount: inkCount + interestCount,
       inkCount,
-      interestCount
+      interestCount,
+      goingCount,
+      attendees: rows.map(s => ({
+        name: s.name,
+        inkType: s.ink_type,
+        guests: parseGuests(s.guests),
+        gradYear: s.grad_year || '',
+        diet: s.diet || '',
+        allergies: s.allergies || '',
+        notes: s.notes || ''
+      }))
     });
   }
 
@@ -73,45 +101,60 @@ async function deleteEvent(eventId) {
 
 /**
  * Port of addEventSignup() from Code.gs:517-559.
+ * Upserts by name. The event row is locked so concurrent signups can't overfill it,
+ * and an existing signup is only replaced once the new one is known to fit.
  */
 async function addEventSignup(eventId, signup) {
-  const event = await eventsDb.findById(eventId);
-  if (!event) return { error: 'Event not found' };
+  const name = String(signup.name || '').trim();
+  if (!name) return { error: 'Name is required' };
 
-  // Check freeze date
-  if (event.freeze_date) {
-    if (Date.now() > new Date(event.freeze_date).getTime()) {
+  const result = await db.transaction(async (trx) => {
+    const event = await trx('events').where('event_id', eventId).forUpdate().first();
+    if (!event) return { error: 'Event not found' };
+
+    if (event.freeze_date && Date.now() > new Date(event.freeze_date).getTime()) {
       return { error: 'Sign-ups are closed for this event' };
     }
-  }
 
-  // Delete existing signup by this name (upsert)
-  await db('event_signups')
-    .where('event_id', eventId)
-    .whereRaw('LOWER(name) = ?', [(signup.name || '').toLowerCase()])
-    .del();
+    const inkType = event.interest_only || signup.inkType === 'interest' ? 'interest' : 'ink';
+    const guests = inkType === 'ink' ? parseGuests(signup.guests).slice(0, event.max_guests || 0) : [];
+    const row = { ink_type: inkType, guests: guests.join(', ') };
 
-  // Check capacity
-  if (event.capacity > 0) {
-    const [{ count }] = await db('event_signups').where('event_id', eventId).count('* as count');
-    if (parseInt(count, 10) >= event.capacity) {
-      return { error: 'Event is full', full: true };
+    if (event.capacity > 0 && seatsFor(row) > 0) {
+      const others = await trx('event_signups')
+        .where('event_id', eventId)
+        .whereRaw('LOWER(name) <> ?', [name.toLowerCase()]);
+      const taken = others.reduce((sum, s) => sum + seatsFor(s), 0);
+      if (taken + seatsFor(row) > event.capacity) {
+        const left = Math.max(0, event.capacity - taken);
+        return guests.length && left > 0
+          ? { error: 'Only ' + left + (left === 1 ? ' spot' : ' spots') + ' left — try with fewer guests', full: true }
+          : { error: 'Event is full', full: true };
+      }
     }
-  }
 
-  await db('event_signups').insert({
-    event_id: eventId,
-    name: signup.name || '',
-    grad_year: signup.gradYear || '',
-    diet: signup.diet || '',
-    allergies: signup.allergies || '',
-    notes: signup.notes || '',
-    guests: signup.guests || '',
-    ink_type: signup.inkType || 'ink'
+    await trx('event_signups')
+      .where('event_id', eventId)
+      .whereRaw('LOWER(name) = ?', [name.toLowerCase()])
+      .del();
+
+    await trx('event_signups').insert({
+      event_id: eventId,
+      name,
+      grad_year: signup.gradYear || '',
+      diet: signup.diet || '',
+      allergies: signup.allergies || '',
+      notes: signup.notes || '',
+      guests: row.guests,
+      ink_type: inkType
+    });
+    return { status: 'ok', added: 1 };
   });
 
-  sheetsSync.syncEventSignups(eventId).catch(e => console.error('Sheets sync error (event signups):', e.message));
-  return { status: 'ok', added: 1 };
+  if (result.status === 'ok') {
+    sheetsSync.syncEventSignups(eventId).catch(e => console.error('Sheets sync error (event signups):', e.message));
+  }
+  return result;
 }
 
 /**

@@ -20,7 +20,9 @@ async function create(eventId, event) {
     collect_grad_year: event.collectGradYear || false,
     collect_diet: event.collectDiet || false,
     freeze_date: event.freezeDate || '',
-    interest_only: event.interestOnly || false
+    interest_only: event.interestOnly || false,
+    category: event.category || '',
+    max_guests: Math.max(0, parseInt(event.maxGuests, 10) || 0)
   });
 }
 
@@ -35,7 +37,9 @@ async function update(eventId, event) {
     collect_grad_year: event.collectGradYear || false,
     collect_diet: event.collectDiet || false,
     freeze_date: event.freezeDate || '',
-    interest_only: event.interestOnly || false
+    interest_only: event.interestOnly || false,
+    category: event.category || '',
+    max_guests: Math.max(0, parseInt(event.maxGuests, 10) || 0)
   });
   return count > 0;
 }

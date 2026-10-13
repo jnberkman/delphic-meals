@@ -4045,7 +4045,14 @@ async function submitMooseSignup(eventId, inkType) {
   try {
     await apiCall('addEventSignup', { eventId, signup });
     // Guest-code users: remember the name so the sheet recognizes them next time
-    if (currentUser && !currentUser.name) currentUser.name = name;
+    if (currentUser && !currentUser.name) {
+      currentUser.name = name;
+      sessionStorage.setItem('delphic_user', JSON.stringify(currentUser));
+      try {
+        const prefs = JSON.parse(localStorage.getItem('delphic_prefs') || '{}');
+        if (!prefs.name) { prefs.name = name; localStorage.setItem('delphic_prefs', JSON.stringify(prefs)); }
+      } catch (e) {}
+    }
     const ev = (_mooseEvents || []).find(e => e.eventId === eventId);
     showToast((inkType === 'ink' ? 'You’re in' : 'Interest marked') + (ev ? ' — ' + ev.title : ''), 'var(--green)');
     _mooseEditing = false;

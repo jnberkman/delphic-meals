@@ -169,28 +169,6 @@
   @keyframes spin { to { transform: rotate(360deg); } }
 
 
-  /* Calendar */
-  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-bottom: 8px; }
-  .cal-header { padding: 8px 4px; text-align: center; font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-dim); }
-  .cal-day { min-height: 72px; padding: 6px 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 3px; font-size: 12px; cursor: default; transition: all .2s; }
-  .cal-day:hover { border-color: var(--border-light); }
-  .cal-day.today { border-color: var(--accent); background: var(--accent-glow2); }
-  .cal-day.other-month { opacity: .35; }
-  .cal-day .cal-num { font-weight: 600; color: var(--text-bright); margin-bottom: 4px; }
-  .cal-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 3px; }
-  .cal-dot.meal { background: var(--accent); }
-  .cal-dot.event { background: #5B8DEF; }
-  .cal-tag { display: inline-block; font-size: 9px; padding: 1px 5px; border-radius: 2px; margin-top: 2px; line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-  .cal-tag.meal-tag { background: #8B691412; color: var(--accent); }
-  .cal-tag.event-tag { background: #5B8DEF15; color: #3B6BC4; cursor: pointer; }
-  .cal-tag.event-tag:hover { background: #5B8DEF25; }
-
-  /* Event cards */
-  .event-card { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 24px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.04); border-left: 4px solid #5B8DEF; }
-  .event-card .event-title { font-family: 'Cormorant Garamond', serif; font-size: 24px; font-weight: 600; color: var(--text-bright); margin-bottom: 4px; }
-  .event-card .event-meta { font-family: 'Crimson Pro', serif; font-size: 14px; color: var(--text-dim); font-style: italic; margin-bottom: 16px; line-height: 1.6; }
-  .event-card .event-desc { font-family: 'Crimson Pro', serif; font-size: 15px; color: var(--text); line-height: 1.6; margin-bottom: 16px; padding: 12px 16px; background: var(--surface2); border-radius: 4px; border-left: 2px solid #5B8DEF; }
-
   /* Confirmation Modal */
   .confirm-overlay { position: fixed; inset: 0; background: rgba(26,26,26,.55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); z-index: 1000; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity .35s ease; }
   .confirm-overlay.show { opacity: 1; pointer-events: auto; }
@@ -440,8 +418,6 @@
   <div class="tabs">
     <button class="tab active" data-tab="signup">Sign Up</button>
     <button class="tab" data-tab="view">View Signups</button>
-    <button class="tab" data-tab="calendar" style="display:none;">Calendar</button>
-    <button class="tab" data-tab="events" id="eventsTabBtn" style="display:none;">Events</button>
     <button class="tab" data-tab="moose" id="mooseTabBtn">Moose</button>
     <button class="tab" data-tab="admin" id="adminTabBtn" style="display:none;">Admin <span id="adminTabBadge" style="display:none;background:var(--red);color:#fff;font-size:9px;font-weight:700;border-radius:8px;padding:1px 6px;margin-left:3px;vertical-align:middle;letter-spacing:.3px;"></span></button>
   </div>
@@ -534,32 +510,6 @@
     <div id="viewLoading" style="display:none;text-align:center;padding:24px;color:var(--text-dim);" aria-live="polite"><div class="spinner"></div><div style="margin-top:10px;font-family:'Crimson Pro',serif;font-size:14px;font-style:italic;">Loading signups&hellip;</div></div>
     <datalist id="adminAddMembersList"></datalist>
     <div id="viewContent"></div>
-  </div>
-
-  <!-- ========== CALENDAR (hidden) ========== -->
-  <div id="tab-calendar" class="section" style="display:none!important;">
-    <div class="card">
-      <div class="card-title">Upcoming Schedule</div>
-      <div class="card-sub">Meals and special events for the weeks ahead</div>
-      <div class="field">
-        <label class="field-label">View Month</label>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <button class="btn btn-secondary" style="width:auto;padding:10px 14px;font-size:16px;" onclick="shiftCalMonth(-1)" title="Previous month">&#8592;</button>
-          <div id="calMonthLabel" style="flex:1;text-align:center;font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;color:var(--text-bright);"></div>
-          <button class="btn btn-secondary" style="width:auto;padding:10px 14px;font-size:16px;" onclick="shiftCalMonth(1)" title="Next month">&#8594;</button>
-        </div>
-      </div>
-    </div>
-    <div id="calLoading" style="display:none;text-align:center;padding:24px;color:var(--text-dim);" aria-live="polite"><div class="spinner"></div><div style="margin-top:10px;font-family:'Crimson Pro',serif;font-size:14px;font-style:italic;">Loading calendar&hellip;</div></div>
-    <div id="calendarGrid"></div>
-    <div id="calEventsList" style="margin-top:24px;"></div>
-  </div>
-
-  <!-- ========== EVENTS ========== -->
-  <!-- ========== EVENTS (hidden) ========== -->
-  <div id="tab-events" class="section" style="display:none!important;">
-    <div id="eventsLoading" style="display:none;text-align:center;padding:24px;color:var(--text-dim);" aria-live="polite"><div class="spinner"></div><div style="margin-top:10px;font-family:'Crimson Pro',serif;font-size:14px;font-style:italic;">Loading events&hellip;</div></div>
-    <div id="eventsList"></div>
   </div>
 
   <!-- ========== MOOSE ========== -->
@@ -1521,8 +1471,6 @@ document.querySelectorAll('.tab').forEach(t => {
     } else {
       appEl.classList.remove('view-wide');
       if (id === 'signup') loadWeekData();
-      if (id === 'calendar') loadCalendar();
-      if (id === 'events') loadEvents();
       if (id === 'moose') loadMoose();
       if (id === 'admin') { switchAdminPanel('week'); loadAccessRequests(); }
     }
@@ -2977,117 +2925,6 @@ async function pushWeekConfig() {
   } catch (e) {}
 }
 
-// =============================================
-//  SPECIAL EVENTS
-// =============================================
-let allEvents = [];
-
-async function loadEvents() {
-  document.getElementById('eventsList').innerHTML = '';
-
-  // Show cached events instantly
-  const cachedEvents = getCache('events');
-  if (cachedEvents) {
-    allEvents = cachedEvents;
-    renderEventsList();
-    // eventsTabBtn hidden
-  } else {
-    document.getElementById('eventsLoading').style.display = 'block';
-  }
-
-  try {
-    const result = await apiCall('getEvents');
-    allEvents = (result.events || []).filter(e => {
-      const d = new Date(e.date + 'T23:59:59');
-      return d >= new Date(new Date().toDateString()); // today or future
-    }).sort((a, b) => new Date(a.date) - new Date(b.date));
-    setCache('events', allEvents);
-  } catch (e) { if (!cachedEvents) allEvents = []; }
-  document.getElementById('eventsLoading').style.display = 'none';
-  renderEventsList();
-  // Events live in the Moose tab — don't show the legacy Events tab
-}
-
-function renderEventsList() {
-  let html = '';
-  if (allEvents.length === 0) {
-    html = '<div class="info-banner">No upcoming special events.</div>';
-  }
-  allEvents.forEach(evt => {
-    const dateStr = new Date(evt.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-    const isFull = evt.capacity > 0 && evt.signupCount >= evt.capacity;
-    const isFrozen = evt.freezeDate && Date.now() > new Date(evt.freezeDate).getTime();
-    const spotsText = evt.capacity > 0 ? (evt.signupCount + '/' + evt.capacity + ' signed up') : (evt.signupCount + ' signed up');
-
-    html += '<div class="event-card">' +
-      '<div style="display:flex;justify-content:space-between;align-items:start;">' +
-        '<div class="event-title">' + escapeHtml(evt.title) + '</div>' +
-        '<span class="tag ' + (isFull ? 'tag-red' : 'tag-green') + '">' + (isFull ? 'FULL' : 'OPEN') + '</span>' +
-      '</div>' +
-      '<div class="event-meta">' + dateStr + (evt.time ? ' at ' + escapeHtml(evt.time) : '') + (evt.location ? ' &middot; ' + escapeHtml(evt.location) : '') + ' &middot; ' + spotsText + '</div>';
-    if (evt.description) html += '<div class="event-desc">' + escapeHtml(evt.description) + '</div>';
-    if (isFrozen) {
-      html += '<div style="background:#B1424210;border:1px solid #B1424230;border-radius:4px;padding:10px 14px;font-family:\'Crimson Pro\',serif;font-size:13px;color:var(--red);margin-bottom:12px;">Sign-ups for this event are closed.</div>';
-    } else if (!isFull) {
-      html += '<div style="border:1px solid var(--border);border-radius:4px;padding:16px;background:var(--surface2);margin-bottom:8px;">' +
-        '<div style="font-family:\'Jost\',sans-serif;font-size:11px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-dim);margin-bottom:10px;">Sign Up for This Event</div>' +
-        '<div class="field" style="margin-bottom:10px;"><label class="field-label" style="font-size:10px;">Name <span class="req">*</span></label>' +
-        '<input type="text" id="evtName_' + evt.eventId + '" placeholder="Your full name"></div>';
-      if (evt.collectGradYear) {
-        html += '<div class="field" style="margin-bottom:10px;"><label class="field-label" style="font-size:10px;">Grad Year <span class="req">*</span></label>' +
-        '<input type="text" id="evtGrad_' + evt.eventId + '" placeholder="e.g. 2026"></div>';
-      }
-      if (evt.collectDiet) {
-        html += '<div class="field" style="margin-bottom:10px;"><label class="field-label" style="font-size:10px;">Dietary Preference</label>' +
-        '<div class="option-grid">' +
-          '<label class="option-pill"><input type="radio" name="evtDiet_' + evt.eventId + '" value="No Dietary Restrictions" checked><span class="pill-label">No Restrictions</span></label>' +
-          '<label class="option-pill"><input type="radio" name="evtDiet_' + evt.eventId + '" value="Vegan"><span class="pill-label">Vegan</span></label>' +
-          '<label class="option-pill"><input type="radio" name="evtDiet_' + evt.eventId + '" value="Vegetarian"><span class="pill-label">Vegetarian</span></label>' +
-          '<label class="option-pill"><input type="radio" name="evtDiet_' + evt.eventId + '" value="Gluten-Free"><span class="pill-label">Gluten-Free</span></label>' +
-        '</div></div>';
-      }
-      html += '<div class="field" style="margin-bottom:10px;"><label class="field-label" style="font-size:10px;">Guests</label>' +
-        '<input type="text" id="evtGuests_' + evt.eventId + '" placeholder="e.g. John Smith, Jane Doe"></div>' +
-        '<div class="field" style="margin-bottom:10px;"><label class="field-label" style="font-size:10px;">Notes</label>' +
-        '<input type="text" id="evtNotes_' + evt.eventId + '" placeholder="Any additional info"></div>' +
-        '<button class="btn btn-primary" onclick="submitEventSignup(\'' + evt.eventId + '\')">Sign Up</button>' +
-      '</div>';
-    }
-    html += '</div>';
-  });
-  document.getElementById('eventsList').innerHTML = html;
-}
-
-async function submitEventSignup(eventId) {
-  const nameEl = document.getElementById('evtName_' + eventId);
-  const name = nameEl ? nameEl.value.trim() : '';
-  if (!name) { showToast('Please enter your name', 'var(--red)'); return; }
-
-  const gradEl = document.getElementById('evtGrad_' + eventId);
-  const gradYear = gradEl ? gradEl.value.trim() : '';
-
-  const dietEl = document.querySelector('input[name="evtDiet_' + eventId + '"]:checked');
-  const diet = dietEl ? dietEl.value : '';
-
-  const guestsEl = document.getElementById('evtGuests_' + eventId);
-  const guests = guestsEl ? guestsEl.value.trim() : '';
-
-  const notesEl = document.getElementById('evtNotes_' + eventId);
-  const notes = notesEl ? notesEl.value.trim() : '';
-
-  try {
-    const result = await apiCall('addEventSignup', { eventId, signup: { name, gradYear, diet, guests, notes } });
-    if (result.status === 'ok') {
-      showConfirmation(name, '', 1, false, true);
-      document.getElementById('confirmSub').textContent = 'You\'re signed up for this event.';
-      document.getElementById('confirmDays').textContent = '';
-      await loadEvents();
-    } else if (result.full) {
-      showToast('This event is full', 'var(--red)');
-    }
-  } catch (e) {}
-}
-
 // Admin: Create event
 async function createNewEvent() {
   const title = document.getElementById('newEventTitle').value.trim();
@@ -3116,7 +2953,9 @@ async function createNewEvent() {
     document.getElementById('newEventCap').value = '0';
     document.getElementById('newEventFreeze').value = '';
     loadAdminEvents();
-    loadEvents();
+    // Refresh Moose so the change shows up there
+    _mooseEvents = null;
+    if (document.querySelector('.tab.active[data-tab="moose"]')) loadMoose();
   } catch (e) {}
 }
 
@@ -3496,164 +3335,10 @@ async function deleteAdminEvent(eventId, title) {
     await apiCall('deleteEvent', { eventId });
     showToast('Event deleted', 'var(--red)');
     loadAdminEvents();
-    loadEvents();
+    // Refresh Moose so the change shows up there
+    _mooseEvents = null;
+    if (document.querySelector('.tab.active[data-tab="moose"]')) loadMoose();
   } catch (e) {}
-}
-
-// =============================================
-//  CALENDAR
-// =============================================
-let calYear, calMonth;
-
-function initCalendar() {
-  const now = new Date();
-  calYear = now.getFullYear();
-  calMonth = now.getMonth();
-}
-
-function shiftCalMonth(dir) {
-  calMonth += dir;
-  if (calMonth > 11) { calMonth = 0; calYear++; }
-  if (calMonth < 0) { calMonth = 11; calYear--; }
-  // Limit: 2 years out
-  const now = new Date();
-  const maxDate = new Date(now.getFullYear() + 2, now.getMonth(), 1);
-  const minDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const cur = new Date(calYear, calMonth, 1);
-  if (cur > maxDate || cur < minDate) { calMonth -= dir; if (calMonth > 11) { calMonth = 0; calYear++; } if (calMonth < 0) { calMonth = 11; calYear--; } return; }
-  loadCalendar();
-}
-
-async function loadCalendar() {
-  const label = new Date(calYear, calMonth, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-  document.getElementById('calMonthLabel').textContent = label;
-  document.getElementById('calLoading').style.display = 'block';
-
-  // Load events
-  let events = [];
-  try {
-    const result = await apiCall('getEvents');
-    events = result.events || [];
-  } catch (e) {}
-
-  // Load meal weeks that overlap this month
-  const firstDay = new Date(calYear, calMonth, 1);
-  const lastDay = new Date(calYear, calMonth + 1, 0);
-  let mealDays = {};
-
-  // Get Mondays that cover this month
-  const mondays = [];
-  const d = new Date(firstDay);
-  d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); // go to Monday of first week
-  while (d <= lastDay) {
-    mondays.push(d.toISOString().split('T')[0]);
-    d.setDate(d.getDate() + 7);
-  }
-
-  await Promise.all(mondays.map(async mon => {
-    try {
-      const week = await apiCall('getWeek', { monday: mon });
-      if (week && week.config) {
-        week.config.forEach(day => {
-          if (day.enabled) {
-            mealDays[day.date] = day.meal;
-          }
-        });
-      }
-    } catch (e) {}
-  }));
-
-  document.getElementById('calLoading').style.display = 'none';
-  renderCalendar(mealDays, events);
-}
-
-function renderCalendar(mealDays, events) {
-  const today = new Date();
-  const todayStr = today.toISOString().split('T')[0];
-  const firstDay = new Date(calYear, calMonth, 1);
-  const lastDay = new Date(calYear, calMonth + 1, 0);
-  const startDay = (firstDay.getDay() + 6) % 7; // Monday-based
-
-  const dayNames = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-  let html = '<div class="cal-grid">';
-  dayNames.forEach(n => { html += '<div class="cal-header">' + n + '</div>'; });
-
-  // Fill in leading days from previous month
-  const prevMonth = new Date(calYear, calMonth, 0);
-  for (let i = startDay - 1; i >= 0; i--) {
-    const dayNum = prevMonth.getDate() - i;
-    html += '<div class="cal-day other-month"><div class="cal-num">' + dayNum + '</div></div>';
-  }
-
-  // This month's days
-  for (let d = 1; d <= lastDay.getDate(); d++) {
-    const dateObj = new Date(calYear, calMonth, d);
-    const dateStr = dateObj.toISOString().split('T')[0];
-    const isToday = dateStr === todayStr;
-
-    html += '<div class="cal-day' + (isToday ? ' today' : '') + '"><div class="cal-num">' + d + '</div>';
-
-    // Meal indicator
-    if (mealDays[dateStr]) {
-      html += '<div class="cal-tag meal-tag">' + mealDays[dateStr] + '</div>';
-    }
-
-    // Event indicators
-    events.forEach(evt => {
-      if (evt.date === dateStr) {
-        html += '<div class="cal-tag event-tag" onclick="showEventFromCal(\'' + evt.eventId + '\')" title="' + escapeHtml(evt.title) + '">' + escapeHtml(evt.title) + '</div>';
-      }
-    });
-
-    html += '</div>';
-  }
-
-  // Trailing days
-  const totalCells = startDay + lastDay.getDate();
-  const remaining = (7 - (totalCells % 7)) % 7;
-  for (let i = 1; i <= remaining; i++) {
-    html += '<div class="cal-day other-month"><div class="cal-num">' + i + '</div></div>';
-  }
-
-  html += '</div>';
-  document.getElementById('calendarGrid').innerHTML = html;
-
-  // Events list below calendar
-  const monthEvents = events.filter(e => {
-    const ed = new Date(e.date + 'T12:00:00');
-    return ed.getMonth() === calMonth && ed.getFullYear() === calYear && ed >= new Date(new Date().toDateString());
-  }).sort((a, b) => new Date(a.date) - new Date(b.date));
-
-  let evtHtml = '';
-  if (monthEvents.length > 0) {
-    evtHtml += '<div class="card"><div class="card-title">Special Events This Month</div><div class="card-sub">Click to sign up</div>';
-    monthEvents.forEach(evt => {
-      const dateStr = new Date(evt.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-      const spotsText = evt.capacity > 0 ? (evt.signupCount + '/' + evt.capacity) : evt.signupCount + ' signed up';
-      evtHtml += '<div style="border:1px solid var(--border);border-radius:4px;padding:12px 16px;margin-bottom:8px;background:var(--surface);cursor:pointer;border-left:3px solid #5B8DEF;" onclick="showEventFromCal(\'' + evt.eventId + '\')">' +
-        '<div style="display:flex;justify-content:space-between;align-items:center;">' +
-          '<div><strong style="font-family:\'Crimson Pro\',serif;font-size:15px;color:var(--text-bright);">' + escapeHtml(evt.title) + '</strong>' +
-          '<div style="font-size:12px;color:var(--text-dim);">' + dateStr + (evt.time ? ' at ' + evt.time : '') + '</div></div>' +
-          '<span style="font-size:11px;color:var(--text-dim);">' + spotsText + '</span>' +
-        '</div></div>';
-    });
-    evtHtml += '</div>';
-  }
-  document.getElementById('calEventsList').innerHTML = evtHtml;
-}
-
-function showEventFromCal(eventId) {
-  // Switch to moose tab and open the event sheet
-  document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
-  document.querySelector('[data-tab="moose"]').classList.add('active');
-  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-  document.getElementById('tab-moose').classList.add('active');
-  loadMoose().then(() => {
-    if (_mooseEvents) {
-      const ev = _mooseEvents.find(e => e.eventId === eventId || e.id === eventId);
-      if (ev) openMooseEventSheet(ev.eventId || ev.id);
-    }
-  });
 }
 
 // =============================================
@@ -3719,12 +3404,6 @@ snapToMonday('adminWeekSelect', renderAdminWeek);
 loadWeekData(true);
 loadViewData(true); // prefetch so View tab renders instantly on first click
 if (currentUser && currentUser.isAdmin) { switchAdminPanel('week'); loadAccessRequests(); }
-
-// Initialize calendar
-initCalendar();
-
-// Load events to check if Events tab should be visible
-loadEvents();
 
 // Re-fetch data when user returns to the tab after 60+ seconds away
 document.addEventListener('visibilitychange', () => {

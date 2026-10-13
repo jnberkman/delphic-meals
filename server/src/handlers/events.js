@@ -2,11 +2,18 @@ const db = require('../db/knex');
 const eventsDb = require('../db/queries/events');
 const sheetsSync = require('../services/sheetsSync');
 
-// event_signups.guests is a comma-joined list of guest names
+const MAX_GUEST_NAME = 100;
+
+// event_signups.guests is a JSON array of guest names (see migration 008)
 function parseGuests(guests) {
-  const list = Array.isArray(guests) ? guests : [guests];
-  return list.flatMap(g => String(g || '').split(',')).map(g => g.trim()).filter(Boolean);
+  if (!Array.isArray(guests)) return [];
+  return guests.map(g => String(g || '').trim()).filter(Boolean);
 }
+
+// Signup names are matched case- and whitespace-insensitively; older rows may
+// have been stored with stray spaces, so trim on the SQL side too
+const NAME_MATCH = 'LOWER(TRIM(name)) = ?';
+const nameKey = (name) => String(name || '').trim().toLowerCase();
 
 // Seats a signup takes: the member plus their guests. Interest takes no seat.
 function seatsFor(row) {
@@ -117,15 +124,30 @@ async function addEventSignup(eventId, signup) {
     }
 
     const inkType = event.interest_only || signup.inkType === 'interest' ? 'interest' : 'ink';
-    const guests = inkType === 'ink' ? parseGuests(signup.guests).slice(0, event.max_guests || 0) : [];
-    const row = { ink_type: inkType, guests: guests.join(', ') };
+    const guests = inkType === 'ink' ? parseGuests(signup.guests) : [];
+    // All of this person's rows (legacy data can hold "Bob" and "Bob " separately)
+    const mine = await trx('event_signups')
+      .where('event_id', eventId)
+      .whereRaw(NAME_MATCH, [nameKey(name)])
+      .orderBy('timestamp');
+    const existing = mine[0];
+
+    // Guests already on a signup (e.g. from before guest limits existed) can be kept
+    const hadGuests = existing ? parseGuests(existing.guests).length : 0;
+    const maxGuests = Math.max(event.max_guests || 0, hadGuests);
+    if (guests.length > maxGuests) {
+      return { error: maxGuests ? 'This event allows up to ' + maxGuests + (maxGuests === 1 ? ' guest' : ' guests') + ' per person' : 'This event doesn\'t allow guests' };
+    }
+    if (guests.some(g => g.length > MAX_GUEST_NAME)) return { error: 'Guest names must be under ' + MAX_GUEST_NAME + ' characters' };
+    const row = { ink_type: inkType, guests };
 
     if (event.capacity > 0 && seatsFor(row) > 0) {
-      const others = await trx('event_signups')
-        .where('event_id', eventId)
-        .whereRaw('LOWER(name) <> ?', [name.toLowerCase()]);
-      const taken = others.reduce((sum, s) => sum + seatsFor(s), 0);
-      if (taken + seatsFor(row) > event.capacity) {
+      const all = await trx('event_signups').where('event_id', eventId);
+      const myIds = new Set(mine.map(s => s.id));
+      const taken = all.filter(s => !myIds.has(s.id)).reduce((sum, s) => sum + seatsFor(s), 0);
+      const current = mine.reduce((sum, s) => sum + seatsFor(s), 0);
+      // Changes that don't add seats always go through, even on an over-full event
+      if (taken + seatsFor(row) > event.capacity && seatsFor(row) > current) {
         const left = Math.max(0, event.capacity - taken);
         return guests.length && left > 0
           ? { error: 'Only ' + left + (left === 1 ? ' spot' : ' spots') + ' left — try with fewer guests', full: true }
@@ -133,15 +155,11 @@ async function addEventSignup(eventId, signup) {
       }
     }
 
-    const existing = await trx('event_signups')
-      .where('event_id', eventId)
-      .whereRaw('LOWER(name) = ?', [name.toLowerCase()])
-      .first();
     // Fields left out of the request keep their previous value (members edit
     // guests without seeing the private details they entered before)
-    const keep = (field, col) => signup[field] !== undefined ? (signup[field] || '') : (existing ? existing[col] : '');
+    const keep = (field, col) => signup[field] !== undefined ? String(signup[field] || '') : (existing ? existing[col] : '');
 
-    if (existing) await trx('event_signups').where('id', existing.id).del();
+    if (mine.length) await trx('event_signups').whereIn('id', mine.map(s => s.id)).del();
 
     await trx('event_signups').insert({
       event_id: eventId,
@@ -150,7 +168,7 @@ async function addEventSignup(eventId, signup) {
       diet: keep('diet', 'diet'),
       allergies: keep('allergies', 'allergies'),
       notes: keep('notes', 'notes'),
-      guests: row.guests,
+      guests: JSON.stringify(guests),
       ink_type: inkType,
       // Editing keeps your place in the signup order
       ...(existing ? { timestamp: existing.timestamp } : {})
@@ -170,7 +188,7 @@ async function addEventSignup(eventId, signup) {
 async function removeEventSignup(eventId, name) {
   const count = await db('event_signups')
     .where('event_id', eventId)
-    .whereRaw('LOWER(name) = ?', [(name || '').toLowerCase()])
+    .whereRaw(NAME_MATCH, [nameKey(name)])
     .del();
   if (count > 0) {
     sheetsSync.syncEventSignups(eventId).catch(e => console.error('Sheets sync error (event signups):', e.message));

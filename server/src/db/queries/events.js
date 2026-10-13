@@ -1,5 +1,8 @@
 const db = require('../knex');
 
+const CATEGORIES = ['social', 'formal', 'sports', 'trip', 'other'];
+const category = (c) => CATEGORIES.includes(c) ? c : '';
+
 async function getAll() {
   return db('events').select('*').orderBy('date');
 }
@@ -21,8 +24,8 @@ async function create(eventId, event) {
     collect_diet: event.collectDiet || false,
     freeze_date: event.freezeDate || '',
     interest_only: event.interestOnly || false,
-    category: event.category || '',
-    max_guests: Math.max(0, parseInt(event.maxGuests, 10) || 0)
+    category: category(event.category),
+    max_guests: Math.min(5, Math.max(0, parseInt(event.maxGuests, 10) || 0))
   });
 }
 
@@ -38,8 +41,8 @@ async function update(eventId, event) {
     collect_diet: event.collectDiet || false,
     freeze_date: event.freezeDate || '',
     interest_only: event.interestOnly || false,
-    category: event.category || '',
-    max_guests: Math.max(0, parseInt(event.maxGuests, 10) || 0)
+    category: category(event.category),
+    max_guests: Math.min(5, Math.max(0, parseInt(event.maxGuests, 10) || 0))
   });
   return count > 0;
 }

@@ -3529,14 +3529,37 @@ function _mooseCat(ev) {
   return MOOSE_CATEGORIES[ev.category] || { label: 'Event', color: '#4F7BC8' };
 }
 
-function _mooseMyName() {
-  return (currentUser && currentUser.name) ? currentUser.name.toLowerCase().trim() : '';
+// Names this browser has signed up for events under ("Not you?" lets someone
+// use a name other than their account name), so those signups count as theirs
+function _mooseNamesKey() {
+  return 'delphic_event_names:' + ((currentUser && currentUser.email) || 'guest');
+}
+
+function _mooseNameKey(name) {
+  return String(name || '').toLowerCase().trim();
+}
+
+function _mooseOtherNames() {
+  try { return JSON.parse(localStorage.getItem(_mooseNamesKey()) || '[]').filter(n => typeof n === 'string'); } catch (e) { return []; }
+}
+
+function _mooseRememberName(name, keep) {
+  const key = _mooseNameKey(name);
+  const own = currentUser && currentUser.name ? _mooseNameKey(currentUser.name) : '';
+  let names = _mooseOtherNames().filter(n => n !== key);
+  if (keep && key && key !== own) names.push(key);
+  try { localStorage.setItem(_mooseNamesKey(), JSON.stringify(names.slice(-5))); } catch (e) {}
+}
+
+function _mooseIsMe(name) {
+  const key = _mooseNameKey(name);
+  if (!key) return false;
+  if (currentUser && currentUser.name && _mooseNameKey(currentUser.name) === key) return true;
+  return _mooseOtherNames().includes(key);
 }
 
 function _mooseMine(ev) {
-  const me = _mooseMyName();
-  if (!me) return null;
-  return (ev.attendees || []).find(a => a.name && a.name.toLowerCase().trim() === me) || null;
+  return (ev.attendees || []).find(a => _mooseIsMe(a.name)) || null;
 }
 
 function _mooseGuestCount(a) {
@@ -3598,12 +3621,11 @@ function _mooseCountHtml(ev) {
 function _mooseFacesHtml(ev) {
   const going = (ev.attendees || []).filter(a => ev.interestOnly ? a.inkType === 'interest' : a.inkType !== 'interest');
   if (!going.length) return '';
-  const me = _mooseMyName();
   // Put yourself first so you can find your own circle
-  going.sort((a, b) => (b.name.toLowerCase().trim() === me) - (a.name.toLowerCase().trim() === me));
+  going.sort((a, b) => _mooseIsMe(b.name) - _mooseIsMe(a.name));
   let html = '<span class="moose-faces" title="' + escapeHtml(going.map(a => a.name).join(', ')) + '">';
   going.slice(0, 4).forEach(a => {
-    const mine = me && a.name.toLowerCase().trim() === me;
+    const mine = _mooseIsMe(a.name);
     html += '<span class="moose-face' + (mine ? ' mf-me' : '') + '">' + escapeHtml(_mooseInitials(a.name)) + '</span>';
   });
   if (going.length > 4) html += '<span class="moose-face mf-more">+' + (going.length - 4) + '</span>';
@@ -3900,12 +3922,14 @@ function _mooseMeHtml(ev, st, mine) {
     MOOSE_DIETS.forEach(opt => { html += '<option' + (prefs.diet === opt ? ' selected' : '') + '>' + opt + '</option>'; });
     html += '</select></div>';
   }
-  if (canGo && ev.maxGuests > 0) {
-    const existing = isGoing ? (mine.guests || []) : [];
+  // Guests already on your signup can be kept even if the limit is lower
+  const existing = isGoing ? (mine.guests || []) : [];
+  const guestLimit = Math.max(ev.maxGuests || 0, existing.length);
+  if (canGo && guestLimit > 0) {
     html += '<div class="field" style="margin-bottom:16px;"><label class="field-label">Guests</label>' +
       '<div class="moose-stepper"><button type="button" id="mooseGuestMinus" onclick="stepMooseGuests(-1)" aria-label="Fewer guests">&minus;</button>' +
       '<span id="mooseGuestN">0</span><button type="button" id="mooseGuestPlus" onclick="stepMooseGuests(1)" aria-label="More guests">+</button></div>' +
-      '<div id="mooseGuestInputs" data-max="' + ev.maxGuests + '" data-initial="' + escapeHtml(JSON.stringify(existing)) + '"></div></div>';
+      '<div id="mooseGuestInputs" data-max="' + guestLimit + '" data-initial="' + escapeHtml(JSON.stringify(existing)) + '"></div></div>';
   }
   if (!mine) html += '<div class="field" style="margin-bottom:16px;"><label class="field-label">Notes <span style="text-transform:none;letter-spacing:0;">(optional)</span></label>' +
     '<textarea id="mooseEvtNotes" rows="2" placeholder="Anything the organizers should know"></textarea></div>';
@@ -3968,7 +3992,6 @@ function _mooseWhoHtml(ev) {
   const going = all.filter(a => a.inkType !== 'interest');
   const interested = all.filter(a => a.inkType === 'interest');
   const isAdmin = currentUser && currentUser.isAdmin;
-  const me = _mooseMyName();
 
   const list = (people) => {
     if (isAdmin) {
@@ -3982,7 +4005,7 @@ function _mooseWhoHtml(ev) {
     }
     return '<div class="moose-names">' + people.map(a => {
       const n = _mooseGuestCount(a);
-      const mine = me && a.name.toLowerCase().trim() === me;
+      const mine = _mooseIsMe(a.name);
       return '<span class="moose-name' + (mine ? ' mn-me' : '') + '"' + (n ? ' title="' + escapeHtml('Guests: ' + a.guests.join(', ')) + '"' : '') + '>' +
         escapeHtml(a.name) + (n ? '<small>+' + n + '</small>' : '') + '</span>';
     }).join('') + '</div>';
@@ -4053,6 +4076,7 @@ async function submitMooseSignup(eventId, inkType) {
         if (!prefs.name) { prefs.name = name; localStorage.setItem('delphic_prefs', JSON.stringify(prefs)); }
       } catch (e) {}
     }
+    _mooseRememberName(name, true);
     const ev = (_mooseEvents || []).find(e => e.eventId === eventId);
     showToast((inkType === 'ink' ? 'You’re in' : 'Interest marked') + (ev ? ' — ' + ev.title : ''), 'var(--green)');
     _mooseEditing = false;
@@ -4072,6 +4096,7 @@ async function removeMooseSignup(eventId) {
   if (!mine) return;
   try {
     await apiCall('removeEventSignup', { eventId, name: mine.name });
+    _mooseRememberName(mine.name, false);
     showToast('Removed from ' + ev.title, 'var(--text-dim)');
     _mooseConfirmRemove = false;
     await _fetchMooseEvents();

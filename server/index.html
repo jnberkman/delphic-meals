@@ -1477,7 +1477,9 @@ async function apiCall(action, data = {}) {
       if (idToken) headers['Authorization'] = 'Bearer ' + idToken;
       const guestCode = sessionStorage.getItem('delphic_access_code');
       const payload = { action, ...data };
-      if (!idToken && guestCode) payload.accessCode = guestCode;
+      // Send the guest code even alongside a token: a stored non-member Google token
+      // would otherwise hide what the guest code grants (e.g. event attendee names)
+      if (guestCode) payload.accessCode = guestCode;
       resp = await fetch(SCRIPT_URL + '/api', {
         method: 'POST',
         headers,
@@ -3539,27 +3541,49 @@ function _mooseNameKey(name) {
   return String(name || '').toLowerCase().trim();
 }
 
+// Read once per account and cached; this runs for every attendee on every render
+let _mooseNamesCache = null;  // { key, names }
+
 function _mooseOtherNames() {
-  try { return JSON.parse(localStorage.getItem(_mooseNamesKey()) || '[]').filter(n => typeof n === 'string'); } catch (e) { return []; }
+  const key = _mooseNamesKey();
+  if (!_mooseNamesCache || _mooseNamesCache.key !== key) {
+    let names = [];
+    try { names = JSON.parse(localStorage.getItem(key) || '[]').filter(n => typeof n === 'string'); } catch (e) {}
+    _mooseNamesCache = { key, names };
+  }
+  return _mooseNamesCache.names;
 }
 
+// Guest-code users lose currentUser.name in a new tab, so their own name is
+// remembered here too
 function _mooseRememberName(name, keep) {
   const key = _mooseNameKey(name);
-  const own = currentUser && currentUser.name ? _mooseNameKey(currentUser.name) : '';
   let names = _mooseOtherNames().filter(n => n !== key);
-  if (keep && key && key !== own) names.push(key);
-  try { localStorage.setItem(_mooseNamesKey(), JSON.stringify(names.slice(-5))); } catch (e) {}
+  if (keep && key) names.push(key);
+  names = names.slice(-5);
+  _mooseNamesCache = { key: _mooseNamesKey(), names };
+  try { localStorage.setItem(_mooseNamesKey(), JSON.stringify(names)); } catch (e) {}
+}
+
+function _mooseOwnName(name) {
+  return !!(currentUser && currentUser.name && _mooseNameKey(currentUser.name) === _mooseNameKey(name));
 }
 
 function _mooseIsMe(name) {
   const key = _mooseNameKey(name);
   if (!key) return false;
-  if (currentUser && currentUser.name && _mooseNameKey(currentUser.name) === key) return true;
-  return _mooseOtherNames().includes(key);
+  return _mooseOwnName(name) || _mooseOtherNames().includes(key);
 }
 
+// Your own signup wins over one you made for someone else via "Not you?"
 function _mooseMine(ev) {
-  return (ev.attendees || []).find(a => _mooseIsMe(a.name)) || null;
+  const all = ev.attendees || [];
+  return all.find(a => _mooseOwnName(a.name)) || all.find(a => _mooseIsMe(a.name)) || null;
+}
+
+// Name to show when the signup isn't under your account name ("Bob Jones is going")
+function _mooseOtherLabel(mine) {
+  return mine && currentUser && currentUser.name && !_mooseOwnName(mine.name) ? mine.name : '';
 }
 
 function _mooseGuestCount(a) {
@@ -3684,18 +3708,28 @@ function loadMoose() {
   return _fetchMooseEvents().then(show, show);
 }
 
+let _mooseNamesHidden = false;  // server withheld attendee names (e.g. expired sign-in)
+
 function _fetchMooseEvents() {
   return apiCall('getEvents')
-    .then(r => { _mooseEvents = r.events || []; })
+    .then(r => { _mooseEvents = r.events || []; _mooseNamesHidden = !!r.namesHidden; })
     .catch(() => { if (!_mooseEvents) _mooseEvents = []; });
 }
 
-function renderMoose() {
+function renderMoose(refreshSheet) {
   renderMooseList();
   renderMooseCalendar();
-  // Keep an open event sheet in sync with fresh data
+  // Keep an open event sheet in sync with fresh data, but a background refresh
+  // must not wipe a form the member is filling in
   const overlay = document.getElementById('mooseEventOverlay');
-  if (_mooseSheetId && overlay && overlay.classList.contains('show')) renderMooseEventSheet();
+  if (!_mooseSheetId || !overlay || !overlay.classList.contains('show')) return;
+  if (refreshSheet || !document.querySelector('#mooseEventBody #mooseEvtName')) renderMooseEventSheet();
+}
+
+function _mooseHiddenNotice() {
+  return currentUser && currentUser.email
+    ? 'Your sign-in has expired. <button class="moose-link" onclick="location.reload()">Refresh</button> to see who\u2019s going and manage your signups.'
+    : 'Sign in with Google or the guest code to see who\u2019s going and sign up.';
 }
 
 function setMooseFilter(f) {
@@ -3715,6 +3749,7 @@ function renderMooseList() {
   const past = _mooseSort(events.filter(ev => ev.date < today), true);
 
   let html = '';
+  if (_mooseNamesHidden) html += '<div class="moose-empty" style="padding:14px 18px;text-align:left;"><div class="moose-empty-sub">' + _mooseHiddenNotice() + '</div></div>';
   if (upcoming.length) {
     html += '<div class="moose-list">' + upcoming.map(ev => _mooseRowHtml(ev, "openMooseEventSheet('" + _mooseEsc(ev.eventId) + "')")).join('') + '</div>';
   } else if (_mooseFilter === 'mine') {
@@ -3861,14 +3896,19 @@ function _mooseMeHtml(ev, st, mine) {
   const id = _mooseEsc(ev.eventId);
   const isGoing = mine && mine.inkType !== 'interest';
 
+  if (_mooseNamesHidden && !st.past) {
+    return '<div class="moose-me"><div class="moose-me-sub" style="margin:0;">' + _mooseHiddenNotice() + '</div></div>';
+  }
+
+  const other = _mooseOtherLabel(mine);
   if (mine && !_mooseEditing) {
     const guests = mine.guests || [];
     let html = '<div class="moose-me' + (isGoing ? ' mm-going' : '') + '">';
     if (isGoing) {
-      html += '<div class="moose-me-head">&#10003; You’re going</div>';
+      html += '<div class="moose-me-head">&#10003; ' + (other ? escapeHtml(other) + ' is going' : 'You’re going') + '</div>';
       html += '<div class="moose-me-sub">' + (guests.length ? 'With ' + escapeHtml(guests.join(', ')) + '.' : (st.past ? 'Hope it was a good one.' : 'See you there.')) + '</div>';
     } else {
-      html += '<div class="moose-me-head">You’re interested</div>';
+      html += '<div class="moose-me-head">' + (other ? escapeHtml(other) + ' is interested' : 'You’re interested') + '</div>';
       html += '<div class="moose-me-sub">' + (ev.interestOnly ? 'Thanks — the organizers can see you’re interested.'
         : st.full ? 'The event is full right now. If a spot opens up, you can switch to I’m in here.'
         : 'Not a commitment yet. Tap I’m in when you’re sure.') + '</div>';
@@ -3876,8 +3916,8 @@ function _mooseMeHtml(ev, st, mine) {
     if (st.closed) {
       if (!st.past) html += '<div class="moose-me-sub" style="margin-top:10px;font-style:italic;">Sign-ups are closed — ask an admin if your plans change.</div>';
     } else if (_mooseConfirmRemove) {
-      html += '<div class="moose-me-actions"><span class="moose-me-sub" style="margin:0;">Take yourself off this event?</span>' +
-        '<button class="moose-link ml-danger" onclick="removeMooseSignup(\'' + id + '\')">Yes, remove me</button>' +
+      html += '<div class="moose-me-actions"><span class="moose-me-sub" style="margin:0;">' + (other ? 'Take ' + escapeHtml(other) + ' off this event?' : 'Take yourself off this event?') + '</span>' +
+        '<button class="moose-link ml-danger" onclick="removeMooseSignup(\'' + id + '\')">' + (other ? 'Yes, remove' : 'Yes, remove me') + '</button>' +
         '<button class="moose-link" onclick="_mooseConfirmRemove=false;renderMooseEventSheet()">Keep</button></div>';
     } else {
       html += '<div class="moose-me-actions">';
@@ -3895,8 +3935,9 @@ function _mooseMeHtml(ev, st, mine) {
   if (st.past) return '<div class="moose-me"><div class="moose-me-sub" style="margin:0;font-style:italic;">This event has passed.</div></div>';
   if (st.closed) return '<div class="moose-me"><div class="moose-me-head">Sign-ups are closed</div><div class="moose-me-sub">Ask an admin if you still want to come.</div></div>';
 
-  // Signup form (new, or changing an existing signup)
-  const name = (currentUser && currentUser.name) || '';
+  // Signup form (new, or changing an existing signup). Changing a signup keeps its
+  // name, otherwise it would create a second signup under the account name.
+  const name = mine ? mine.name : ((currentUser && currentUser.name) || '');
   let prefs = {};
   try { prefs = JSON.parse(localStorage.getItem('delphic_prefs') || '{}'); } catch (e) {}
   const canGo = !ev.interestOnly && (!st.full || isGoing);
@@ -3906,7 +3947,8 @@ function _mooseMeHtml(ev, st, mine) {
     html += '<div class="moose-me-head">This event is full</div><div class="moose-me-sub" style="margin-bottom:14px;">You can still mark interest so the organizers know.</div>';
   }
   if (name) {
-    html += '<div class="moose-as" id="mooseAsLine">Signing up as <strong>' + escapeHtml(name) + '</strong> &nbsp;<button class="moose-link" onclick="document.getElementById(\'mooseAsLine\').style.display=\'none\';document.getElementById(\'mooseNameField\').style.display=\'block\';">Not you?</button></div>';
+    html += '<div class="moose-as" id="mooseAsLine">' + (mine ? 'Changing the signup for' : 'Signing up as') + ' <strong>' + escapeHtml(name) + '</strong>' +
+      (mine ? '' : ' &nbsp;<button class="moose-link" onclick="document.getElementById(\'mooseAsLine\').style.display=\'none\';document.getElementById(\'mooseNameField\').style.display=\'block\';">Not you?</button>') + '</div>';
   }
   html += '<div class="field" id="mooseNameField" style="margin-bottom:16px;' + (name ? 'display:none;' : '') + '"><label class="field-label">Name <span class="req">*</span></label>' +
     '<input type="text" id="mooseEvtName" value="' + escapeHtml(name) + '" placeholder="Your full name"></div>';
@@ -3998,9 +4040,10 @@ function _mooseWhoHtml(ev) {
       return people.map(a => {
         const guests = a.guests || [];
         const detail = [a.gradYear, a.diet && a.diet !== 'No Dietary Restrictions' ? a.diet : '', a.allergies, a.notes].filter(Boolean).join(' · ');
-        return '<div class="moose-roster-row">' + escapeHtml(a.name) +
+        return '<div class="moose-roster-row" style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;"><div style="min-width:0;">' + escapeHtml(a.name) +
           (guests.length ? ' <span class="mr-detail">+ ' + escapeHtml(guests.join(', ')) + '</span>' : '') +
-          (detail ? '<div class="mr-detail">' + escapeHtml(detail) + '</div>' : '') + '</div>';
+          (detail ? '<div class="mr-detail">' + escapeHtml(detail) + '</div>' : '') + '</div>' +
+          '<button class="moose-link ml-danger" style="font-size:11px;flex-shrink:0;" data-name="' + escapeHtml(a.name) + '" onclick="adminRemoveMooseSignup(\'' + _mooseEsc(ev.eventId) + '\', this.dataset.name)">Remove</button></div>';
       }).join('');
     }
     return '<div class="moose-names">' + people.map(a => {
@@ -4012,6 +4055,12 @@ function _mooseWhoHtml(ev) {
   };
 
   let html = '';
+  // Names withheld: show the count only, not a misleading "No one yet"
+  if (_mooseNamesHidden) {
+    return ev.interestOnly
+      ? '<div class="moose-sheet-sect"><span>Interested · ' + (ev.interestCount || 0) + '</span></div>'
+      : '<div class="moose-sheet-sect"><span>Going · ' + (ev.goingCount || 0) + (ev.capacity > 0 ? ' of ' + ev.capacity : '') + '</span></div>';
+  }
   if (!ev.interestOnly) {
     const seats = ev.goingCount || 0;
     html += '<div class="moose-sheet-sect"><span>Going · ' + seats + (ev.capacity > 0 ? ' of ' + ev.capacity : '') + '</span>' +
@@ -4023,6 +4072,17 @@ function _mooseWhoHtml(ev) {
     html += interested.length ? list(interested) : '<div class="moose-none">No one yet.</div>';
   }
   return html;
+}
+
+async function adminRemoveMooseSignup(eventId, name) {
+  const ev = (_mooseEvents || []).find(e => e.eventId === eventId);
+  if (!ev || !confirm('Remove ' + name + ' from ' + ev.title + '?')) return;
+  try {
+    await apiCall('removeEventSignup', { eventId, name });
+    showToast('Removed ' + name, 'var(--text-dim)');
+    await _fetchMooseEvents();
+    renderMoose(true);
+  } catch (e) {}
 }
 
 function copyMooseNames(eventId) {
@@ -4081,9 +4141,10 @@ async function submitMooseSignup(eventId, inkType) {
     showToast((inkType === 'ink' ? 'You’re in' : 'Interest marked') + (ev ? ' — ' + ev.title : ''), 'var(--green)');
     _mooseEditing = false;
     await _fetchMooseEvents();
-    renderMoose();
+    renderMoose(true);
   } catch (e) {
-    showErr(e.message && e.message !== 'Server returned invalid response' ? e.message : 'Something went wrong — please try again.');
+    // apiCall already toasted; server errors are worth repeating next to the button
+    showErr(e._toastShown ? e.message : 'Couldn’t reach the server — check your connection and try again.');
     if (btn) { btn.disabled = false; btn.textContent = btnText; }
     // Capacity may have changed under us
     _fetchMooseEvents().then(() => { renderMooseList(); renderMooseCalendar(); });
@@ -4100,7 +4161,7 @@ async function removeMooseSignup(eventId) {
     showToast('Removed from ' + ev.title, 'var(--text-dim)');
     _mooseConfirmRemove = false;
     await _fetchMooseEvents();
-    renderMoose();
+    renderMoose(true);
   } catch (e) {
     _mooseConfirmRemove = false;
     renderMooseEventSheet();

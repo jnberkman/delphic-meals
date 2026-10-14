@@ -135,7 +135,8 @@ async function main() {
             allergies: r[3] || '',
             notes: r[4] || '',
             timestamp: r[5] ? new Date(r[5]) : new Date(),
-            guests: JSON.stringify(String(r[6] || '').split(',').map(g => g.trim()).filter(Boolean)),
+            guests: r[6] || '',
+            guest_list: JSON.stringify(String(r[6] || '').split(',').map(g => g.trim()).filter(Boolean)),
             ink_type: r[7] || 'ink'
           });
         } catch (e) {

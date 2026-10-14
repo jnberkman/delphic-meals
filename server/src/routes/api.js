@@ -46,7 +46,7 @@ const handlers = {
   updateEvent:        (d) => eventsHandler.updateEvent(d.eventId, d.event),
   deleteEvent:        (d) => eventsHandler.deleteEvent(d.eventId),
   addEventSignup:     (d) => eventsHandler.addEventSignup(d.eventId, d.signup),
-  removeEventSignup:  (d) => eventsHandler.removeEventSignup(d.eventId, d.name),
+  removeEventSignup:  (d, req) => eventsHandler.removeEventSignup(d.eventId, d.name, !!(req.user && req.user.isAdmin)),
 };
 
 async function dispatch(req, res) {
@@ -66,7 +66,7 @@ async function dispatch(req, res) {
   if (!handler) return res.json({ error: 'Unknown action: ' + action });
 
   try {
-    let result = await handler(data);
+    let result = await handler(data, req);
 
     // Strip sensitive fields from getWeek for non-admin callers
     if (action === 'getWeek' && result && result.signups && !(req.user && req.user.isAdmin)) {
@@ -83,6 +83,8 @@ async function dispatch(req, res) {
     // accounts can't get past the app's checkMember gate, so they never need names.
     if (action === 'getEvents' && result && result.events && !(req.user && req.user.isAdmin)) {
       const canSeeNames = !!(req.user && req.user.isMember) || hasValidAccessCode(data);
+      // Lets the UI say "sign in to see who's going" instead of showing empty lists
+      if (!canSeeNames) result.namesHidden = true;
       result.events = result.events.map(e => ({
         ...e,
         attendees: canSeeNames

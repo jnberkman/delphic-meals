@@ -4,7 +4,7 @@ const sheetsSync = require('../services/sheetsSync');
 
 const MAX_GUEST_NAME = 100;
 
-// event_signups.guests is a JSON array of guest names (see migration 008)
+// event_signups.guest_list is a JSON array of guest names (see migration 008)
 function parseGuests(guests) {
   if (!Array.isArray(guests)) return [];
   return guests.map(g => String(g || '').trim()).filter(Boolean);
@@ -17,7 +17,7 @@ const nameKey = (name) => String(name || '').trim().toLowerCase();
 
 // Seats a signup takes: the member plus their guests. Interest takes no seat.
 function seatsFor(row) {
-  return row.ink_type === 'interest' ? 0 : 1 + parseGuests(row.guests).length;
+  return row.ink_type === 'interest' ? 0 : 1 + parseGuests(row.guest_list).length;
 }
 
 /**
@@ -63,7 +63,7 @@ async function getEvents() {
       attendees: rows.map(s => ({
         name: s.name,
         inkType: s.ink_type,
-        guests: parseGuests(s.guests),
+        guests: parseGuests(s.guest_list),
         gradYear: s.grad_year || '',
         diet: s.diet || '',
         allergies: s.allergies || '',
@@ -133,13 +133,13 @@ async function addEventSignup(eventId, signup) {
     const existing = mine[0];
 
     // Guests already on a signup (e.g. from before guest limits existed) can be kept
-    const hadGuests = existing ? parseGuests(existing.guests).length : 0;
+    const hadGuests = existing ? parseGuests(existing.guest_list).length : 0;
     const maxGuests = Math.max(event.max_guests || 0, hadGuests);
     if (guests.length > maxGuests) {
       return { error: maxGuests ? 'This event allows up to ' + maxGuests + (maxGuests === 1 ? ' guest' : ' guests') + ' per person' : 'This event doesn\'t allow guests' };
     }
     if (guests.some(g => g.length > MAX_GUEST_NAME)) return { error: 'Guest names must be under ' + MAX_GUEST_NAME + ' characters' };
-    const row = { ink_type: inkType, guests };
+    const row = { ink_type: inkType, guest_list: guests };
 
     if (event.capacity > 0 && seatsFor(row) > 0) {
       const all = await trx('event_signups').where('event_id', eventId);
@@ -168,7 +168,9 @@ async function addEventSignup(eventId, signup) {
       diet: keep('diet', 'diet'),
       allergies: keep('allergies', 'allergies'),
       notes: keep('notes', 'notes'),
-      guests: JSON.stringify(guests),
+      guest_list: JSON.stringify(guests),
+      // Legacy text column, still read by the previous release during a deploy
+      guests: guests.join(', '),
       ink_type: inkType,
       // Editing keeps your place in the signup order
       ...(existing ? { timestamp: existing.timestamp } : {})
@@ -185,7 +187,13 @@ async function addEventSignup(eventId, signup) {
 /**
  * Port of removeEventSignup() from Code.gs:561-572.
  */
-async function removeEventSignup(eventId, name) {
+async function removeEventSignup(eventId, name, isAdmin) {
+  const event = await eventsDb.findById(eventId);
+  if (!event) return { error: 'Event not found' };
+  // After the freeze only admins can take people off (the catering count is locked)
+  if (!isAdmin && event.freeze_date && Date.now() > new Date(event.freeze_date).getTime()) {
+    return { error: 'Sign-ups are closed for this event — ask an admin to remove you' };
+  }
   const count = await db('event_signups')
     .where('event_id', eventId)
     .whereRaw(NAME_MATCH, [nameKey(name)])

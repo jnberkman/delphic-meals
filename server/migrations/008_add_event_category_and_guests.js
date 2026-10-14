@@ -1,6 +1,24 @@
 // Event type (social, formal, sports, trip, other) and per-person guest allowance.
-// Also stores event_signups.guests as a JSON array of names (like signups.guests),
-// so a guest name containing a comma stays one guest.
+//
+// Event guests move to a new jsonb array column, event_signups.guest_list, so a
+// guest name containing a comma stays one guest. The old free-text `guests`
+// column is left in place (expand-only): the previous release keeps reading and
+// writing it while this deploy rolls out, and rolling back loses nothing.
+
+const PLACEHOLDER = /^(none|n\/?a|na|no|nope|nobody|no guests?|-+|0|\.)$/i;
+
+// Legacy free text: "John Smith, Jane Doe", "none", "2", "+1", ...
+function parseLegacyGuests(text) {
+  const raw = String(text || '').trim();
+  if (!raw || PLACEHOLDER.test(raw)) return [];
+  const count = raw.match(/^\+?(\d{1,2})$/);
+  if (count) {
+    const n = Math.min(parseInt(count[1], 10), 10);
+    return Array.from({ length: n }, (_, i) => n === 1 ? 'Guest' : 'Guest ' + (i + 1));
+  }
+  return raw.split(',').map(g => g.trim()).filter(g => g && !PLACEHOLDER.test(g));
+}
+
 exports.up = async function (knex) {
   await knex.schema.alterTable('events', (t) => {
     t.text('category').notNullable().defaultTo('');
@@ -8,45 +26,26 @@ exports.up = async function (knex) {
   });
 
   await knex.schema.alterTable('event_signups', (t) => {
-    t.jsonb('guests_list').notNullable().defaultTo('[]');
+    t.jsonb('guest_list').notNullable().defaultTo('[]');
   });
 
-  // Legacy rows hold free text like "John Smith, Jane Doe"
   const rows = await knex('event_signups').select('id', 'guests').whereNot('guests', '');
+  let withGuests = 0;
   for (const row of rows) {
-    const list = String(row.guests).split(',').map(g => g.trim()).filter(Boolean);
-    await knex('event_signups').where('id', row.id).update({ guests_list: JSON.stringify(list) });
+    const list = parseLegacyGuests(row.guests);
+    if (!list.length) continue;
+    withGuests++;
+    await knex('event_signups').where('id', row.id).update({ guest_list: JSON.stringify(list) });
   }
 
-  await knex.schema.alterTable('event_signups', (t) => {
-    t.dropColumn('guests');
-  });
-  await knex.schema.alterTable('event_signups', (t) => {
-    t.renameColumn('guests_list', 'guests');
-  });
-
   // Guests now take seats, so legacy guest entries start counting toward capacity
-  console.log('008: event signups with legacy guest text: ' + rows.length);
+  console.log('008: event signups with legacy guest text: ' + rows.length + ' (' + withGuests + ' now count as guests)');
 };
 
 exports.down = async function (knex) {
   await knex.schema.alterTable('event_signups', (t) => {
-    t.text('guests_text').notNullable().defaultTo('');
+    t.dropColumn('guest_list');
   });
-
-  const rows = await knex('event_signups').select('id', 'guests');
-  for (const row of rows) {
-    const list = Array.isArray(row.guests) ? row.guests : [];
-    if (list.length) await knex('event_signups').where('id', row.id).update({ guests_text: list.join(', ') });
-  }
-
-  await knex.schema.alterTable('event_signups', (t) => {
-    t.dropColumn('guests');
-  });
-  await knex.schema.alterTable('event_signups', (t) => {
-    t.renameColumn('guests_text', 'guests');
-  });
-
   await knex.schema.alterTable('events', (t) => {
     t.dropColumn('category');
     t.dropColumn('max_guests');

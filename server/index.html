@@ -3916,13 +3916,11 @@ function _mooseMeHtml(ev, st, mine) {
         '<button class="moose-link" onclick="_mooseConfirmRemove=false;renderMooseEventSheet()">Keep</button></div>';
     } else {
       html += '<div class="moose-me-actions">';
-      // Year/diet/notes come back only for signups the server knows are yours
-      const editable = 'notes' in mine || Math.max(ev.maxGuests || 0, guests.length) > 0;
       if (st.closed) {
         // Only withdrawing interest is left after the freeze
       } else if (!isGoing && !ev.interestOnly && !st.full) {
         html += '<button class="btn btn-primary" style="width:auto;padding:9px 20px;font-size:13px;" onclick="editMooseSignup()">I’m in</button>';
-      } else if (isGoing && editable) {
+      } else if (isGoing) {
         html += '<button class="btn btn-secondary" style="width:auto;padding:8px 16px;font-size:12px;" onclick="editMooseSignup()">Change details</button>';
       }
       html += '<button class="moose-link ml-danger" onclick="_mooseConfirmRemove=true;renderMooseEventSheet()">' +
@@ -3951,12 +3949,11 @@ function _mooseMeHtml(ev, st, mine) {
   }
   html += '<div class="field" id="mooseNameField" style="margin-bottom:16px;' + (name ? 'display:none;' : '') + '"><label class="field-label">Name <span class="req">*</span></label>' +
     '<input type="text" id="mooseEvtName" value="' + escapeHtml(name) + '" placeholder="Your full name"></div>';
-  // Year/diet/notes are only returned for signups the server knows are yours; for
-  // older signups those fields stay hidden and the server keeps what was saved
-  const showPrivate = !mine || 'notes' in mine;
-  if (ev.collectGradYear && showPrivate) {
+  // Year/diet/notes come back only for signups the server knows are yours. Older
+  // signups show them blank: saving one doesn't carry its old private fields over.
+  if (ev.collectGradYear) {
     const yr = new Date().getFullYear();
-    const cur = mine ? mine.gradYear : '';
+    const cur = mine && mine.gradYear ? mine.gradYear : '';
     html += '<div class="field" style="margin-bottom:16px;"><label class="field-label">Class Year</label><select id="mooseEvtGrad"><option value="">—</option>';
     const years = [];
     for (let y = yr; y <= yr + 4; y++) years.push(String(y));
@@ -3964,8 +3961,8 @@ function _mooseMeHtml(ev, st, mine) {
     years.forEach(y => { html += '<option' + (y === cur ? ' selected' : '') + '>' + escapeHtml(y) + '</option>'; });
     html += '</select></div>';
   }
-  if (ev.collectDiet && showPrivate) {
-    const cur = mine ? mine.diet : prefs.diet;
+  if (ev.collectDiet) {
+    const cur = mine && 'diet' in mine ? mine.diet : prefs.diet;
     html += '<div class="field" style="margin-bottom:16px;"><label class="field-label">Dietary Preference</label><select id="mooseEvtDiet">';
     MOOSE_DIETS.forEach(opt => { html += '<option' + (cur === opt ? ' selected' : '') + '>' + opt + '</option>'; });
     html += '</select></div>';
@@ -3979,8 +3976,8 @@ function _mooseMeHtml(ev, st, mine) {
       '<span id="mooseGuestN">0</span><button type="button" id="mooseGuestPlus" onclick="stepMooseGuests(1)" aria-label="More guests">+</button></div>' +
       '<div id="mooseGuestInputs" data-max="' + guestLimit + '" data-initial="' + escapeHtml(JSON.stringify(existing)) + '"></div></div>';
   }
-  if (showPrivate) html += '<div class="field" style="margin-bottom:16px;"><label class="field-label">Notes <span style="text-transform:none;letter-spacing:0;">(optional)</span></label>' +
-    '<textarea id="mooseEvtNotes" rows="2" placeholder="Anything the organizers should know">' + escapeHtml(mine ? mine.notes : '') + '</textarea></div>';
+  html += '<div class="field" style="margin-bottom:16px;"><label class="field-label">Notes <span style="text-transform:none;letter-spacing:0;">(optional)</span></label>' +
+    '<textarea id="mooseEvtNotes" rows="2" placeholder="Anything the organizers should know">' + escapeHtml(mine && mine.notes ? mine.notes : '') + '</textarea></div>';
 
   html += '<div class="moose-btn-row">';
   if (isGoing) {

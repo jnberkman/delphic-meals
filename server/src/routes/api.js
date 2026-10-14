@@ -23,6 +23,11 @@ function eventViewer(req, data) {
   }
   return {
     signers,
+    // A verified member's own names (members list + Google), so a guest can't lock
+    // them out by signing up under their name first
+    ownNames: req.user && req.user.isMember
+      ? [req.user.memberName, req.user.name].filter(Boolean).map(n => n.trim().toLowerCase())
+      : [],
     isAdmin: !!(req.user && req.user.isAdmin),
     canSeeNames: !!(req.user && req.user.isMember) || hasCode
   };

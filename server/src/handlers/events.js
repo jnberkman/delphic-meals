@@ -34,8 +34,15 @@ function isPast(event) {
  *   canSeeNames  members and guest-code users see who's going
  * Signups made before migration 008 have no signer and stay editable by name.
  */
-const NOBODY = { signers: [], isAdmin: false, canSeeNames: false };
+const NOBODY = { signers: [], ownNames: [], isAdmin: false, canSeeNames: false };
 const ownsRow = (viewer, row) => !!row.signer && viewer.signers.includes(row.signer);
+
+// Someone else's signup this viewer may still change: admins any; a verified member
+// may take back one a guest browser made under the member's own name
+function canOverride(viewer, row) {
+  if (viewer.isAdmin) return true;
+  return String(row.signer || '').startsWith('guest:') && (viewer.ownNames || []).includes(nameKey(row.name));
+}
 
 /**
  * Port of getEvents() from Code.gs:419-458, plus attendee lists.
@@ -154,7 +161,7 @@ async function addEventSignup(eventId, signup, viewer = NOBODY) {
     const mine = all.filter(s => nameKey(s.name) === nameKey(name));
     const existing = mine[0];
     const owner = mine.find(s => s.signer && !viewer.signers.includes(s.signer));
-    if (owner && !viewer.isAdmin) {
+    if (owner && !canOverride(viewer, owner)) {
       return { error: name + ' is already signed up by someone else. Use your own name, or ask an admin to change it.' };
     }
 
@@ -188,7 +195,10 @@ async function addEventSignup(eventId, signup, viewer = NOBODY) {
       }
     }
 
-    const keep = (field, col) => signup[field] !== undefined ? String(signup[field] || '') : (existing ? existing[col] : '');
+    // Private fields carry over only for your own signup (or an admin's edit). Taking
+    // over an unclaimed legacy signup must not hand you someone's diet/allergies/notes.
+    const inheritPrivate = viewer.isAdmin || !!(existing && existing.signer && viewer.signers.includes(existing.signer));
+    const keep = (field, col) => signup[field] !== undefined ? String(signup[field] || '') : (existing && inheritPrivate ? existing[col] : '');
 
     if (mine.length) await trx('event_signups').whereIn('id', mine.map(s => s.id)).del();
 
@@ -203,8 +213,9 @@ async function addEventSignup(eventId, signup, viewer = NOBODY) {
       // Legacy text column, still read by the previous release during a deploy
       guests: guests.join(', '),
       ink_type: inkType,
-      // An admin editing someone's signup leaves it theirs
-      signer: owner ? owner.signer : (viewer.signers[0] || (existing && existing.signer) || null),
+      // An admin editing someone's signup leaves it theirs; a member taking back
+      // their name from a guest becomes the owner
+      signer: owner && viewer.isAdmin ? owner.signer : (viewer.signers[0] || (existing && existing.signer) || null),
       // Editing keeps your place in the signup order
       ...(existing ? { timestamp: existing.timestamp } : {})
     });
@@ -230,7 +241,7 @@ async function removeEventSignup(eventId, name, viewer = NOBODY) {
   if (!rows.length) return { removed: false };
 
   if (!viewer.isAdmin) {
-    if (rows.some(s => s.signer && !viewer.signers.includes(s.signer))) {
+    if (rows.some(s => s.signer && !viewer.signers.includes(s.signer) && !canOverride(viewer, s))) {
       return { error: 'You can only remove your own signup' };
     }
     if (isPast(event)) return { error: 'This event has already happened' };

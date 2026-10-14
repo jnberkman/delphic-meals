@@ -11,6 +11,23 @@ const eventsHandler = require('../handlers/events');
 const config = require('../config');
 const { hasValidAccessCode } = require('../middleware/auth');
 
+// Who is calling, for the events handlers (see handlers/events.js). Google identity
+// comes from the verified token; the guest id is a random id the browser keeps,
+// honoured only for callers who may sign up at all.
+function eventViewer(req, data) {
+  const hasCode = hasValidAccessCode(data);
+  const signers = [];
+  if (req.user && req.user.email) signers.push('google:' + req.user.email.toLowerCase());
+  if ((req.user || hasCode) && typeof data.signerId === 'string' && /^[A-Za-z0-9-]{16,64}$/.test(data.signerId)) {
+    signers.push('guest:' + data.signerId);
+  }
+  return {
+    signers,
+    isAdmin: !!(req.user && req.user.isAdmin),
+    canSeeNames: !!(req.user && req.user.isMember) || hasCode
+  };
+}
+
 const handlers = {
   ping:               () => ({ status: 'ok' }),
   checkAccessCode:    (d) => ({ valid: !!(config.accessCode && d.code === config.accessCode) }),
@@ -41,12 +58,12 @@ const handlers = {
   setSettings:        (d) => settingsHandler.setSettings(d.settings),
   setNotifyEmail:     (d) => settingsHandler.setNotifyEmail(d.email, d.notify),
   // Events
-  getEvents:          () => eventsHandler.getEvents(),
+  getEvents:          (d, req) => eventsHandler.getEvents(eventViewer(req, d)),
   createEvent:        (d) => eventsHandler.createEvent(d.event),
   updateEvent:        (d) => eventsHandler.updateEvent(d.eventId, d.event),
   deleteEvent:        (d) => eventsHandler.deleteEvent(d.eventId),
-  addEventSignup:     (d) => eventsHandler.addEventSignup(d.eventId, d.signup),
-  removeEventSignup:  (d, req) => eventsHandler.removeEventSignup(d.eventId, d.name, !!(req.user && req.user.isAdmin)),
+  addEventSignup:     (d, req) => eventsHandler.addEventSignup(d.eventId, d.signup, eventViewer(req, d)),
+  removeEventSignup:  (d, req) => eventsHandler.removeEventSignup(d.eventId, d.name, eventViewer(req, d)),
 };
 
 async function dispatch(req, res) {
@@ -76,21 +93,6 @@ async function dispatch(req, res) {
           return rest;
         });
       }
-    }
-
-    // Event attendees: full details for admins; name/type/guests for members and
-    // guest-code users; nothing for anyone else (counts stay). Non-member Google
-    // accounts can't get past the app's checkMember gate, so they never need names.
-    if (action === 'getEvents' && result && result.events && !(req.user && req.user.isAdmin)) {
-      const canSeeNames = !!(req.user && req.user.isMember) || hasValidAccessCode(data);
-      // Lets the UI say "sign in to see who's going" instead of showing empty lists
-      if (!canSeeNames) result.namesHidden = true;
-      result.events = result.events.map(e => ({
-        ...e,
-        attendees: canSeeNames
-          ? (e.attendees || []).map(a => ({ name: a.name, inkType: a.inkType, guests: a.guests }))
-          : []
-      }));
     }
 
     res.json(result);

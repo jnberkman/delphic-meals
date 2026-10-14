@@ -1,32 +1,51 @@
 const db = require('../db/knex');
 const eventsDb = require('../db/queries/events');
 const sheetsSync = require('../services/sheetsSync');
+const { parseGuestList } = require('../utils/guests');
 
-const MAX_GUEST_NAME = 100;
-
-// event_signups.guest_list is a JSON array of guest names (see migration 008)
-function parseGuests(guests) {
-  if (!Array.isArray(guests)) return [];
-  return guests.map(g => String(g || '').trim()).filter(Boolean);
-}
+const MAX_NAME = 100;
 
 // Signup names are matched case- and whitespace-insensitively; older rows may
-// have been stored with stray spaces, so trim on the SQL side too
-const NAME_MATCH = 'LOWER(TRIM(name)) = ?';
+// have been stored with stray spaces
 const nameKey = (name) => String(name || '').trim().toLowerCase();
 
 // Seats a signup takes: the member plus their guests. Interest takes no seat.
 function seatsFor(row) {
-  return row.ink_type === 'interest' ? 0 : 1 + parseGuests(row.guest_list).length;
+  return row.ink_type === 'interest' ? 0 : 1 + parseGuestList(row.guest_list).length;
 }
 
-/**
- * Port of getEvents() from Code.gs:419-458.
- * Includes each event's attendee list; api.js strips private fields for non-admins.
+function todayET() {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date());
+}
+
+function isFrozen(event) {
+  return !!event.freeze_date && Date.now() > new Date(event.freeze_date).getTime();
+}
+
+function isPast(event) {
+  return !!event.date && event.date < todayET();
+}
+
+/*
+ * Who is asking, built by routes/api.js:
+ *   signers      identities this caller can act as: 'google:<email>' (verified token)
+ *                and/or 'guest:<browser id>'. A signup's `signer` column holds one.
+ *   isAdmin      may change anyone's signup and ignore the freeze
+ *   canSeeNames  members and guest-code users see who's going
+ * Signups made before migration 008 have no signer and stay editable by name.
  */
-async function getEvents() {
-  const eventRows = await eventsDb.getAll();
-  const signupRows = await db('event_signups').orderBy('timestamp');
+const NOBODY = { signers: [], isAdmin: false, canSeeNames: false };
+const ownsRow = (viewer, row) => !!row.signer && viewer.signers.includes(row.signer);
+
+/**
+ * Port of getEvents() from Code.gs:419-458, plus attendee lists.
+ * Year/diet/allergies/notes go only to admins and to the person who signed up.
+ */
+async function getEvents(viewer = NOBODY) {
+  const [eventRows, signupRows] = await Promise.all([
+    eventsDb.getAll(),
+    db('event_signups').orderBy('timestamp')
+  ]);
   const byEvent = {};
   for (const s of signupRows) (byEvent[s.event_id] = byEvent[s.event_id] || []).push(s);
 
@@ -60,19 +79,25 @@ async function getEvents() {
       inkCount,
       interestCount,
       goingCount,
-      attendees: rows.map(s => ({
-        name: s.name,
-        inkType: s.ink_type,
-        guests: parseGuests(s.guest_list),
-        gradYear: s.grad_year || '',
-        diet: s.diet || '',
-        allergies: s.allergies || '',
-        notes: s.notes || ''
-      }))
+      attendees: viewer.canSeeNames ? rows.map(s => {
+        const mine = ownsRow(viewer, s);
+        const a = {
+          name: s.name,
+          inkType: s.ink_type,
+          guests: parseGuestList(s.guest_list),
+          mine,
+          claimed: !!s.signer
+        };
+        if (mine || viewer.isAdmin) {
+          Object.assign(a, { gradYear: s.grad_year || '', diet: s.diet || '', allergies: s.allergies || '', notes: s.notes || '' });
+        }
+        return a;
+      }) : []
     });
   }
 
-  return { events };
+  // Lets the UI say "sign in to see who's going" instead of showing empty lists
+  return viewer.canSeeNames ? { events } : { events, namesHidden: true };
 }
 
 /**
@@ -110,39 +135,47 @@ async function deleteEvent(eventId) {
  * Port of addEventSignup() from Code.gs:517-559.
  * Upserts by name. The event row is locked so concurrent signups can't overfill it,
  * and an existing signup is only replaced once the new one is known to fit.
+ * A signup someone else made can only be changed by an admin.
  */
-async function addEventSignup(eventId, signup) {
+async function addEventSignup(eventId, signup, viewer = NOBODY) {
+  signup = signup || {};
   const name = String(signup.name || '').trim();
   if (!name) return { error: 'Name is required' };
+  if (name.length > MAX_NAME) return { error: 'Name must be under ' + MAX_NAME + ' characters' };
 
   const result = await db.transaction(async (trx) => {
     const event = await trx('events').where('event_id', eventId).forUpdate().first();
     if (!event) return { error: 'Event not found' };
+    if (!viewer.isAdmin && isPast(event)) return { error: 'This event has already happened' };
+    if (!viewer.isAdmin && isFrozen(event)) return { error: 'Sign-ups are closed for this event' };
 
-    if (event.freeze_date && Date.now() > new Date(event.freeze_date).getTime()) {
-      return { error: 'Sign-ups are closed for this event' };
+    const all = await trx('event_signups').where('event_id', eventId).orderBy('timestamp');
+    // All of this person's rows (legacy data can hold "Bob" and "Bob " separately)
+    const mine = all.filter(s => nameKey(s.name) === nameKey(name));
+    const existing = mine[0];
+    const owner = mine.find(s => s.signer && !viewer.signers.includes(s.signer));
+    if (owner && !viewer.isAdmin) {
+      return { error: name + ' is already signed up by someone else. Use your own name, or ask an admin to change it.' };
     }
 
-    const inkType = event.interest_only || signup.inkType === 'interest' ? 'interest' : 'ink';
-    const guests = inkType === 'ink' ? parseGuests(signup.guests) : [];
-    // All of this person's rows (legacy data can hold "Bob" and "Bob " separately)
-    const mine = await trx('event_signups')
-      .where('event_id', eventId)
-      .whereRaw(NAME_MATCH, [nameKey(name)])
-      .orderBy('timestamp');
-    const existing = mine[0];
+    // Fields left out of the request keep their saved value (older clients send
+    // guests as '' and never had a guest picker)
+    let inkType = signup.inkType === undefined ? (existing ? existing.ink_type : 'ink') : (signup.inkType === 'interest' ? 'interest' : 'ink');
+    if (event.interest_only) inkType = 'interest';
+    const guestsGiven = signup.guests !== undefined && signup.guests !== '';
+    const savedGuests = existing ? parseGuestList(existing.guest_list) : [];
+    const guests = inkType === 'interest' ? [] : (guestsGiven ? parseGuestList(signup.guests) : savedGuests);
 
-    // Guests already on a signup (e.g. from before guest limits existed) can be kept
-    const hadGuests = existing ? parseGuests(existing.guest_list).length : 0;
+    // Guests already on a going signup (e.g. from before guest limits) can be kept
+    const hadGuests = existing && existing.ink_type !== 'interest' ? savedGuests.length : 0;
     const maxGuests = Math.max(event.max_guests || 0, hadGuests);
     if (guests.length > maxGuests) {
       return { error: maxGuests ? 'This event allows up to ' + maxGuests + (maxGuests === 1 ? ' guest' : ' guests') + ' per person' : 'This event doesn\'t allow guests' };
     }
-    if (guests.some(g => g.length > MAX_GUEST_NAME)) return { error: 'Guest names must be under ' + MAX_GUEST_NAME + ' characters' };
-    const row = { ink_type: inkType, guest_list: guests };
+    if (guests.some(g => g.length > MAX_NAME)) return { error: 'Guest names must be under ' + MAX_NAME + ' characters' };
 
+    const row = { ink_type: inkType, guest_list: guests };
     if (event.capacity > 0 && seatsFor(row) > 0) {
-      const all = await trx('event_signups').where('event_id', eventId);
       const myIds = new Set(mine.map(s => s.id));
       const taken = all.filter(s => !myIds.has(s.id)).reduce((sum, s) => sum + seatsFor(s), 0);
       const current = mine.reduce((sum, s) => sum + seatsFor(s), 0);
@@ -155,8 +188,6 @@ async function addEventSignup(eventId, signup) {
       }
     }
 
-    // Fields left out of the request keep their previous value (members edit
-    // guests without seeing the private details they entered before)
     const keep = (field, col) => signup[field] !== undefined ? String(signup[field] || '') : (existing ? existing[col] : '');
 
     if (mine.length) await trx('event_signups').whereIn('id', mine.map(s => s.id)).del();
@@ -172,6 +203,8 @@ async function addEventSignup(eventId, signup) {
       // Legacy text column, still read by the previous release during a deploy
       guests: guests.join(', '),
       ink_type: inkType,
+      // An admin editing someone's signup leaves it theirs
+      signer: owner ? owner.signer : (viewer.signers[0] || (existing && existing.signer) || null),
       // Editing keeps your place in the signup order
       ...(existing ? { timestamp: existing.timestamp } : {})
     });
@@ -186,18 +219,27 @@ async function addEventSignup(eventId, signup) {
 
 /**
  * Port of removeEventSignup() from Code.gs:561-572.
+ * Members can remove their own signup (or an unclaimed legacy one) until the
+ * freeze; withdrawing interest is allowed after it since interest takes no seat.
  */
-async function removeEventSignup(eventId, name, isAdmin) {
+async function removeEventSignup(eventId, name, viewer = NOBODY) {
   const event = await eventsDb.findById(eventId);
   if (!event) return { error: 'Event not found' };
-  // After the freeze only admins can take people off (the catering count is locked)
-  if (!isAdmin && event.freeze_date && Date.now() > new Date(event.freeze_date).getTime()) {
-    return { error: 'Sign-ups are closed for this event — ask an admin to remove you' };
+
+  const rows = (await db('event_signups').where('event_id', eventId)).filter(s => nameKey(s.name) === nameKey(name));
+  if (!rows.length) return { removed: false };
+
+  if (!viewer.isAdmin) {
+    if (rows.some(s => s.signer && !viewer.signers.includes(s.signer))) {
+      return { error: 'You can only remove your own signup' };
+    }
+    if (isPast(event)) return { error: 'This event has already happened' };
+    if (isFrozen(event) && rows.some(s => s.ink_type !== 'interest')) {
+      return { error: 'Sign-ups are closed for this event — ask an admin to remove you' };
+    }
   }
-  const count = await db('event_signups')
-    .where('event_id', eventId)
-    .whereRaw(NAME_MATCH, [nameKey(name)])
-    .del();
+
+  const count = await db('event_signups').whereIn('id', rows.map(s => s.id)).del();
   if (count > 0) {
     sheetsSync.syncEventSignups(eventId).catch(e => console.error('Sheets sync error (event signups):', e.message));
   }

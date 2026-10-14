@@ -1,23 +1,12 @@
-// Event type (social, formal, sports, trip, other) and per-person guest allowance.
+// Event type (social, formal, sports, trip, other) and per-person guest allowance,
+// plus two event_signups columns:
+//   guest_list  jsonb array of guest names, so a name containing a comma stays one guest
+//   signer      who made the signup ('google:<email>' or 'guest:<browser id>'), so only
+//               they or an admin can change it. NULL for signups made before this.
 //
-// Event guests move to a new jsonb array column, event_signups.guest_list, so a
-// guest name containing a comma stays one guest. The old free-text `guests`
-// column is left in place (expand-only): the previous release keeps reading and
-// writing it while this deploy rolls out, and rolling back loses nothing.
-
-const PLACEHOLDER = /^(none|n\/?a|na|no|nope|nobody|no guests?|-+|0|\.)$/i;
-
-// Legacy free text: "John Smith, Jane Doe", "none", "2", "+1", ...
-function parseLegacyGuests(text) {
-  const raw = String(text || '').trim();
-  if (!raw || PLACEHOLDER.test(raw)) return [];
-  const count = raw.match(/^\+?(\d{1,2})$/);
-  if (count) {
-    const n = Math.min(parseInt(count[1], 10), 10);
-    return Array.from({ length: n }, (_, i) => n === 1 ? 'Guest' : 'Guest ' + (i + 1));
-  }
-  return raw.split(',').map(g => g.trim()).filter(g => g && !PLACEHOLDER.test(g));
-}
+// Expand-only: the old free-text `guests` column stays (and is still written), so the
+// previous release keeps working while this deploy rolls out, and rollback is lossless.
+const { parseLegacyGuests } = require('../src/utils/guests');
 
 exports.up = async function (knex) {
   await knex.schema.alterTable('events', (t) => {
@@ -27,9 +16,11 @@ exports.up = async function (knex) {
 
   await knex.schema.alterTable('event_signups', (t) => {
     t.jsonb('guest_list').notNullable().defaultTo('[]');
+    t.text('signer');
   });
 
-  const rows = await knex('event_signups').select('id', 'guests').whereNot('guests', '');
+  // Only "going" signups bring guests; interest never takes a seat
+  const rows = await knex('event_signups').select('id', 'guests').whereNot('guests', '').whereNot('ink_type', 'interest');
   let withGuests = 0;
   for (const row of rows) {
     const list = parseLegacyGuests(row.guests);
@@ -45,6 +36,7 @@ exports.up = async function (knex) {
 exports.down = async function (knex) {
   await knex.schema.alterTable('event_signups', (t) => {
     t.dropColumn('guest_list');
+    t.dropColumn('signer');
   });
   await knex.schema.alterTable('events', (t) => {
     t.dropColumn('category');

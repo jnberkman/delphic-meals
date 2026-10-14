@@ -1114,6 +1114,8 @@ function clearPersistedSession() {
   sessionStorage.removeItem('delphic_id_token');
   sessionStorage.removeItem('delphic_user');
   sessionStorage.removeItem('delphic_access_code');
+  // The browser id owns guest event signups; the next person here shouldn't inherit them
+  localStorage.removeItem('delphic_signer_id');
 }
 
 (async function() {
@@ -3520,6 +3522,7 @@ document.addEventListener('visibilitychange', () => {
 // ═══════════════════════════════════════════════════════════════════════════
 //  MOOSE TAB — club events (not meals)
 // ═══════════════════════════════════════════════════════════════════════════
+// Keep keys in sync with EVENT_CATEGORIES in server/src/db/queries/events.js
 const MOOSE_CATEGORIES = {
   social: { label: 'Social', color: '#4F7BC8' },
   formal: { label: 'Formal', color: '#8E3B46' },
@@ -3538,6 +3541,12 @@ let _mooseConfirmRemove = false;  // event sheet is asking "remove me?"
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 // Local YYYY-MM-DD (toISOString would roll over to tomorrow in the evening)
+// Today in New York, matching the server's idea of when an event has passed
+function _mooseTodayET() {
+  try { return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date()); }
+  catch (e) { return _mooseYmd(new Date()); }
+}
+
 function _mooseYmd(d) {
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
@@ -3571,7 +3580,7 @@ function _mooseGuestCount(a) {
 }
 
 function _mooseStatus(ev) {
-  const past = ev.date < _mooseYmd(new Date());
+  const past = ev.date < _mooseTodayET();
   const freezeTs = ev.freezeDate ? new Date(ev.freezeDate).getTime() : 0;
   const closed = past || (freezeTs && Date.now() > freezeTs);
   const going = ev.goingCount || 0;
@@ -3729,7 +3738,7 @@ function setMooseFilter(f) {
 function renderMooseList() {
   const el = document.getElementById('mooseUpcoming');
   if (!el) return;
-  const today = _mooseYmd(new Date());
+  const today = _mooseTodayET();
   let events = _mooseEvents || [];
   if (_mooseFilter === 'mine') events = events.filter(ev => _mooseMine(ev));
   const upcoming = _mooseSort(events.filter(ev => ev.date >= today));
@@ -4156,7 +4165,15 @@ async function removeMooseSignup(eventId) {
   const mine = ev && _mooseMine(ev);
   if (!mine) return;
   try {
-    await apiCall('removeEventSignup', { eventId, name: mine.name });
+    const r = await apiCall('removeEventSignup', { eventId, name: mine.name });
+    if (r && r.removed === false) {
+      // Already gone (another tab, or an admin removed it)
+      showToast('That signup was already removed', 'var(--text-dim)');
+      _mooseConfirmRemove = false;
+      await _fetchMooseEvents();
+      renderMoose(true);
+      return;
+    }
     showToast('Removed from ' + ev.title, 'var(--text-dim)');
     _mooseConfirmRemove = false;
     await _fetchMooseEvents();

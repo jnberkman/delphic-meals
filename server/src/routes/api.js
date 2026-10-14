@@ -10,12 +10,18 @@ const eventsHandler = require('../handlers/events');
 
 const config = require('../config');
 const { hasValidAccessCode } = require('../middleware/auth');
+const settingsDb = require('../db/queries/settings');
 
 // Who is calling, for the events handlers (see handlers/events.js). Google identity
 // comes from the verified token; the guest id is a random id the browser keeps,
 // honoured only for callers who may sign up at all.
-function eventViewer(req, data) {
+async function eventViewer(req, data) {
   const hasCode = hasValidAccessCode(data);
+  const user = req.user || {};
+  const memberName = user.isMember && user.memberName ? user.memberName.trim().toLowerCase() : '';
+  // With auto-register on, members pick their own members-list name, so it can't
+  // prove who they are
+  const trustMemberName = !!memberName && !(await settingsDb.getAll()).autoRegister;
   const signers = [];
   if (req.user && req.user.email) signers.push('google:' + req.user.email.toLowerCase());
   if ((req.user || hasCode) && typeof data.signerId === 'string' && /^[A-Za-z0-9-]{16,64}$/.test(data.signerId)) {
@@ -23,11 +29,10 @@ function eventViewer(req, data) {
   }
   return {
     signers,
-    // A verified member's name on the members list (set by admins, unlike the Google
-    // profile name), so a guest can't lock them out by signing up under it first
-    ownNames: req.user && req.user.isMember && req.user.memberName
-      ? [req.user.memberName.trim().toLowerCase()]
-      : [],
+    selfNames: [memberName, (user.name || '').trim().toLowerCase()].filter(Boolean),
+    // A members-list name (set by admins, unlike the Google profile name), so a guest
+    // can't lock a member out by signing up under it first
+    ownNames: trustMemberName ? [memberName] : [],
     isAdmin: !!(req.user && req.user.isAdmin),
     canSeeNames: !!(req.user && req.user.isMember) || hasCode
   };
@@ -63,12 +68,12 @@ const handlers = {
   setSettings:        (d) => settingsHandler.setSettings(d.settings),
   setNotifyEmail:     (d) => settingsHandler.setNotifyEmail(d.email, d.notify),
   // Events
-  getEvents:          (d, req) => eventsHandler.getEvents(eventViewer(req, d)),
+  getEvents:          async (d, req) => eventsHandler.getEvents(await eventViewer(req, d)),
   createEvent:        (d) => eventsHandler.createEvent(d.event),
   updateEvent:        (d) => eventsHandler.updateEvent(d.eventId, d.event),
   deleteEvent:        (d) => eventsHandler.deleteEvent(d.eventId),
-  addEventSignup:     (d, req) => eventsHandler.addEventSignup(d.eventId, d.signup, eventViewer(req, d)),
-  removeEventSignup:  (d, req) => eventsHandler.removeEventSignup(d.eventId, d.name, eventViewer(req, d)),
+  addEventSignup:     async (d, req) => eventsHandler.addEventSignup(d.eventId, d.signup, await eventViewer(req, d)),
+  removeEventSignup:  async (d, req) => eventsHandler.removeEventSignup(d.eventId, d.name, await eventViewer(req, d)),
 };
 
 async function dispatch(req, res) {

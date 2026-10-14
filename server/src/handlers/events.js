@@ -2,8 +2,10 @@ const db = require('../db/knex');
 const eventsDb = require('../db/queries/events');
 const sheetsSync = require('../services/sheetsSync');
 const { parseGuestList } = require('../utils/guests');
+const { todayET } = require('../utils/time');
 
 const MAX_NAME = 100;
+const FIELD_LIMITS = { gradYear: 20, diet: 100, allergies: 500, notes: 1000 };
 
 // Signup names are matched case- and whitespace-insensitively; older rows may
 // have been stored with stray spaces
@@ -12,10 +14,6 @@ const nameKey = (name) => String(name || '').trim().toLowerCase();
 // Seats a signup takes: the member plus their guests. Interest takes no seat.
 function seatsFor(row) {
   return row.ink_type === 'interest' ? 0 : 1 + parseGuestList(row.guest_list).length;
-}
-
-function todayET() {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date());
 }
 
 function isFrozen(event) {
@@ -30,18 +28,37 @@ function isPast(event) {
  * Who is asking, built by routes/api.js:
  *   signers      identities this caller can act as: 'google:<email>' (verified token)
  *                and/or 'guest:<browser id>'. A signup's `signer` column holds one.
+ *   selfNames    the caller's own names (members list + Google), to tell whether an
+ *                admin is signing up themselves or someone else
+ *   ownNames     names the caller is trusted to hold: a member's members-list name,
+ *                empty when auto-register lets people choose their own
  *   isAdmin      may change anyone's signup and ignore the freeze
  *   canSeeNames  members and guest-code users see who's going
  * Signups made before migration 008 have no signer and stay editable by name.
  */
-const NOBODY = { signers: [], ownNames: [], isAdmin: false, canSeeNames: false };
+const NOBODY = { signers: [], selfNames: [], ownNames: [], isAdmin: false, canSeeNames: false };
 const ownsRow = (viewer, row) => !!row.signer && viewer.signers.includes(row.signer);
 
-// Someone else's signup this viewer may still change: admins any; a verified member
-// may take back one a guest browser made under the member's own name
-function canOverride(viewer, row) {
-  if (viewer.isAdmin) return true;
-  return String(row.signer || '').startsWith('guest:') && (viewer.ownNames || []).includes(nameKey(row.name));
+// The first of `rows` (one person's signups) that this viewer may not change, or null.
+// Admins may change anything. A member may take back a signup under their own
+// members-list name unless another member made it.
+async function blockingOwner(conn, viewer, rows) {
+  if (viewer.isAdmin) return null;
+  for (const row of rows) {
+    if (!row.signer || ownsRow(viewer, row)) continue;
+    if (!(viewer.ownNames || []).includes(nameKey(row.name))) return row;
+    if (row.signer.startsWith('google:')) {
+      const otherMember = await conn('members').whereRaw('LOWER(email) = ?', [row.signer.slice('google:'.length)]).first();
+      if (otherMember) return row;
+    }
+  }
+  return null;
+}
+
+function logTakeBack(viewer, eventId, rows, what) {
+  if (viewer.isAdmin) return;
+  const from = rows.find(s => s.signer && !ownsRow(viewer, s));
+  if (from) console.log(`Event ${eventId}: member ${viewer.signers[0]} ${what} "${from.name}" (was ${from.signer})`);
 }
 
 /**
@@ -149,6 +166,11 @@ async function addEventSignup(eventId, signup, viewer = NOBODY) {
   const name = String(signup.name || '').trim();
   if (!name) return { error: 'Name is required' };
   if (name.length > MAX_NAME) return { error: 'Name must be under ' + MAX_NAME + ' characters' };
+  for (const [field, max] of Object.entries(FIELD_LIMITS)) {
+    if (signup[field] !== undefined && String(signup[field] || '').length > max) {
+      return { error: (field === 'gradYear' ? 'Class year' : field[0].toUpperCase() + field.slice(1)) + ' must be under ' + max + ' characters' };
+    }
+  }
 
   const result = await db.transaction(async (trx) => {
     const event = await trx('events').where('event_id', eventId).forUpdate().first();
@@ -160,18 +182,18 @@ async function addEventSignup(eventId, signup, viewer = NOBODY) {
     // All of this person's rows (legacy data can hold "Bob" and "Bob " separately)
     const mine = all.filter(s => nameKey(s.name) === nameKey(name));
     const existing = mine[0];
-    const owner = mine.find(s => s.signer && !viewer.signers.includes(s.signer));
-    if (owner && !canOverride(viewer, owner)) {
+    if (await blockingOwner(trx, viewer, mine)) {
       return { error: name + ' is already signed up by someone else. Use your own name, or ask an admin to change it.' };
     }
-    if (owner && !viewer.isAdmin) {
-      console.log(`Event ${eventId}: member ${viewer.signers[0]} took back signup "${name}" from ${owner.signer}`);
-    }
+    logTakeBack(viewer, eventId, mine, 'took back signup');
 
     // Fields left out of the request keep their saved value (older clients send
     // guests as '' and never had a guest picker)
     let inkType = signup.inkType === undefined ? (existing ? existing.ink_type : 'ink') : (signup.inkType === 'interest' ? 'interest' : 'ink');
-    if (event.interest_only) inkType = 'interest';
+    // Interest-only events take interest, but someone already going (from before an
+    // admin switched the event over) isn't silently downgraded by an edit
+    const alreadyGoing = existing && existing.ink_type !== 'interest';
+    if (event.interest_only && !(alreadyGoing && inkType === 'ink')) inkType = 'interest';
     const guestsGiven = signup.guests !== undefined && signup.guests !== '';
     const savedGuests = existing ? parseGuestList(existing.guest_list) : [];
     const guests = inkType === 'interest' ? [] : (guestsGiven ? parseGuestList(signup.guests) : savedGuests);
@@ -216,9 +238,7 @@ async function addEventSignup(eventId, signup, viewer = NOBODY) {
       // Legacy text column, still read by the previous release during a deploy
       guests: guests.join(', '),
       ink_type: inkType,
-      // An admin editing someone's signup leaves it theirs; a member taking back
-      // their name from a guest becomes the owner
-      signer: owner && viewer.isAdmin ? owner.signer : (viewer.signers[0] || (existing && existing.signer) || null),
+      signer: signerFor(viewer, name, existing),
       // Editing keeps your place in the signup order
       ...(existing ? { timestamp: existing.timestamp } : {})
     });
@@ -229,6 +249,14 @@ async function addEventSignup(eventId, signup, viewer = NOBODY) {
     sheetsSync.syncEventSignups(eventId).catch(e => console.error('Sheets sync error (event signups):', e.message));
   }
   return result;
+}
+
+// Who owns a saved signup. Admins acting for someone else never take ownership
+// (the signup stays with its owner, or unclaimed so that person can claim it).
+function signerFor(viewer, name, existing) {
+  const forSelf = (existing && ownsRow(viewer, existing)) || (viewer.selfNames || []).includes(nameKey(name));
+  if (viewer.isAdmin && !forSelf) return (existing && existing.signer) || null;
+  return viewer.signers[0] || (existing && existing.signer) || null;
 }
 
 /**
@@ -244,17 +272,14 @@ async function removeEventSignup(eventId, name, viewer = NOBODY) {
   if (!rows.length) return { removed: false };
 
   if (!viewer.isAdmin) {
-    if (rows.some(s => s.signer && !viewer.signers.includes(s.signer) && !canOverride(viewer, s))) {
-      return { error: 'You can only remove your own signup' };
-    }
+    if (await blockingOwner(db, viewer, rows)) return { error: 'You can only remove your own signup' };
     if (isPast(event)) return { error: 'This event has already happened' };
     if (isFrozen(event) && rows.some(s => s.ink_type !== 'interest')) {
       return { error: 'Sign-ups are closed for this event — ask an admin to remove you' };
     }
   }
 
-  const takenBack = !viewer.isAdmin && rows.find(s => s.signer && !viewer.signers.includes(s.signer));
-  if (takenBack) console.log(`Event ${eventId}: member ${viewer.signers[0]} removed guest signup "${name}" (${takenBack.signer})`);
+  logTakeBack(viewer, eventId, rows, 'removed signup');
 
   const count = await db('event_signups').whereIn('id', rows.map(s => s.id)).del();
   if (count > 0) {

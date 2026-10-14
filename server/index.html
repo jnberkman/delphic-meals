@@ -169,28 +169,6 @@
   @keyframes spin { to { transform: rotate(360deg); } }
 
 
-  /* Calendar */
-  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-bottom: 8px; }
-  .cal-header { padding: 8px 4px; text-align: center; font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-dim); }
-  .cal-day { min-height: 72px; padding: 6px 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 3px; font-size: 12px; cursor: default; transition: all .2s; }
-  .cal-day:hover { border-color: var(--border-light); }
-  .cal-day.today { border-color: var(--accent); background: var(--accent-glow2); }
-  .cal-day.other-month { opacity: .35; }
-  .cal-day .cal-num { font-weight: 600; color: var(--text-bright); margin-bottom: 4px; }
-  .cal-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 3px; }
-  .cal-dot.meal { background: var(--accent); }
-  .cal-dot.event { background: #5B8DEF; }
-  .cal-tag { display: inline-block; font-size: 9px; padding: 1px 5px; border-radius: 2px; margin-top: 2px; line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-  .cal-tag.meal-tag { background: #8B691412; color: var(--accent); }
-  .cal-tag.event-tag { background: #5B8DEF15; color: #3B6BC4; cursor: pointer; }
-  .cal-tag.event-tag:hover { background: #5B8DEF25; }
-
-  /* Event cards */
-  .event-card { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 24px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.04); border-left: 4px solid #5B8DEF; }
-  .event-card .event-title { font-family: 'Cormorant Garamond', serif; font-size: 24px; font-weight: 600; color: var(--text-bright); margin-bottom: 4px; }
-  .event-card .event-meta { font-family: 'Crimson Pro', serif; font-size: 14px; color: var(--text-dim); font-style: italic; margin-bottom: 16px; line-height: 1.6; }
-  .event-card .event-desc { font-family: 'Crimson Pro', serif; font-size: 15px; color: var(--text); line-height: 1.6; margin-bottom: 16px; padding: 12px 16px; background: var(--surface2); border-radius: 4px; border-left: 2px solid #5B8DEF; }
-
   /* Confirmation Modal */
   .confirm-overlay { position: fixed; inset: 0; background: rgba(26,26,26,.55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); z-index: 1000; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity .35s ease; }
   .confirm-overlay.show { opacity: 1; pointer-events: auto; }
@@ -322,19 +300,55 @@
 
   /* ── Moose Tab ─────────────────────────────────────────────────────────── */
   .moose-sect-lbl { font-family: 'Jost', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 12px; }
+  .moose-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+  .moose-toolbar .moose-sect-lbl { margin-bottom: 0; }
+  .moose-seg { display: inline-flex; border: 1px solid var(--border); border-radius: 4px; overflow: hidden; background: var(--surface); }
+  .moose-seg button { font-family: 'Jost', sans-serif; font-size: 11px; font-weight: 500; letter-spacing: .5px; padding: 6px 12px; border: none; background: none; color: var(--text-dim); cursor: pointer; }
+  .moose-seg button + button { border-left: 1px solid var(--border); }
+  .moose-seg button.active { background: var(--accent-glow2); color: var(--accent); font-weight: 600; }
 
-  /* Upcoming event cards */
-  .moose-upcoming { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; margin-bottom: 28px; }
-  .moose-evt-card { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid #5B8DEF; border-radius: 6px; padding: 16px 18px 14px; cursor: pointer; transition: box-shadow .15s; min-width: 0; }
-  .moose-evt-card:hover { box-shadow: 0 4px 14px rgba(0,0,0,.09); }
-  .moose-evt-title { font-family: 'Cormorant Garamond', serif; font-size: 19px; font-weight: 600; color: var(--text-bright); margin-bottom: 2px; }
-  .moose-evt-meta { font-family: 'Crimson Pro', serif; font-size: 13px; color: var(--text-dim); font-style: italic; margin-bottom: 8px; }
-  .moose-evt-desc { font-family: 'Crimson Pro', serif; font-size: 14px; color: var(--text); line-height: 1.5; margin-bottom: 12px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-  .moose-evt-btn { font-family: 'Jost', sans-serif; font-size: 10px; font-weight: 600; letter-spacing: .5px; color: #3B6BC4; background: #5B8DEF12; border: 1px solid #5B8DEF30; border-radius: 3px; padding: 5px 12px; cursor: pointer; transition: background .15s; }
-  .moose-evt-btn:hover { background: #5B8DEF25; }
+  /* Agenda rows */
+  .moose-list { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; margin-bottom: 12px; }
+  .moose-row { display: flex; gap: 14px; align-items: flex-start; padding: 14px 16px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background .12s; }
+  .moose-row:last-child { border-bottom: none; }
+  .moose-row:hover { background: var(--surface2); }
+  .moose-row.mr-past { opacity: .6; }
+  .moose-date { flex-shrink: 0; width: 46px; text-align: center; border-left: 3px solid var(--cat, #5B8DEF); padding: 2px 0 2px 2px; }
+  .moose-date-mo { font-family: 'Jost', sans-serif; font-size: 9px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-dim); }
+  .moose-date-day { font-family: 'Cormorant Garamond', serif; font-size: 26px; font-weight: 600; line-height: 1; color: var(--text-bright); font-variant-numeric: tabular-nums; }
+  .moose-row-body { flex: 1; min-width: 0; }
+  .moose-row-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+  .moose-row-title { font-family: 'Cormorant Garamond', serif; font-size: 19px; font-weight: 600; color: var(--text-bright); line-height: 1.2; min-width: 0; }
+  .moose-row-meta { font-family: 'Crimson Pro', serif; font-size: 14px; color: var(--text-dim); margin-top: 2px; }
+  .moose-row-foot { display: flex; align-items: center; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
+  .moose-kicker { font-family: 'Jost', sans-serif; font-size: 9px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--cat, #5B8DEF); }
+  .moose-count { font-family: 'Jost', sans-serif; font-size: 11px; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+  .moose-count strong { font-weight: 600; color: var(--text); }
+  .moose-count.mc-open strong { color: #3B6BC4; }
+  .moose-faces { display: inline-flex; align-items: center; }
+  .moose-face { width: 22px; height: 22px; border-radius: 50%; background: var(--surface3); border: 2px solid var(--surface); color: var(--text-dim); font-family: 'Jost', sans-serif; font-size: 8px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; margin-left: -6px; }
+  .moose-face:first-child { margin-left: 0; }
+  .moose-face.mf-me { background: var(--accent); color: #fff; }
+  .moose-face.mf-more { background: none; border-color: transparent; width: auto; padding-left: 6px; font-size: 10px; font-weight: 500; }
+  .moose-chip { flex-shrink: 0; font-family: 'Jost', sans-serif; font-size: 10px; font-weight: 600; letter-spacing: .3px; padding: 3px 8px; border-radius: 3px; white-space: nowrap; }
+  .moose-chip.ch-going { background: #3D7A4E14; color: var(--green); }
+  .moose-chip.ch-int { background: #5B8DEF15; color: #3B6BC4; }
+  .moose-chip.ch-warn { background: #B07A2A14; color: var(--orange); }
+  .moose-chip.ch-full { background: #B1424212; color: var(--red); }
+  .moose-chip.ch-muted { background: var(--surface3); color: var(--text-dim); }
+  .moose-earlier { margin-bottom: 28px; }
+  .moose-earlier > summary { list-style: none; cursor: pointer; font-family: 'Jost', sans-serif; font-size: 11px; font-weight: 500; color: var(--text-dim); padding: 8px 2px; }
+  .moose-earlier > summary::-webkit-details-marker { display: none; }
+  .moose-earlier > summary::before { content: '\25B8'; display: inline-block; margin-right: 6px; transition: transform .15s; }
+  .moose-earlier[open] > summary::before { transform: rotate(90deg); }
+  .moose-empty { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 28px 20px; text-align: center; margin-bottom: 12px; }
+  .moose-empty-title { font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 600; color: var(--text-bright); margin-bottom: 4px; }
+  .moose-empty-sub { font-family: 'Crimson Pro', serif; font-size: 15px; font-style: italic; color: var(--text-dim); }
+  .moose-link { font-family: 'Jost', sans-serif; font-size: 12px; font-weight: 500; color: var(--accent); background: none; border: none; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+  .moose-link.ml-danger { color: var(--red); }
 
-  /* Calendar */
-  .moose-cal-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; margin-bottom: 8px; }
+  /* Month calendar */
+  .moose-cal-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; margin: 28px 0 8px; }
   .moose-cal-head { display: flex; align-items: center; gap: 8px; padding: 12px 14px; background: var(--surface2); border-bottom: 1px solid var(--border); }
   .moose-cal-mlbl { font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 600; color: var(--text-bright); flex: 1; text-align: center; }
   .moose-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); }
@@ -344,20 +358,12 @@
   .moose-cal-cell.mc-click { cursor: pointer; }
   .moose-cal-cell.mc-click:hover { background: var(--accent-glow); }
   .moose-cal-cell.mc-other { background: var(--surface2); opacity: .35; pointer-events: none; }
-  .moose-cal-cell.mc-past { pointer-events: none; }
   .moose-cal-cell.mc-today .mc-num { background: var(--accent); color: #fff; border-radius: 50%; width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; }
-  .mc-num { font-family: 'Jost', sans-serif; font-size: 11px; font-weight: 600; color: var(--text-bright); line-height: 1; display: inline-block; margin-bottom: 3px; }
-  .moose-cal-cell.mc-weekend .mc-num { font-weight: 400; color: var(--text-dim); }
-  .mc-pill { display: block; font-family: 'Jost', sans-serif; font-size: 8px; font-weight: 700; letter-spacing: .2px; padding: 2px 5px; border-radius: 3px; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .mc-pill.mp-mine { background: var(--accent-glow2); color: var(--accent); border: 1px solid #8B691428; }
-  .mc-pill.mp-open { background: var(--surface2); color: var(--text-dim); border: 1px solid var(--border); }
-  .mc-pill.mp-evt  { background: #5B8DEF15; color: #3B6BC4; border: 1px solid #5B8DEF28; }
+  .moose-cal-cell .mc-num { font-family: 'Jost', sans-serif; font-size: 11px; font-weight: 600; color: var(--text); }
+  .moose-cal-cell.mc-past .mc-num { color: var(--text-dim); font-weight: 400; }
+  .mc-pill { display: block; font-family: 'Jost', sans-serif; font-size: 8px; font-weight: 700; letter-spacing: .2px; padding: 2px 5px; border-radius: 3px; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; background: color-mix(in srgb, var(--cat, #5B8DEF) 12%, transparent); color: var(--cat, #5B8DEF); border: 1px solid color-mix(in srgb, var(--cat, #5B8DEF) 25%, transparent); }
+  .mc-pill.mp-mine { background: var(--cat, #5B8DEF); color: #fff; }
   .mc-pill.mp-past { opacity: .45; }
-  /* legend dots kept for the key at bottom */
-  .mc-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
-  .mc-dot.dm { background: var(--accent); }
-  .mc-dot.do { background: var(--border-light); }
-  .mc-dot.de { background: #5B8DEF; }
 
   /* Bottom sheets */
   .moose-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.42); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 500; opacity: 0; pointer-events: none; transition: opacity .22s; display: flex; align-items: flex-end; justify-content: center; }
@@ -365,23 +371,36 @@
   .moose-sheet { background: var(--bg); border-radius: 14px 14px 0 0; border: 1px solid var(--border); border-bottom: none; width: 100%; max-width: 520px; max-height: 86vh; overflow-y: auto; padding: 10px 20px 36px; box-shadow: 0 -8px 40px rgba(0,0,0,.15); transform: translateY(20px); transition: transform .28s cubic-bezier(.36,.66,.04,1); }
   .moose-overlay.show .moose-sheet { transform: translateY(0); }
   .moose-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 16px; }
-  .moose-sheet-title { font-family: 'Cormorant Garamond', serif; font-size: 23px; font-weight: 600; color: var(--text-bright); margin-bottom: 2px; }
-  .moose-sheet-sub { font-family: 'Crimson Pro', serif; font-size: 14px; color: var(--text-dim); font-style: italic; margin-bottom: 6px; }
-  .moose-sheet-sect { font-family: 'Jost', sans-serif; font-size: 9px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-dim); margin: 18px 0 8px; }
-  .ink-choice-wrap { display: flex; gap: 10px; margin: 16px 0 20px; }
-  .ink-choice { flex: 1; padding: 13px 8px; border-radius: 8px; border: 2px solid var(--border); background: var(--surface2); font-family: 'Jost', sans-serif; font-weight: 600; font-size: 14px; cursor: pointer; transition: all .15s; color: var(--text-dim); text-align: center; }
-  .ink-choice.active { border-color: var(--accent); background: var(--accent-glow2); color: var(--accent); }
-  .ink-choice.active.int-btn { border-color: #5B8DEF; background: #5B8DEF15; color: #3B6BC4; }
-  .ink-count-bar { font-family: 'Jost', sans-serif; font-size: 11px; font-weight: 500; color: var(--text-dim); letter-spacing: .3px; margin-bottom: 14px; }
-  .moose-meal-box { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 14px 16px; }
-  .moose-meal-type { font-family: 'Jost', sans-serif; font-size: 9px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); margin-bottom: 2px; }
-  .moose-meal-menu { font-family: 'Crimson Pro', serif; font-size: 15px; font-style: italic; color: var(--text-dim); margin: 4px 0 12px; line-height: 1.5; }
-  .moose-meal-signed { font-family: 'Crimson Pro', serif; font-size: 15px; color: var(--green); font-weight: 600; margin-bottom: 12px; }
-  .moose-time-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
-  .moose-time-chip { font-family: 'Jost', sans-serif; font-size: 12px; font-weight: 500; padding: 9px 14px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); cursor: pointer; transition: all .15s; flex: 1; min-width: 0; text-align: center; }
-  .moose-time-chip.sel { border-color: var(--accent-muted); background: var(--accent-glow2); color: var(--accent); font-weight: 600; }
-  .moose-time-chip:disabled { opacity: .4; cursor: not-allowed; }
+  .moose-sheet-title { font-family: 'Cormorant Garamond', serif; font-size: 25px; font-weight: 600; color: var(--text-bright); line-height: 1.15; margin: 4px 0 10px; }
+  .moose-sheet-sect { display: flex; align-items: center; justify-content: space-between; font-family: 'Jost', sans-serif; font-size: 9px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-dim); margin: 22px 0 8px; }
+  .moose-facts { font-family: 'Crimson Pro', serif; font-size: 15px; color: var(--text); line-height: 1.7; }
+  .moose-facts .mf-dim { color: var(--text-dim); }
+  .moose-desc { font-family: 'Crimson Pro', serif; font-size: 15px; color: var(--text); line-height: 1.6; margin-top: 12px; white-space: pre-line; }
+  .moose-me { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 16px; margin-top: 18px; }
+  .moose-me.mm-going { border-color: #3D7A4E40; background: #3D7A4E08; }
+  .moose-me-head { font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 600; color: var(--text-bright); }
+  .moose-me.mm-going .moose-me-head { color: var(--green); }
+  .moose-me-sub { font-family: 'Crimson Pro', serif; font-size: 14px; color: var(--text-dim); margin-top: 2px; }
+  .moose-me-actions { display: flex; align-items: center; gap: 16px; margin-top: 14px; flex-wrap: wrap; }
+  .moose-btn-row { display: flex; gap: 10px; margin-top: 6px; }
+  .moose-btn-row .btn { flex: 1; }
+  .moose-as { font-family: 'Crimson Pro', serif; font-size: 15px; color: var(--text); margin-bottom: 16px; }
+  .moose-stepper { display: inline-flex; align-items: center; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); }
+  .moose-stepper button { width: 34px; height: 34px; border: none; background: none; font-size: 18px; color: var(--text); cursor: pointer; }
+  .moose-stepper button:disabled { color: var(--border); cursor: default; }
+  .moose-stepper span { min-width: 24px; text-align: center; font-family: 'Jost', sans-serif; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .moose-guest-input { margin-top: 8px; }
+  .moose-names { display: flex; flex-wrap: wrap; gap: 6px; }
+  .moose-name { font-family: 'Crimson Pro', serif; font-size: 14px; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 3px; padding: 3px 9px; }
+  .moose-name.mn-me { border-color: var(--accent-muted); color: var(--accent); font-weight: 600; }
+  .moose-name small { font-family: 'Jost', sans-serif; font-size: 10px; color: var(--text-dim); margin-left: 3px; }
+  .moose-roster-row { padding: 8px 0; border-bottom: 1px solid var(--border); font-family: 'Crimson Pro', serif; font-size: 15px; color: var(--text-bright); }
+  .moose-roster-row:last-child { border-bottom: none; }
+  .moose-roster-row .mr-detail { font-size: 13px; color: var(--text-dim); }
+  .moose-none { font-family: 'Crimson Pro', serif; font-size: 14px; font-style: italic; color: var(--text-dim); }
   #mooseEventOverlay { z-index: 501; }
+  .evt-form-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .evt-form-row > .field { flex: 1; min-width: 130px; margin-bottom: 10px; }
 </style>
 </head>
 <body>
@@ -440,8 +459,6 @@
   <div class="tabs">
     <button class="tab active" data-tab="signup">Sign Up</button>
     <button class="tab" data-tab="view">View Signups</button>
-    <button class="tab" data-tab="calendar" style="display:none;">Calendar</button>
-    <button class="tab" data-tab="events" id="eventsTabBtn" style="display:none;">Events</button>
     <button class="tab" data-tab="moose" id="mooseTabBtn">Moose</button>
     <button class="tab" data-tab="admin" id="adminTabBtn" style="display:none;">Admin <span id="adminTabBadge" style="display:none;background:var(--red);color:#fff;font-size:9px;font-weight:700;border-radius:8px;padding:1px 6px;margin-left:3px;vertical-align:middle;letter-spacing:.3px;"></span></button>
   </div>
@@ -536,32 +553,6 @@
     <div id="viewContent"></div>
   </div>
 
-  <!-- ========== CALENDAR (hidden) ========== -->
-  <div id="tab-calendar" class="section" style="display:none!important;">
-    <div class="card">
-      <div class="card-title">Upcoming Schedule</div>
-      <div class="card-sub">Meals and special events for the weeks ahead</div>
-      <div class="field">
-        <label class="field-label">View Month</label>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <button class="btn btn-secondary" style="width:auto;padding:10px 14px;font-size:16px;" onclick="shiftCalMonth(-1)" title="Previous month">&#8592;</button>
-          <div id="calMonthLabel" style="flex:1;text-align:center;font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;color:var(--text-bright);"></div>
-          <button class="btn btn-secondary" style="width:auto;padding:10px 14px;font-size:16px;" onclick="shiftCalMonth(1)" title="Next month">&#8594;</button>
-        </div>
-      </div>
-    </div>
-    <div id="calLoading" style="display:none;text-align:center;padding:24px;color:var(--text-dim);" aria-live="polite"><div class="spinner"></div><div style="margin-top:10px;font-family:'Crimson Pro',serif;font-size:14px;font-style:italic;">Loading calendar&hellip;</div></div>
-    <div id="calendarGrid"></div>
-    <div id="calEventsList" style="margin-top:24px;"></div>
-  </div>
-
-  <!-- ========== EVENTS ========== -->
-  <!-- ========== EVENTS (hidden) ========== -->
-  <div id="tab-events" class="section" style="display:none!important;">
-    <div id="eventsLoading" style="display:none;text-align:center;padding:24px;color:var(--text-dim);" aria-live="polite"><div class="spinner"></div><div style="margin-top:10px;font-family:'Crimson Pro',serif;font-size:14px;font-style:italic;">Loading events&hellip;</div></div>
-    <div id="eventsList"></div>
-  </div>
-
   <!-- ========== MOOSE ========== -->
   <div id="tab-moose" class="section">
     <div id="mooseLoading" style="text-align:center;padding:32px;color:var(--text-dim);">
@@ -569,21 +560,21 @@
       <div style="margin-top:10px;font-family:'Crimson Pro',serif;font-size:14px;font-style:italic;">Loading&hellip;</div>
     </div>
     <div id="mooseContent" style="display:none;">
-      <div class="moose-sect-lbl" id="mooseEventsLbl" style="display:none;">Upcoming Events</div>
+      <div class="moose-toolbar">
+        <div class="moose-sect-lbl">Upcoming Events</div>
+        <div class="moose-seg" id="mooseFilter">
+          <button class="active" data-filter="all" onclick="setMooseFilter('all')">All</button>
+          <button data-filter="mine" onclick="setMooseFilter('mine')">Mine</button>
+        </div>
+      </div>
       <div id="mooseUpcoming"></div>
-      <div class="moose-sect-lbl">Calendar</div>
       <div class="moose-cal-wrap">
         <div class="moose-cal-head">
-          <button class="btn btn-secondary" style="width:auto;padding:8px 14px;font-size:16px;" onclick="shiftMooseCal(-1)">&#8592;</button>
+          <button class="btn btn-secondary" style="width:auto;padding:8px 14px;font-size:16px;" onclick="shiftMooseCal(-1)" aria-label="Previous month">&#8592;</button>
           <div class="moose-cal-mlbl" id="mooseCalMonthLbl"></div>
-          <button class="btn btn-secondary" style="width:auto;padding:8px 14px;font-size:16px;" onclick="shiftMooseCal(1)">&#8594;</button>
+          <button class="btn btn-secondary" style="width:auto;padding:8px 14px;font-size:16px;" onclick="shiftMooseCal(1)" aria-label="Next month">&#8594;</button>
         </div>
         <div id="mooseCalGrid"></div>
-      </div>
-      <div style="font-family:'Crimson Pro',serif;font-size:12px;color:var(--text-dim);text-align:center;padding:4px 0 16px;font-style:italic;">
-        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);margin-right:4px;vertical-align:middle;"></span>signed up&ensp;
-        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--border-light);margin-right:4px;vertical-align:middle;"></span>available&ensp;
-        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#5B8DEF;margin-right:4px;vertical-align:middle;"></span>event
       </div>
     </div>
   </div>
@@ -739,9 +730,15 @@
         <div id="adminEventsList" style="margin-bottom:8px;"></div>
         <div style="border-top:1px solid var(--border);padding-top:16px;margin-top:4px;">
           <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);margin-bottom:14px;">New Event</div>
-          <div class="field" style="margin-bottom:10px;">
-            <label class="field-label" style="font-size:10px;">Title <span class="req">*</span></label>
-            <input type="text" id="newEventTitle" placeholder="e.g. Spring Formal, Alumni Dinner">
+          <div style="display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
+            <div class="field" style="flex:2;min-width:180px;margin-bottom:0;">
+              <label class="field-label" style="font-size:10px;">Title <span class="req">*</span></label>
+              <input type="text" id="newEventTitle" placeholder="e.g. Harvard–Yale Tailgate">
+            </div>
+            <div class="field" style="flex:1;min-width:120px;margin-bottom:0;">
+              <label class="field-label" style="font-size:10px;">Type</label>
+              <select id="newEventCategory"></select>
+            </div>
           </div>
           <div style="display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
             <div class="field" style="flex:1;min-width:130px;margin-bottom:0;">
@@ -765,6 +762,10 @@
             <div class="field" style="flex:1;min-width:130px;margin-bottom:0;">
               <label class="field-label" style="font-size:10px;">Capacity (0 = unlimited)</label>
               <input type="number" id="newEventCap" value="0" min="0">
+            </div>
+            <div class="field" style="flex:1;min-width:110px;margin-bottom:0;">
+              <label class="field-label" style="font-size:10px;">Guests per person</label>
+              <input type="number" id="newEventMaxGuests" value="0" min="0" max="5">
             </div>
             <div class="field" style="flex:1;min-width:160px;margin-bottom:0;">
               <label class="field-label" style="font-size:10px;">Freeze sign-ups after</label>
@@ -929,6 +930,7 @@ let pendingName = null;
 
 function grantAccess(user) {
   currentUser = user;
+  sessionStorage.removeItem('delphic_show_signin');
   // For open-access users, restore identity from the last saved name so
   // "Your Spot" and form pre-fill work without requiring a Google sign-in.
   if (user.openAccess && !user.name) {
@@ -1112,6 +1114,8 @@ function clearPersistedSession() {
   sessionStorage.removeItem('delphic_id_token');
   sessionStorage.removeItem('delphic_user');
   sessionStorage.removeItem('delphic_access_code');
+  // The browser id owns guest event signups; the next person here shouldn't inherit them
+  localStorage.removeItem('delphic_signer_id');
 }
 
 (async function() {
@@ -1175,7 +1179,8 @@ function clearPersistedSession() {
       setCache('settings', settings);
     }
     if (settings.spotUpEnabled === false || String(settings.spotUpEnabled).toUpperCase() === 'FALSE') spotUpEnabled = false;
-    if (settings.openAccess) {
+    // "Sign out" from Moose skips open access once so the sign-in screen shows
+    if (settings.openAccess && !sessionStorage.getItem('delphic_show_signin')) {
       grantAccess({ name: '', isAdmin: false, openAccess: true });
     }
   } catch(e) {
@@ -1465,6 +1470,18 @@ function saveCaps() {
 // =============================================
 //  API LAYER
 // =============================================
+// Random id this browser keeps; identifies guest-code users' event signups
+function _signerId() {
+  let id = '';
+  try { id = localStorage.getItem('delphic_signer_id') || ''; } catch (e) {}
+  if (!/^[A-Za-z0-9-]{16,64}$/.test(id)) {
+    id = (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
+      : Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, '0')).join('');
+    try { localStorage.setItem('delphic_signer_id', id); } catch (e) {}
+  }
+  return id;
+}
+
 async function apiCall(action, data = {}) {
   try {
     // Detect whether backend is Express (has /api path) or Apps Script (legacy GET)
@@ -1476,7 +1493,11 @@ async function apiCall(action, data = {}) {
       if (idToken) headers['Authorization'] = 'Bearer ' + idToken;
       const guestCode = sessionStorage.getItem('delphic_access_code');
       const payload = { action, ...data };
-      if (!idToken && guestCode) payload.accessCode = guestCode;
+      // Send the guest code even alongside a token: a stored non-member Google token
+      // would otherwise hide what the guest code grants (e.g. event attendee names)
+      if (guestCode) payload.accessCode = guestCode;
+      // Event signups record who made them, so only that browser (or an admin) can change them
+      if (action === 'getEvents' || action === 'addEventSignup' || action === 'removeEventSignup') payload.signerId = _signerId();
       resp = await fetch(SCRIPT_URL + '/api', {
         method: 'POST',
         headers,
@@ -1521,8 +1542,6 @@ document.querySelectorAll('.tab').forEach(t => {
     } else {
       appEl.classList.remove('view-wide');
       if (id === 'signup') loadWeekData();
-      if (id === 'calendar') loadCalendar();
-      if (id === 'events') loadEvents();
       if (id === 'moose') loadMoose();
       if (id === 'admin') { switchAdminPanel('week'); loadAccessRequests(); }
     }
@@ -2977,117 +2996,6 @@ async function pushWeekConfig() {
   } catch (e) {}
 }
 
-// =============================================
-//  SPECIAL EVENTS
-// =============================================
-let allEvents = [];
-
-async function loadEvents() {
-  document.getElementById('eventsList').innerHTML = '';
-
-  // Show cached events instantly
-  const cachedEvents = getCache('events');
-  if (cachedEvents) {
-    allEvents = cachedEvents;
-    renderEventsList();
-    // eventsTabBtn hidden
-  } else {
-    document.getElementById('eventsLoading').style.display = 'block';
-  }
-
-  try {
-    const result = await apiCall('getEvents');
-    allEvents = (result.events || []).filter(e => {
-      const d = new Date(e.date + 'T23:59:59');
-      return d >= new Date(new Date().toDateString()); // today or future
-    }).sort((a, b) => new Date(a.date) - new Date(b.date));
-    setCache('events', allEvents);
-  } catch (e) { if (!cachedEvents) allEvents = []; }
-  document.getElementById('eventsLoading').style.display = 'none';
-  renderEventsList();
-  // Events live in the Moose tab — don't show the legacy Events tab
-}
-
-function renderEventsList() {
-  let html = '';
-  if (allEvents.length === 0) {
-    html = '<div class="info-banner">No upcoming special events.</div>';
-  }
-  allEvents.forEach(evt => {
-    const dateStr = new Date(evt.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-    const isFull = evt.capacity > 0 && evt.signupCount >= evt.capacity;
-    const isFrozen = evt.freezeDate && Date.now() > new Date(evt.freezeDate).getTime();
-    const spotsText = evt.capacity > 0 ? (evt.signupCount + '/' + evt.capacity + ' signed up') : (evt.signupCount + ' signed up');
-
-    html += '<div class="event-card">' +
-      '<div style="display:flex;justify-content:space-between;align-items:start;">' +
-        '<div class="event-title">' + escapeHtml(evt.title) + '</div>' +
-        '<span class="tag ' + (isFull ? 'tag-red' : 'tag-green') + '">' + (isFull ? 'FULL' : 'OPEN') + '</span>' +
-      '</div>' +
-      '<div class="event-meta">' + dateStr + (evt.time ? ' at ' + escapeHtml(evt.time) : '') + (evt.location ? ' &middot; ' + escapeHtml(evt.location) : '') + ' &middot; ' + spotsText + '</div>';
-    if (evt.description) html += '<div class="event-desc">' + escapeHtml(evt.description) + '</div>';
-    if (isFrozen) {
-      html += '<div style="background:#B1424210;border:1px solid #B1424230;border-radius:4px;padding:10px 14px;font-family:\'Crimson Pro\',serif;font-size:13px;color:var(--red);margin-bottom:12px;">Sign-ups for this event are closed.</div>';
-    } else if (!isFull) {
-      html += '<div style="border:1px solid var(--border);border-radius:4px;padding:16px;background:var(--surface2);margin-bottom:8px;">' +
-        '<div style="font-family:\'Jost\',sans-serif;font-size:11px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-dim);margin-bottom:10px;">Sign Up for This Event</div>' +
-        '<div class="field" style="margin-bottom:10px;"><label class="field-label" style="font-size:10px;">Name <span class="req">*</span></label>' +
-        '<input type="text" id="evtName_' + evt.eventId + '" placeholder="Your full name"></div>';
-      if (evt.collectGradYear) {
-        html += '<div class="field" style="margin-bottom:10px;"><label class="field-label" style="font-size:10px;">Grad Year <span class="req">*</span></label>' +
-        '<input type="text" id="evtGrad_' + evt.eventId + '" placeholder="e.g. 2026"></div>';
-      }
-      if (evt.collectDiet) {
-        html += '<div class="field" style="margin-bottom:10px;"><label class="field-label" style="font-size:10px;">Dietary Preference</label>' +
-        '<div class="option-grid">' +
-          '<label class="option-pill"><input type="radio" name="evtDiet_' + evt.eventId + '" value="No Dietary Restrictions" checked><span class="pill-label">No Restrictions</span></label>' +
-          '<label class="option-pill"><input type="radio" name="evtDiet_' + evt.eventId + '" value="Vegan"><span class="pill-label">Vegan</span></label>' +
-          '<label class="option-pill"><input type="radio" name="evtDiet_' + evt.eventId + '" value="Vegetarian"><span class="pill-label">Vegetarian</span></label>' +
-          '<label class="option-pill"><input type="radio" name="evtDiet_' + evt.eventId + '" value="Gluten-Free"><span class="pill-label">Gluten-Free</span></label>' +
-        '</div></div>';
-      }
-      html += '<div class="field" style="margin-bottom:10px;"><label class="field-label" style="font-size:10px;">Guests</label>' +
-        '<input type="text" id="evtGuests_' + evt.eventId + '" placeholder="e.g. John Smith, Jane Doe"></div>' +
-        '<div class="field" style="margin-bottom:10px;"><label class="field-label" style="font-size:10px;">Notes</label>' +
-        '<input type="text" id="evtNotes_' + evt.eventId + '" placeholder="Any additional info"></div>' +
-        '<button class="btn btn-primary" onclick="submitEventSignup(\'' + evt.eventId + '\')">Sign Up</button>' +
-      '</div>';
-    }
-    html += '</div>';
-  });
-  document.getElementById('eventsList').innerHTML = html;
-}
-
-async function submitEventSignup(eventId) {
-  const nameEl = document.getElementById('evtName_' + eventId);
-  const name = nameEl ? nameEl.value.trim() : '';
-  if (!name) { showToast('Please enter your name', 'var(--red)'); return; }
-
-  const gradEl = document.getElementById('evtGrad_' + eventId);
-  const gradYear = gradEl ? gradEl.value.trim() : '';
-
-  const dietEl = document.querySelector('input[name="evtDiet_' + eventId + '"]:checked');
-  const diet = dietEl ? dietEl.value : '';
-
-  const guestsEl = document.getElementById('evtGuests_' + eventId);
-  const guests = guestsEl ? guestsEl.value.trim() : '';
-
-  const notesEl = document.getElementById('evtNotes_' + eventId);
-  const notes = notesEl ? notesEl.value.trim() : '';
-
-  try {
-    const result = await apiCall('addEventSignup', { eventId, signup: { name, gradYear, diet, guests, notes } });
-    if (result.status === 'ok') {
-      showConfirmation(name, '', 1, false, true);
-      document.getElementById('confirmSub').textContent = 'You\'re signed up for this event.';
-      document.getElementById('confirmDays').textContent = '';
-      await loadEvents();
-    } else if (result.full) {
-      showToast('This event is full', 'var(--red)');
-    }
-  } catch (e) {}
-}
-
 // Admin: Create event
 async function createNewEvent() {
   const title = document.getElementById('newEventTitle').value.trim();
@@ -3100,6 +3008,8 @@ async function createNewEvent() {
     location: document.getElementById('newEventLocation').value.trim(),
     description: document.getElementById('newEventDesc').value.trim(),
     capacity: parseInt(document.getElementById('newEventCap').value) || 0,
+    category: document.getElementById('newEventCategory').value,
+    maxGuests: parseInt(document.getElementById('newEventMaxGuests').value) || 0,
     collectGradYear: document.getElementById('newEventGradYear').checked,
     collectDiet: document.getElementById('newEventDiet').checked,
     interestOnly: document.getElementById('newEventInterestOnly').checked,
@@ -3114,9 +3024,13 @@ async function createNewEvent() {
     document.getElementById('newEventLocation').value = '';
     document.getElementById('newEventDesc').value = '';
     document.getElementById('newEventCap').value = '0';
+    document.getElementById('newEventMaxGuests').value = '0';
+    document.getElementById('newEventCategory').value = '';
     document.getElementById('newEventFreeze').value = '';
     loadAdminEvents();
-    loadEvents();
+    // Refresh Moose so the change shows up there
+    _mooseEvents = null;
+    if (document.querySelector('.tab.active[data-tab="moose"]')) loadMoose();
   } catch (e) {}
 }
 
@@ -3384,7 +3298,18 @@ async function adminRemoveMember(email) {
   } catch(e) {}
 }
 
+function _eventCategoryOptions(selected) {
+  let html = '<option value="">\u2014</option>';
+  Object.keys(MOOSE_CATEGORIES).forEach(k => {
+    const label = k === 'other' ? 'Other' : MOOSE_CATEGORIES[k].label;
+    html += '<option value="' + k + '"' + (k === selected ? ' selected' : '') + '>' + label + '</option>';
+  });
+  return html;
+}
+
 async function loadAdminEvents() {
+  const catSel = document.getElementById('newEventCategory');
+  if (catSel && !catSel.options.length) catSel.innerHTML = _eventCategoryOptions('');
   try {
     const result = await apiCall('getEvents');
     const events = (result.events || []).sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -3398,16 +3323,16 @@ async function loadAdminEvents() {
 function _adminEventRowHtml(evt) {
   const dateStr = new Date(evt.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   const safeId    = evt.eventId.replace(/'/g, "\\'");
-  const safeTitle = evt.title.replace(/'/g, "\\'");
   return '<div id="adminEvtRow_' + evt.eventId + '" style="border:1px solid var(--border);border-radius:4px;padding:12px 16px;margin-bottom:8px;background:var(--surface);">' +
     '<div style="display:flex;justify-content:space-between;align-items:center;">' +
       '<div style="min-width:0;">' +
         '<strong style="font-family:\'Crimson Pro\',serif;font-size:15px;">' + escapeHtml(evt.title) + '</strong>' +
-        '<div style="font-size:12px;color:var(--text-dim);">' + dateStr + ' &middot; ' + evt.signupCount + ' signed up</div>' +
+        '<div style="font-size:12px;color:var(--text-dim);">' + dateStr + ' &middot; ' +
+          (evt.interestOnly ? evt.interestCount + ' interested' : (evt.goingCount || 0) + (evt.capacity > 0 ? '/' + evt.capacity : '') + ' going' + (evt.interestCount ? ', ' + evt.interestCount + ' interested' : '')) + '</div>' +
       '</div>' +
       '<div style="display:flex;gap:8px;flex-shrink:0;margin-left:12px;">' +
         '<button class="btn btn-secondary" style="width:auto;padding:5px 12px;font-size:12px;" onclick="editAdminEvent(\'' + safeId + '\')">Edit</button>' +
-        '<button class="remove-btn" title="Delete" onclick="deleteAdminEvent(\'' + safeId + '\',\'' + safeTitle + '\')">&#215;</button>' +
+        '<button class="remove-btn" title="Delete" data-title="' + escapeHtml(evt.title) + '" onclick="deleteAdminEvent(\'' + safeId + '\', this.dataset.title, ' + (evt.signupCount || 0) + ')">&#215;</button>' +
       '</div>' +
     '</div>' +
   '</div>';
@@ -3420,30 +3345,38 @@ function editAdminEvent(eventId) {
     const row = document.getElementById('adminEvtRow_' + eventId);
     if (!row) return;
     const safeId = eventId.replace(/'/g, "\\'");
-    const freezeVal = evt.freezeDate
-      ? evt.freezeDate.slice(0, 16) // "YYYY-MM-DDTHH:MM" for datetime-local
+    // datetime-local wants local "YYYY-MM-DDTHH:MM"; freezeDate is stored as UTC ISO
+    const fd = evt.freezeDate ? new Date(evt.freezeDate) : null;
+    const freezeVal = fd && !isNaN(fd)
+      ? _mooseYmd(fd) + 'T' + String(fd.getHours()).padStart(2, '0') + ':' + String(fd.getMinutes()).padStart(2, '0')
       : '';
     row.innerHTML =
       '<div style="font-family:\'Jost\',sans-serif;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);margin-bottom:12px;">Edit Event</div>' +
-      '<div class="field" style="margin-bottom:10px;"><label class="field-label">Title <span class="req">*</span></label>' +
-        '<input type="text" id="editEvtTitle_' + eventId + '" value="' + evt.title.replace(/"/g,'&quot;') + '"></div>' +
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">' +
-        '<div class="field" style="margin-bottom:10px;"><label class="field-label">Date <span class="req">*</span></label>' +
+      '<div class="evt-form-row">' +
+        '<div class="field" style="flex:2;"><label class="field-label">Title <span class="req">*</span></label>' +
+          '<input type="text" id="editEvtTitle_' + eventId + '" value="' + escapeHtml(evt.title) + '"></div>' +
+        '<div class="field"><label class="field-label">Type</label>' +
+          '<select id="editEvtCat_' + eventId + '">' + _eventCategoryOptions(evt.category || '') + '</select></div>' +
+      '</div>' +
+      '<div class="evt-form-row">' +
+        '<div class="field"><label class="field-label">Date <span class="req">*</span></label>' +
           '<input type="date" id="editEvtDate_' + eventId + '" value="' + (evt.date||'') + '"></div>' +
-        '<div class="field" style="margin-bottom:10px;"><label class="field-label">Time</label>' +
-          '<input type="text" id="editEvtTime_' + eventId + '" value="' + (evt.time||'') + '" placeholder="e.g. 7:30 PM"></div>' +
+        '<div class="field"><label class="field-label">Time</label>' +
+          '<input type="text" id="editEvtTime_' + eventId + '" value="' + escapeHtml(evt.time||'') + '" placeholder="e.g. 7:30 PM"></div>' +
       '</div>' +
       '<div class="field" style="margin-bottom:10px;"><label class="field-label">Location</label>' +
-        '<input type="text" id="editEvtLoc_' + eventId + '" value="' + (evt.location||'').replace(/"/g,'&quot;') + '"></div>' +
+        '<input type="text" id="editEvtLoc_' + eventId + '" value="' + escapeHtml(evt.location||'') + '"></div>' +
       '<div class="field" style="margin-bottom:10px;"><label class="field-label">Description</label>' +
-        '<textarea id="editEvtDesc_' + eventId + '" rows="3">' + (evt.description||'') + '</textarea></div>' +
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">' +
-        '<div class="field" style="margin-bottom:10px;"><label class="field-label">Capacity <span style="font-size:10px;color:var(--text-dim);">(0&nbsp;=&nbsp;unlimited)</span></label>' +
+        '<textarea id="editEvtDesc_' + eventId + '" rows="3">' + escapeHtml(evt.description||'') + '</textarea></div>' +
+      '<div class="evt-form-row">' +
+        '<div class="field"><label class="field-label">Guests / person</label>' +
+          '<input type="number" id="editEvtGuests_' + eventId + '" value="' + (evt.maxGuests||0) + '" min="0" max="5"></div>' +
+        '<div class="field"><label class="field-label">Capacity <span style="font-size:10px;color:var(--text-dim);">(0&nbsp;=&nbsp;unlimited)</span></label>' +
           '<input type="number" id="editEvtCap_' + eventId + '" value="' + (evt.capacity||0) + '" min="0"></div>' +
-        '<div class="field" style="margin-bottom:10px;"><label class="field-label">Sign-up Freeze</label>' +
+        '<div class="field" style="min-width:200px;"><label class="field-label">Sign-up Freeze</label>' +
           '<input type="datetime-local" id="editEvtFreeze_' + eventId + '" value="' + freezeVal + '"></div>' +
       '</div>' +
-      '<div style="display:flex;gap:16px;margin-bottom:14px;">' +
+      '<div style="display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap;">' +
         '<label class="option-pill"><input type="checkbox" id="editEvtGrad_' + eventId + '"' + (evt.collectGradYear ? ' checked' : '') + '><span class="pill-label" style="font-size:12px;">Collect Grad Year</span></label>' +
         '<label class="option-pill"><input type="checkbox" id="editEvtDiet_' + eventId + '"' + (evt.collectDiet ? ' checked' : '') + '><span class="pill-label" style="font-size:12px;">Collect Dietary Info</span></label>' +
         '<label class="option-pill"><input type="checkbox" id="editEvtInterestOnly_' + eventId + '"' + (evt.interestOnly ? ' checked' : '') + '><span class="pill-label" style="font-size:12px;">Interest Only</span></label>' +
@@ -3472,6 +3405,8 @@ async function saveAdminEvent(eventId) {
     location:    (document.getElementById('editEvtLoc_'  + eventId)||{}).value || '',
     description: (document.getElementById('editEvtDesc_' + eventId)||{}).value || '',
     capacity:    parseInt((document.getElementById('editEvtCap_' + eventId)||{}).value||'0', 10)||0,
+    category:    (document.getElementById('editEvtCat_' + eventId)||{}).value || '',
+    maxGuests:   parseInt((document.getElementById('editEvtGuests_' + eventId)||{}).value||'0', 10)||0,
     collectGradYear:  !!((document.getElementById('editEvtGrad_'         + eventId)||{}).checked),
     collectDiet:      !!((document.getElementById('editEvtDiet_'         + eventId)||{}).checked),
     interestOnly:     !!((document.getElementById('editEvtInterestOnly_' + eventId)||{}).checked),
@@ -3490,170 +3425,19 @@ async function saveAdminEvent(eventId) {
   }
 }
 
-async function deleteAdminEvent(eventId, title) {
-  if (!confirm('Delete "' + title + '"? This removes all signups.')) return;
+async function deleteAdminEvent(eventId, title, signupCount) {
+  const lost = signupCount
+    ? ' ' + signupCount + (signupCount === 1 ? ' person is' : ' people are') + ' signed up and will be removed.'
+    : '';
+  if (!confirm('Delete "' + title + '"?' + lost + ' This can\'t be undone.')) return;
   try {
     await apiCall('deleteEvent', { eventId });
     showToast('Event deleted', 'var(--red)');
     loadAdminEvents();
-    loadEvents();
+    // Refresh Moose so the change shows up there
+    _mooseEvents = null;
+    if (document.querySelector('.tab.active[data-tab="moose"]')) loadMoose();
   } catch (e) {}
-}
-
-// =============================================
-//  CALENDAR
-// =============================================
-let calYear, calMonth;
-
-function initCalendar() {
-  const now = new Date();
-  calYear = now.getFullYear();
-  calMonth = now.getMonth();
-}
-
-function shiftCalMonth(dir) {
-  calMonth += dir;
-  if (calMonth > 11) { calMonth = 0; calYear++; }
-  if (calMonth < 0) { calMonth = 11; calYear--; }
-  // Limit: 2 years out
-  const now = new Date();
-  const maxDate = new Date(now.getFullYear() + 2, now.getMonth(), 1);
-  const minDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const cur = new Date(calYear, calMonth, 1);
-  if (cur > maxDate || cur < minDate) { calMonth -= dir; if (calMonth > 11) { calMonth = 0; calYear++; } if (calMonth < 0) { calMonth = 11; calYear--; } return; }
-  loadCalendar();
-}
-
-async function loadCalendar() {
-  const label = new Date(calYear, calMonth, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-  document.getElementById('calMonthLabel').textContent = label;
-  document.getElementById('calLoading').style.display = 'block';
-
-  // Load events
-  let events = [];
-  try {
-    const result = await apiCall('getEvents');
-    events = result.events || [];
-  } catch (e) {}
-
-  // Load meal weeks that overlap this month
-  const firstDay = new Date(calYear, calMonth, 1);
-  const lastDay = new Date(calYear, calMonth + 1, 0);
-  let mealDays = {};
-
-  // Get Mondays that cover this month
-  const mondays = [];
-  const d = new Date(firstDay);
-  d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); // go to Monday of first week
-  while (d <= lastDay) {
-    mondays.push(d.toISOString().split('T')[0]);
-    d.setDate(d.getDate() + 7);
-  }
-
-  await Promise.all(mondays.map(async mon => {
-    try {
-      const week = await apiCall('getWeek', { monday: mon });
-      if (week && week.config) {
-        week.config.forEach(day => {
-          if (day.enabled) {
-            mealDays[day.date] = day.meal;
-          }
-        });
-      }
-    } catch (e) {}
-  }));
-
-  document.getElementById('calLoading').style.display = 'none';
-  renderCalendar(mealDays, events);
-}
-
-function renderCalendar(mealDays, events) {
-  const today = new Date();
-  const todayStr = today.toISOString().split('T')[0];
-  const firstDay = new Date(calYear, calMonth, 1);
-  const lastDay = new Date(calYear, calMonth + 1, 0);
-  const startDay = (firstDay.getDay() + 6) % 7; // Monday-based
-
-  const dayNames = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-  let html = '<div class="cal-grid">';
-  dayNames.forEach(n => { html += '<div class="cal-header">' + n + '</div>'; });
-
-  // Fill in leading days from previous month
-  const prevMonth = new Date(calYear, calMonth, 0);
-  for (let i = startDay - 1; i >= 0; i--) {
-    const dayNum = prevMonth.getDate() - i;
-    html += '<div class="cal-day other-month"><div class="cal-num">' + dayNum + '</div></div>';
-  }
-
-  // This month's days
-  for (let d = 1; d <= lastDay.getDate(); d++) {
-    const dateObj = new Date(calYear, calMonth, d);
-    const dateStr = dateObj.toISOString().split('T')[0];
-    const isToday = dateStr === todayStr;
-
-    html += '<div class="cal-day' + (isToday ? ' today' : '') + '"><div class="cal-num">' + d + '</div>';
-
-    // Meal indicator
-    if (mealDays[dateStr]) {
-      html += '<div class="cal-tag meal-tag">' + mealDays[dateStr] + '</div>';
-    }
-
-    // Event indicators
-    events.forEach(evt => {
-      if (evt.date === dateStr) {
-        html += '<div class="cal-tag event-tag" onclick="showEventFromCal(\'' + evt.eventId + '\')" title="' + escapeHtml(evt.title) + '">' + escapeHtml(evt.title) + '</div>';
-      }
-    });
-
-    html += '</div>';
-  }
-
-  // Trailing days
-  const totalCells = startDay + lastDay.getDate();
-  const remaining = (7 - (totalCells % 7)) % 7;
-  for (let i = 1; i <= remaining; i++) {
-    html += '<div class="cal-day other-month"><div class="cal-num">' + i + '</div></div>';
-  }
-
-  html += '</div>';
-  document.getElementById('calendarGrid').innerHTML = html;
-
-  // Events list below calendar
-  const monthEvents = events.filter(e => {
-    const ed = new Date(e.date + 'T12:00:00');
-    return ed.getMonth() === calMonth && ed.getFullYear() === calYear && ed >= new Date(new Date().toDateString());
-  }).sort((a, b) => new Date(a.date) - new Date(b.date));
-
-  let evtHtml = '';
-  if (monthEvents.length > 0) {
-    evtHtml += '<div class="card"><div class="card-title">Special Events This Month</div><div class="card-sub">Click to sign up</div>';
-    monthEvents.forEach(evt => {
-      const dateStr = new Date(evt.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-      const spotsText = evt.capacity > 0 ? (evt.signupCount + '/' + evt.capacity) : evt.signupCount + ' signed up';
-      evtHtml += '<div style="border:1px solid var(--border);border-radius:4px;padding:12px 16px;margin-bottom:8px;background:var(--surface);cursor:pointer;border-left:3px solid #5B8DEF;" onclick="showEventFromCal(\'' + evt.eventId + '\')">' +
-        '<div style="display:flex;justify-content:space-between;align-items:center;">' +
-          '<div><strong style="font-family:\'Crimson Pro\',serif;font-size:15px;color:var(--text-bright);">' + escapeHtml(evt.title) + '</strong>' +
-          '<div style="font-size:12px;color:var(--text-dim);">' + dateStr + (evt.time ? ' at ' + evt.time : '') + '</div></div>' +
-          '<span style="font-size:11px;color:var(--text-dim);">' + spotsText + '</span>' +
-        '</div></div>';
-    });
-    evtHtml += '</div>';
-  }
-  document.getElementById('calEventsList').innerHTML = evtHtml;
-}
-
-function showEventFromCal(eventId) {
-  // Switch to moose tab and open the event sheet
-  document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
-  document.querySelector('[data-tab="moose"]').classList.add('active');
-  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-  document.getElementById('tab-moose').classList.add('active');
-  loadMoose().then(() => {
-    if (_mooseEvents) {
-      const ev = _mooseEvents.find(e => e.eventId === eventId || e.id === eventId);
-      if (ev) openMooseEventSheet(ev.eventId || ev.id);
-    }
-  });
 }
 
 // =============================================
@@ -3720,12 +3504,6 @@ loadWeekData(true);
 loadViewData(true); // prefetch so View tab renders instantly on first click
 if (currentUser && currentUser.isAdmin) { switchAdminPanel('week'); loadAccessRequests(); }
 
-// Initialize calendar
-initCalendar();
-
-// Load events to check if Events tab should be visible
-loadEvents();
-
 // Re-fetch data when user returns to the tab after 60+ seconds away
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState !== 'visible') return;
@@ -3742,15 +3520,161 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
-//  MOOSE TAB
+//  MOOSE TAB — club events (not meals)
 // ═══════════════════════════════════════════════════════════════════════════
+// Keep keys in sync with EVENT_CATEGORIES in server/src/db/queries/events.js
+const MOOSE_CATEGORIES = {
+  social: { label: 'Social', color: '#4F7BC8' },
+  formal: { label: 'Formal', color: '#8E3B46' },
+  sports: { label: 'Sports', color: '#3D7A4E' },
+  trip:   { label: 'Trip',   color: '#B07A2A' },
+  other:  { label: 'Event',  color: '#7A7468' },
+};
+const MOOSE_DIETS = CATEGORIES.filter(c => c !== 'Allergies');
+
 let _mooseCalYear = null, _mooseCalMonth = null;
 let _mooseEvents = null;          // cached events array
-let _mooseLoadingWeeks = new Set(); // mondays currently being fetched
-let _mooseSelectedTime = null;    // selected time slot in the day sheet
-let _mooseInkChoice = 'ink';      // 'ink' or 'interest' for event sheet
-let _mooseSheetDate = null;       // currently open day sheet date
-let _mooseSheetMealData = null;   // data for the open meal row
+let _mooseFilter = 'all';         // 'all' or 'mine'
+let _mooseSheetId = null;         // event open in the event sheet
+let _mooseEditing = false;        // event sheet shows the signup form for an existing signup
+let _mooseConfirmRemove = false;  // event sheet is asking "remove me?"
+
+// ── Helpers ─────────────────────────────────────────────────────────────────
+// Local YYYY-MM-DD (toISOString would roll over to tomorrow in the evening)
+// Today in New York, matching the server's idea of when an event has passed
+function _mooseTodayET() {
+  try { return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date()); }
+  catch (e) { return _mooseYmd(new Date()); }
+}
+
+function _mooseYmd(d) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+function _mooseCat(ev) {
+  return MOOSE_CATEGORIES[ev.category] || { label: 'Event', color: '#4F7BC8' };
+}
+
+function _mooseOwnName(name) {
+  return !!(currentUser && currentUser.name && String(currentUser.name).toLowerCase().trim() === String(name || '').toLowerCase().trim());
+}
+
+// The server marks signups you made (`mine`). Signups from before that existed
+// (`claimed` false) fall back to matching your account name.
+function _mooseIsMine(a) {
+  return !!a && (a.mine || (!a.claimed && _mooseOwnName(a.name)));
+}
+
+function _mooseMine(ev) {
+  const all = ev.attendees || [];
+  return all.find(a => a.mine && _mooseOwnName(a.name)) || all.find(_mooseIsMine) || null;
+}
+
+// Name to show when your signup isn't under your account name ("Bob Jones is going")
+function _mooseOtherLabel(mine) {
+  return mine && currentUser && currentUser.name && !_mooseOwnName(mine.name) ? mine.name : '';
+}
+
+function _mooseGuestCount(a) {
+  return (a.guests || []).length;
+}
+
+function _mooseStatus(ev) {
+  const past = ev.date < _mooseTodayET();
+  const freezeTs = ev.freezeDate ? new Date(ev.freezeDate).getTime() : 0;
+  const closed = past || (freezeTs && Date.now() > freezeTs);
+  const going = ev.goingCount || 0;
+  const capped = !ev.interestOnly && ev.capacity > 0;
+  const left = capped ? Math.max(0, ev.capacity - going) : Infinity;
+  return {
+    past, closed,
+    full: capped && left === 0,
+    left,
+    closesSoon: !closed && freezeTs && freezeTs - Date.now() < 48 * 3600 * 1000,
+    freezeTs,
+  };
+}
+
+function _mooseDateLabel(ev, opts) {
+  return new Date(ev.date + 'T12:00:00').toLocaleDateString('en-US', opts || { weekday: 'long', month: 'long', day: 'numeric' });
+}
+
+function _mooseFreezeLabel(ts) {
+  return new Date(ts).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+}
+
+function _mooseInitials(name) {
+  const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return '?';
+  return ((parts[0][0] || '') + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
+}
+
+function _mooseEsc(id) {
+  return String(id).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
+function _mooseSort(list, desc) {
+  return list.slice().sort((a, b) => (desc ? -1 : 1) * (a.date.localeCompare(b.date) || a.title.localeCompare(b.title)));
+}
+
+// "Going 8/20" — the count shown on rows
+function _mooseCountHtml(ev, st) {
+  if (ev.interestOnly) {
+    const n = ev.interestCount || 0;
+    return '<span class="moose-count"><strong>' + n + '</strong> interested</span>';
+  }
+  const going = ev.goingCount || 0;
+  if (!going && !ev.capacity) return '<span class="moose-count">No one going yet</span>';
+  const cap = ev.capacity > 0 ? '/' + ev.capacity : '';
+  const open = !st.closed && !st.full && ev.capacity > 0;
+  return '<span class="moose-count' + (open ? ' mc-open' : '') + '">Going <strong>' + going + cap + '</strong></span>';
+}
+
+function _mooseFacesHtml(ev) {
+  const going = (ev.attendees || []).filter(a => ev.interestOnly ? a.inkType === 'interest' : a.inkType !== 'interest');
+  if (!going.length) return '';
+  // Put yourself first so you can find your own circle
+  going.sort((a, b) => _mooseIsMine(b) - _mooseIsMine(a));
+  let html = '<span class="moose-faces" title="' + escapeHtml(going.map(a => a.name).join(', ')) + '">';
+  going.slice(0, 4).forEach(a => {
+    const mine = _mooseIsMine(a);
+    html += '<span class="moose-face' + (mine ? ' mf-me' : '') + '">' + escapeHtml(_mooseInitials(a.name)) + '</span>';
+  });
+  if (going.length > 4) html += '<span class="moose-face mf-more">+' + (going.length - 4) + '</span>';
+  return html + '</span>';
+}
+
+// One chip per row, only when it matters: your status first, then urgency
+function _mooseChipHtml(ev, st) {
+  const mine = _mooseMine(ev);
+  if (mine && mine.inkType !== 'interest') return '<span class="moose-chip ch-going">&#10003; Going</span>';
+  if (mine) return '<span class="moose-chip ch-int">Interested</span>';
+  if (st.past) return '';
+  if (st.closed) return '<span class="moose-chip ch-muted">Closed</span>';
+  if (st.full) return '<span class="moose-chip ch-full">Full</span>';
+  if (st.left <= 3) return '<span class="moose-chip ch-warn">' + st.left + (st.left === 1 ? ' spot' : ' spots') + ' left</span>';
+  if (st.closesSoon) return '<span class="moose-chip ch-warn">Closes ' + escapeHtml(_mooseFreezeLabel(st.freezeTs)) + '</span>';
+  return '';
+}
+
+function _mooseRowHtml(ev, onclick) {
+  const cat = _mooseCat(ev);
+  const d = new Date(ev.date + 'T12:00:00');
+  const meta = [d.toLocaleDateString('en-US', { weekday: 'long' }), ev.time, ev.location].filter(Boolean).join(' · ');
+  const st = _mooseStatus(ev);
+  return '<div class="moose-row' + (st.past ? ' mr-past' : '') + '" style="--cat:' + cat.color + '" onclick="' + onclick + '">' +
+    '<div class="moose-date">' +
+      '<div class="moose-date-mo">' + d.toLocaleDateString('en-US', { month: 'short' }) + '</div>' +
+      '<div class="moose-date-day">' + d.getDate() + '</div>' +
+    '</div>' +
+    '<div class="moose-row-body">' +
+      (ev.category ? '<div class="moose-kicker">' + cat.label + '</div>' : '') +
+      '<div class="moose-row-top"><div class="moose-row-title">' + escapeHtml(ev.title) + '</div>' + _mooseChipHtml(ev, st) + '</div>' +
+      '<div class="moose-row-meta">' + escapeHtml(meta) + '</div>' +
+      '<div class="moose-row-foot">' + _mooseCountHtml(ev, st) + _mooseFacesHtml(ev) + '</div>' +
+    '</div>' +
+  '</div>';
+}
 
 // ── Entry point ─────────────────────────────────────────────────────────────
 function loadMoose() {
@@ -3761,104 +3685,85 @@ function loadMoose() {
   }
   const loading = document.getElementById('mooseLoading');
   const content = document.getElementById('mooseContent');
-  // Show content immediately if we have data, spinner otherwise
-  if (_mooseEvents && _mooseEvents.length >= 0) {
+  const show = () => {
     loading.style.display = 'none';
     content.style.display = 'block';
-    renderMooseUpcoming();
-    renderMooseCalendar();
-  } else {
-    loading.style.display = 'block';
-    content.style.display = 'none';
-  }
-  _loadMooseData().then(() => {
-    loading.style.display = 'none';
-    content.style.display = 'block';
-    renderMooseUpcoming();
-    renderMooseCalendar();
-  }).catch(() => {
-    loading.style.display = 'none';
-    content.style.display = 'block';
-    renderMooseUpcoming();
-    renderMooseCalendar();
-  });
+    renderMoose();
+  };
+  // Show cached events immediately, refresh in the background
+  if (_mooseEvents) show();
+  else { loading.style.display = 'block'; content.style.display = 'none'; }
+  return _fetchMooseEvents().then(show, show);
 }
 
-async function _loadMooseData() {
-  const promises = [];
-  // Events (shared with events tab, cache in _mooseEvents)
-  if (!_mooseEvents) {
-    promises.push(
-      apiCall('getEvents').then(r => { _mooseEvents = r.events || []; })
-        .catch(() => { if (!_mooseEvents) _mooseEvents = []; })
-    );
-  }
-  // Week meal data for all weeks visible in this calendar month
-  _getMooseMondaysForMonth(_mooseCalYear, _mooseCalMonth).forEach(mon => {
-    if (!weekCache[mon] && !_mooseLoadingWeeks.has(mon)) {
-      _mooseLoadingWeeks.add(mon);
-      promises.push(
-        apiCall('getWeek', { monday: mon })
-          .then(data => { weekCache[mon] = data; weekCacheTs[mon] = Date.now(); setCache('week_' + mon, data); })
-          .catch(() => {})
-          .finally(() => _mooseLoadingWeeks.delete(mon))
-      );
-    }
-  });
-  await Promise.all(promises);
+let _mooseNamesHidden = false;  // server withheld attendee names (e.g. expired sign-in)
+
+function _fetchMooseEvents() {
+  return apiCall('getEvents')
+    .then(r => { _mooseEvents = r.events || []; _mooseNamesHidden = !!r.namesHidden; })
+    .catch(() => { if (!_mooseEvents) _mooseEvents = []; });
 }
 
-// Get all Monday dates whose week overlaps the displayed calendar month
-function _getMooseMondaysForMonth(year, month) {
-  const result = [];
-  const firstDay = new Date(year, month, 1);
-  const lastDay = new Date(year, month + 1, 0);
-  // Monday on or before firstDay
-  const start = new Date(firstDay);
-  const dow = start.getDay();
-  start.setDate(start.getDate() - (dow === 0 ? 6 : dow - 1));
-  let d = new Date(start);
-  while (d <= lastDay) {
-    result.push(d.toISOString().slice(0, 10));
-    d.setDate(d.getDate() + 7);
-  }
-  return result;
+function renderMoose(refreshSheet) {
+  renderMooseList();
+  renderMooseCalendar();
+  // Keep an open event sheet in sync with fresh data, but a background refresh
+  // must not wipe a form the member is filling in
+  const overlay = document.getElementById('mooseEventOverlay');
+  if (!_mooseSheetId || !overlay || !overlay.classList.contains('show')) return;
+  if (refreshSheet || !document.querySelector('#mooseEventBody #mooseEvtName')) renderMooseEventSheet();
 }
 
-// ── Upcoming events strip ────────────────────────────────────────────────────
-function renderMooseUpcoming() {
+function _mooseHiddenNotice() {
+  const signOut = '<button class="moose-link" onclick="mooseSignOut()">Sign out</button>';
+  return currentUser && currentUser.email
+    ? 'Your sign-in has expired. <button class="moose-link" onclick="location.reload()">Refresh</button> to see who\u2019s going and manage your signups, or ' + signOut + ' and sign in again.'
+    : 'Sign in with your member Google account or the guest code to see who\u2019s going and sign up. ' + signOut;
+}
+
+function mooseSignOut() {
+  clearPersistedSession();
+  // Skip open access once so the sign-in screen shows
+  sessionStorage.setItem('delphic_show_signin', '1');
+  location.reload();
+}
+
+function setMooseFilter(f) {
+  _mooseFilter = f;
+  document.querySelectorAll('#mooseFilter button').forEach(b => b.classList.toggle('active', b.dataset.filter === f));
+  renderMooseList();
+}
+
+// ── Event list ──────────────────────────────────────────────────────────────
+function renderMooseList() {
   const el = document.getElementById('mooseUpcoming');
-  const lbl = document.getElementById('mooseEventsLbl');
   if (!el) return;
-  const now = new Date();
-  const upcoming = (_mooseEvents || [])
-    .filter(e => new Date(e.date + 'T23:59:00') >= now)
-    .sort((a, b) => a.date.localeCompare(b.date))
-    ; // show all upcoming
-  if (!upcoming.length) { el.innerHTML = ''; if (lbl) lbl.style.display = 'none'; return; }
-  if (lbl) lbl.style.display = 'block';
-  let html = '<div class="moose-upcoming">';
-  upcoming.forEach(ev => {
-    const d = new Date(ev.date + 'T12:00:00');
-    const dateStr = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-    const meta = [dateStr, ev.time, ev.location].filter(Boolean).join(' · ');
-    const inkC = ev.inkCount || 0, intC = ev.interestCount || 0;
-    const countStr = [
-      inkC > 0 ? inkC + ' inked' : '',
-      intC > 0 ? intC + ' interested' : '',
-      ev.capacity > 0 ? 'cap ' + ev.capacity : ''
-    ].filter(Boolean).join(' · ');
-    const safeId = ev.eventId.replace(/'/g, "\\'");
-    const btnLabel = ev.interestOnly ? 'Interest \u2192' : 'Ink \u2192';
-    html += '<div class="moose-evt-card" onclick="openMooseEventSheet(\'' + safeId + '\')">' +
-      '<div class="moose-evt-title">' + escapeHtml(ev.title) + '</div>' +
-      '<div class="moose-evt-meta">' + escapeHtml(meta) + '</div>' +
-      (countStr ? '<div class="moose-evt-meta" style="font-size:11px;margin-top:2px;">' + countStr + '</div>' : '') +
-      (ev.description ? '<div class="moose-evt-desc">' + escapeHtml(ev.description) + '</div>' : '') +
-      '<button class="moose-evt-btn">' + btnLabel + '</button>' +
-    '</div>';
-  });
-  html += '</div>';
+  const today = _mooseTodayET();
+  let events = _mooseEvents || [];
+  if (_mooseFilter === 'mine') events = events.filter(ev => _mooseMine(ev));
+  const upcoming = _mooseSort(events.filter(ev => ev.date >= today));
+  const past = _mooseSort(events.filter(ev => ev.date < today), true);
+
+  let html = '';
+  if (_mooseNamesHidden) html += '<div class="moose-empty" style="padding:14px 18px;text-align:left;"><div class="moose-empty-sub">' + _mooseHiddenNotice() + '</div></div>';
+  if (upcoming.length) {
+    html += '<div class="moose-list">' + upcoming.map(ev => _mooseRowHtml(ev, "openMooseEventSheet('" + _mooseEsc(ev.eventId) + "')")).join('') + '</div>';
+  } else if (_mooseFilter === 'mine' && _mooseNamesHidden) {
+    // The notice above explains why your signups can't be shown
+  } else if (_mooseFilter === 'mine' && past.length) {
+    html += '<div class="moose-empty"><div class="moose-empty-title">Nothing coming up</div>' +
+      '<div class="moose-empty-sub">Your past events are under Earlier. <button class="moose-link" onclick="setMooseFilter(\'all\')">See all events</button></div></div>';
+  } else if (_mooseFilter === 'mine') {
+    html += '<div class="moose-empty"><div class="moose-empty-title">You’re not signed up for anything yet</div>' +
+      '<div class="moose-empty-sub">Events you’re going to or interested in show up here. <button class="moose-link" onclick="setMooseFilter(\'all\')">See all events</button></div></div>';
+  } else {
+    html += '<div class="moose-empty"><div class="moose-empty-title">Nothing on the calendar yet</div>' +
+      '<div class="moose-empty-sub">When the club posts an event, you’ll be able to sign up here.</div></div>';
+  }
+  if (past.length) {
+    html += '<details class="moose-earlier"><summary>Earlier · ' + past.length + (past.length === 1 ? ' event' : ' events') + '</summary>' +
+      '<div class="moose-list">' + past.map(ev => _mooseRowHtml(ev, "openMooseEventSheet('" + _mooseEsc(ev.eventId) + "')")).join('') + '</div></details>';
+  }
   el.innerHTML = html;
 }
 
@@ -3868,440 +3773,414 @@ function renderMooseCalendar() {
   const lbl = document.getElementById('mooseCalMonthLbl');
   if (!el || !lbl) return;
 
-  const MONTHS = ['January','February','March','April','May','June',
-                  'July','August','September','October','November','December'];
-  lbl.textContent = MONTHS[_mooseCalMonth] + ' ' + _mooseCalYear;
+  lbl.textContent = new Date(_mooseCalYear, _mooseCalMonth, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const todayStr = _mooseYmd(new Date());
 
-  const todayStr = new Date().toISOString().slice(0, 10);
-  const myName = (currentUser && currentUser.name && !currentUser.guest)
-    ? currentUser.name.toLowerCase().trim() : '';
-
-  // Index events by date
   const evByDate = {};
-  (_mooseEvents || []).forEach(ev => {
-    if (!evByDate[ev.date]) evByDate[ev.date] = [];
-    evByDate[ev.date].push(ev);
-  });
+  (_mooseEvents || []).forEach(ev => { (evByDate[ev.date] = evByDate[ev.date] || []).push(ev); });
 
-  // Calendar start: Monday on or before first of month
-  const firstDay = new Date(_mooseCalYear, _mooseCalMonth, 1);
-  const dow = firstDay.getDay();
-  const start = new Date(firstDay);
-  start.setDate(start.getDate() - (dow === 0 ? 6 : dow - 1));
+  // Calendar starts on the Monday on or before the 1st
+  const start = new Date(_mooseCalYear, _mooseCalMonth, 1);
+  start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
 
-  // DOW headers
   let html = '<div class="moose-cal-grid">';
-  ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].forEach(d =>
-    html += '<div class="moose-cal-dow">' + d + '</div>'
-  );
+  ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].forEach(d => html += '<div class="moose-cal-dow">' + d + '</div>');
 
-  // Day cells — up to 6 rows × 7 = 42 cells
-  let d = new Date(start);
+  const d = new Date(start);
   for (let i = 0; i < 42; i++) {
-    const dateStr = d.toISOString().slice(0, 10);
     const inMonth = d.getMonth() === _mooseCalMonth;
-    const isToday = dateStr === todayStr;
+    // Stop once the month is done and the last row is complete
+    if (i >= 28 && !inMonth && d.getDay() === 1) break;
+    const dateStr = _mooseYmd(d);
     const isPast = dateStr < todayStr;
-    const dayOfWeek = d.getDay(); // 0=Sun
-    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-    const dayIdx = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Mon=0...Sun=6
-
-    // Stop after all month days + complete last row
-    if (i > 27 && !inMonth && d.getDay() === 1) break;
-
-    // Meal data for weekdays
-    let meal = null;
-    if (!isWeekend && dayIdx <= 4) {
-      const mon = getMonday(dateStr);
-      const wd = weekCache[mon];
-      if (wd) {
-        const day = wd.config[dayIdx];
-        if (day && day.enabled) {
-          const daySups = wd.signups[dayIdx] || [];
-          const times = getDayTimes(day);
-          const maxTotal = times.reduce((s, t) => s + getCapForSlot(t, day), 0);
-          const dayCount = signupGroupSize(daySups);
-          meal = {
-            label: day.meal,
-            isMine: myName && daySups.some(s => s.name && s.name.toLowerCase().trim() === myName),
-            isFull: dayCount >= maxTotal,
-          };
-        }
-      }
-    }
-    const dayEvs = evByDate[dateStr] || [];
-    const hasContent = !!(meal || dayEvs.length > 0);
-    // Unloaded future weekdays are still tappable
-    const weekLoaded = !isWeekend && weekCache[getMonday(dateStr)];
-    const isTappableWeekday = !isWeekend && !isPast && inMonth && dayIdx <= 4;
+    const dayEvs = inMonth ? _mooseSort(evByDate[dateStr] || []) : [];
 
     let cls = 'moose-cal-cell';
     if (!inMonth) cls += ' mc-other';
-    else if (isToday) cls += ' mc-today';
+    else if (dateStr === todayStr) cls += ' mc-today';
     else if (isPast) cls += ' mc-past';
-    if (isWeekend) cls += ' mc-weekend';
-    if ((hasContent || isTappableWeekday) && !isPast && inMonth) cls += ' mc-click';
+    if (dayEvs.length) cls += ' mc-click';
 
-    // Pills — meal + events, clearly labeled
-    let pillsHtml = '';
-    if (meal && inMonth) {
-      const pillCls = 'mc-pill ' + (meal.isMine ? 'mp-mine' : 'mp-open') + (isPast ? ' mp-past' : '');
-      const pillText = meal.isMine ? '&#10003; ' + meal.label : meal.label;
-      pillsHtml += '<span class="' + pillCls + '">' + pillText + '</span>';
-    }
+    let pills = '';
     dayEvs.forEach(ev => {
-      const short = ev.title.length > 11 ? ev.title.slice(0, 10) + '\u2026' : ev.title;
-      pillsHtml += '<span class="mc-pill mp-evt' + (isPast ? ' mp-past' : '') + '">' + escapeHtml(short) + '</span>';
+      const mine = _mooseMine(ev);
+      const going = mine && mine.inkType !== 'interest';
+      pills += '<span class="mc-pill' + (going ? ' mp-mine' : '') + (isPast ? ' mp-past' : '') + '" style="--cat:' + _mooseCat(ev).color + '">' +
+        (going ? '&#10003; ' : '') + escapeHtml(ev.title) + '</span>';
     });
 
-    const clickAttr = ((hasContent || isTappableWeekday) && !isPast && inMonth)
-      ? ' onclick="openMooseDaySheet(\'' + dateStr + '\')"' : '';
+    // One event opens straight to it; several open a day list
+    let click = '';
+    if (dayEvs.length === 1) click = ' onclick="openMooseEventSheet(\'' + _mooseEsc(dayEvs[0].eventId) + '\')"';
+    else if (dayEvs.length > 1) click = ' onclick="openMooseDaySheet(\'' + dateStr + '\')"';
 
-    html += '<div class="' + cls + '"' + clickAttr + '>' +
-      '<span class="mc-num">' + d.getDate() + '</span>' +
-      pillsHtml +
-    '</div>';
-
+    html += '<div class="' + cls + '"' + click + '><span class="mc-num">' + d.getDate() + '</span>' + pills + '</div>';
     d.setDate(d.getDate() + 1);
   }
-  html += '</div>';
-  el.innerHTML = html;
+  el.innerHTML = html + '</div>';
 }
 
 function shiftMooseCal(dir) {
   _mooseCalMonth += dir;
   if (_mooseCalMonth > 11) { _mooseCalMonth = 0; _mooseCalYear++; }
   if (_mooseCalMonth < 0) { _mooseCalMonth = 11; _mooseCalYear--; }
-  // Render immediately (show what's cached), then load missing weeks
   renderMooseCalendar();
-  _loadMooseData().then(renderMooseCalendar).catch(() => {});
 }
 
-// ── Day sheet ────────────────────────────────────────────────────────────────
+// ── Day sheet (days with several events) ────────────────────────────────────
 function openMooseDaySheet(dateStr) {
-  _mooseSheetDate = dateStr;
-  _mooseSelectedTime = null;
-  _mooseSheetMealData = null;
   const overlay = document.getElementById('mooseSheetOverlay');
   const body = document.getElementById('mooseSheetBody');
   if (!overlay || !body) return;
-
-  const d = new Date(dateStr + 'T12:00:00');
-  const dateLabel = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-  const dayOfWeek = d.getDay();
-  const dayIdx = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-  const monday = getMonday(dateStr);
-  const weekData = weekCache[monday];
-  const myName = (currentUser && currentUser.name && !currentUser.guest)
-    ? currentUser.name.toLowerCase().trim() : '';
-
-  let html = '<div class="moose-sheet-title">' + dateLabel + '</div>';
-
-  // ── Meal section ──
-  let mealHtml = '';
-  if (dayIdx <= 4) { // weekday
-    if (weekData) {
-      const day = weekData.config[dayIdx];
-      if (day && day.enabled) {
-        const daySups = weekData.signups[dayIdx] || [];
-        const times = getDayTimes(day);
-        const maxTotal = times.reduce((s, t) => s + getCapForSlot(t, day), 0);
-        const myEntry = myName ? daySups.find(s => s.name && s.name.toLowerCase().trim() === myName) : null;
-        const isFull = signupGroupSize(daySups) >= maxTotal;
-        const isFrozen = !isDayOpenForSignups(weekData, dayIdx);
-        _mooseSheetMealData = { monday, dayIdx, day, weekData, myEntry };
-
-        mealHtml += '<div class="moose-sheet-sect">Meal</div><div class="moose-meal-box">' +
-          '<div class="moose-meal-type">' + escapeHtml(day.meal) + '</div>';
-        if (day.menu) mealHtml += '<div class="moose-meal-menu">' + escapeHtml(day.menu) + '</div>';
-
-        if (myEntry) {
-          const tl = myEntry.time === '12:00 PM' ? '12:00\u20131:00 PM'
-                   : myEntry.time === '1:00 PM' ? '1:00\u20132:00 PM' : (myEntry.time || '');
-          mealHtml += '<div class="moose-meal-signed">&#10003; You\'re signed up' + (tl ? ' &middot; ' + tl : '') + '</div>' +
-            '<button class="btn btn-secondary" style="width:auto;padding:8px 20px;font-size:13px;" ' +
-            'onclick="removeMooseMeal(\'' + monday + '\',' + dayIdx + ',\'' + myEntry.name.replace(/'/g,"\\'") + '\',\'' + (myEntry.time||'').replace(/'/g,"\\'") + '\')">Remove Sign-Up</button>';
-        } else if (isFrozen) {
-          mealHtml += '<div style="font-family:\'Crimson Pro\',serif;font-size:14px;color:var(--text-dim);">Sign-ups are closed for this day.</div>';
-        } else if (!currentUser || (!currentUser.name && !currentUser.openAccess)) {
-          mealHtml += '<div style="font-family:\'Crimson Pro\',serif;font-size:14px;color:var(--text-dim);">Sign in to sign up for this meal.</div>';
-        } else if (!myName && currentUser.openAccess) {
-          mealHtml += '<div style="font-family:\'Crimson Pro\',serif;font-size:14px;color:var(--text-dim);">Fill in your name on the Sign Up tab first.</div>';
-        } else if (isFull) {
-          mealHtml += '<div style="font-family:\'Crimson Pro\',serif;font-size:14px;color:var(--red);">This meal is full.</div>';
-        } else {
-          // Time selection
-          if (times.length > 1) {
-            mealHtml += '<div style="font-family:\'Jost\',sans-serif;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px;">Select Time</div>';
-            mealHtml += '<div class="moose-time-row">';
-            times.forEach(t => {
-              const tl = t === '12:00 PM' ? '12:00\u20131:00 PM' : t === '1:00 PM' ? '1:00\u20132:00 PM' : t;
-              const slotFull = signupGroupSize(daySups.filter(s => slotMatchesSignup(s, t))) >= getCapForSlot(t, day);
-              const chipId = 'mchip_' + t.replace(/[: ]/g, '_');
-              mealHtml += '<button class="moose-time-chip" id="' + chipId + '"' +
-                (slotFull ? ' disabled style="opacity:.4;cursor:not-allowed;"' : ' onclick="selectMooseTime(\'' + t.replace(/'/g,"\\'") + '\')"') + '>' +
-                tl + (slotFull ? ' (full)' : '') + '</button>';
-            });
-            mealHtml += '</div>';
-          } else {
-            _mooseSelectedTime = times[0]; // auto-select single slot
-          }
-          mealHtml += '<button class="btn btn-primary" id="mooseMealBtn" style="width:auto;padding:10px 24px;font-size:14px;" ' +
-            'onclick="submitMooseMeal()">Sign Up for ' + escapeHtml(day.meal) + '</button>';
-        }
-        mealHtml += '</div>';
-      } else if (day && !day.enabled) {
-        mealHtml += '<div class="moose-sheet-sect">Meal</div>' +
-          '<div style="font-family:\'Crimson Pro\',serif;font-size:14px;color:var(--text-dim);padding:4px 0;">No meal scheduled for this day.</div>';
-      }
-    } else {
-      // Week not loaded yet — show spinner and load in background
-      mealHtml += '<div class="moose-sheet-sect">Meal</div>' +
-        '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;"><div class="spinner" style="width:16px;height:16px;border-width:2px;"></div>' +
-        '<span style="font-family:\'Crimson Pro\',serif;font-size:14px;color:var(--text-dim);">Loading meal info&hellip;</span></div>';
-      if (!_mooseLoadingWeeks.has(monday)) {
-        _mooseLoadingWeeks.add(monday);
-        apiCall('getWeek', { monday })
-          .then(data => {
-            weekCache[monday] = data; weekCacheTs[monday] = Date.now(); setCache('week_' + monday, data);
-            _mooseLoadingWeeks.delete(monday);
-            if (_mooseSheetDate === dateStr) openMooseDaySheet(dateStr); // refresh
-            renderMooseCalendar();
-          }).catch(() => _mooseLoadingWeeks.delete(monday));
-      }
-    }
-  }
-
-  // ── Events section ──
-  const dayEvs = (_mooseEvents || []).filter(e => e.date === dateStr);
-  let eventsHtml = '';
-  if (dayEvs.length > 0) {
-    eventsHtml += '<div class="moose-sheet-sect">Events</div>';
-    dayEvs.forEach(ev => {
-      const meta = [ev.time, ev.location].filter(Boolean).join(' · ');
-      const cap = ev.capacity > 0 ? ev.signupCount + '/' + ev.capacity + ' signed up' : '';
-      const safeId = ev.eventId.replace(/'/g, "\\'");
-      eventsHtml += '<div style="background:var(--surface);border:1px solid var(--border);border-left:3px solid #5B8DEF;border-radius:6px;padding:14px 16px;margin-bottom:10px;">' +
-        '<div style="font-family:\'Cormorant Garamond\',serif;font-size:19px;font-weight:600;color:var(--text-bright);margin-bottom:2px;">' + escapeHtml(ev.title) + '</div>' +
-        (meta || cap ? '<div style="font-family:\'Crimson Pro\',serif;font-size:13px;color:var(--text-dim);font-style:italic;margin-bottom:8px;">' + escapeHtml([meta, cap].filter(Boolean).join(' · ')) + '</div>' : '') +
-        (ev.description ? '<div style="font-family:\'Crimson Pro\',serif;font-size:14px;color:var(--text);line-height:1.5;margin-bottom:10px;">' + escapeHtml(ev.description) + '</div>' : '') +
-        '<button class="moose-evt-btn" onclick="closeMooseSheet();openMooseEventSheet(\'' + safeId + '\')">' + (ev.interestOnly ? 'Interest \u2192' : 'Ink \u2192') + '</button>' +
-      '</div>';
-    });
-  }
-
-  if (!mealHtml && !eventsHtml) {
-    html += '<div style="font-family:\'Crimson Pro\',serif;font-size:15px;color:var(--text-dim);padding:8px 0;">Nothing scheduled for this day.</div>';
-  } else {
-    html += mealHtml + eventsHtml;
-  }
-
-  body.innerHTML = html;
+  const dayEvs = _mooseSort((_mooseEvents || []).filter(e => e.date === dateStr));
+  const label = new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  body.innerHTML = '<div class="moose-sheet-title">' + label + '</div>' +
+    '<div class="moose-list">' + dayEvs.map(ev => _mooseRowHtml(ev, "closeMooseSheet();openMooseEventSheet('" + _mooseEsc(ev.eventId) + "')")).join('') + '</div>';
   overlay.classList.add('show');
 }
 
 function closeMooseSheet() {
   const overlay = document.getElementById('mooseSheetOverlay');
   if (overlay) overlay.classList.remove('show');
-  _mooseSheetDate = null;
-  _mooseSheetMealData = null;
 }
 
-function selectMooseTime(time) {
-  _mooseSelectedTime = time;
-  document.querySelectorAll('.moose-time-chip').forEach(el => el.classList.remove('sel'));
-  const id = 'mchip_' + time.replace(/[: ]/g, '_');
-  const chip = document.getElementById(id);
-  if (chip) chip.classList.add('sel');
-}
-
-async function submitMooseMeal() {
-  if (!_mooseSheetMealData) return;
-  const { monday, dayIdx, day, weekData } = _mooseSheetMealData;
-  const times = getDayTimes(day);
-  const time = times.length === 1 ? times[0] : _mooseSelectedTime;
-  if (!time) { showToast('Please select a time slot', 'var(--orange)'); return; }
-  if (!isDayOpenForSignups(weekData, dayIdx)) { showToast('Sign-ups are closed for this day', 'var(--red)'); return; }
-
-  const myName = currentUser && currentUser.name;
-  if (!myName) { showToast('Please add your name on the Sign Up tab first', 'var(--orange)'); return; }
-
-  // Pre-fill preferences from localStorage
-  let prefs = {};
-  try { prefs = JSON.parse(localStorage.getItem('delphic_prefs') || '{}'); } catch(e) {}
-
-  const entry = {
-    dayIndex: dayIdx, day: day.day, date: day.date, meal: day.meal, time,
-    name: myName,
-    diet: prefs.diet || 'No Dietary Restrictions',
-    allergies: prefs.allergies || '',
-    early: false, notes: '',
-    gradGasman: !!(prefs.gradGasman),
-  };
-
-  const btn = document.getElementById('mooseMealBtn');
-  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner spinner-sm" style="margin-right:6px;"></span>Signing up&hellip;'; }
-
-  try {
-    const wCaps = (weekData.caps) || {};
-    await apiCall('addSignups', { monday, entries: [entry], caps: wCaps });
-    // Refresh cache
-    delete weekCache[monday]; delete weekCacheTs[monday];
-    const fresh = await apiCall('getWeek', { monday });
-    weekCache[monday] = fresh; weekCacheTs[monday] = Date.now(); setCache('week_' + monday, fresh);
-    // Sync main signup tab if it's showing the same week
-    if (currentWeekData && currentWeekData.monday === monday) { currentWeekData = fresh; renderDayCards(); }
-    closeMooseSheet();
-    renderMooseCalendar();
-    showToast('Signed up for ' + day.day + ' ' + day.meal + '!', 'var(--green)');
-  } catch(e) {
-    showToast('Sign-up failed \u2014 please try again', 'var(--red)');
-    if (btn) { btn.disabled = false; btn.textContent = 'Sign Up for ' + day.meal; }
-  }
-}
-
-async function removeMooseMeal(monday, dayIdx, name, time) {
-  closeMooseSheet();
-  try {
-    await apiCall('removeSignup', { monday, dayIndex: dayIdx, name, time });
-    delete weekCache[monday]; delete weekCacheTs[monday];
-    const fresh = await apiCall('getWeek', { monday });
-    weekCache[monday] = fresh; weekCacheTs[monday] = Date.now(); setCache('week_' + monday, fresh);
-    if (currentWeekData && currentWeekData.monday === monday) { currentWeekData = fresh; renderDayCards(); }
-    renderMooseCalendar();
-    showToast('Sign-up removed', '#4A4A4A');
-  } catch(e) {
-    showToast('Could not remove \u2014 please try again', 'var(--red)');
-  }
-}
-
-// ── Event Ink sheet ───────────────────────────────────────────────────────────
-function setInkChoice(choice) {
-  _mooseInkChoice = choice;
-  document.querySelectorAll('.ink-choice').forEach(b => b.classList.remove('active'));
-  const btn = document.getElementById('inkChoice_' + choice);
-  if (btn) btn.classList.add('active');
-  const submitBtn = document.getElementById('mooseEvtBtn');
-  if (submitBtn) submitBtn.textContent = choice === 'ink' ? 'Ink In \u2192' : 'Mark Interest \u2192';
-}
-
+// ── Event sheet ─────────────────────────────────────────────────────────────
 function openMooseEventSheet(eventId) {
-  const ev = (_mooseEvents || []).find(e => e.eventId === eventId);
-  if (!ev) return;
-  const overlay = document.getElementById('mooseEventOverlay');
-  const body = document.getElementById('mooseEventBody');
-  if (!overlay || !body) return;
-
-  const d = new Date(ev.date + 'T12:00:00');
-  const dateStr = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-  const meta = [dateStr, ev.time, ev.location].filter(Boolean).join(' \u00b7 ');
-  const isFrozen = ev.freezeDate && Date.now() > new Date(ev.freezeDate).getTime();
-  const isFull = !ev.interestOnly && ev.capacity > 0 && (ev.inkCount || 0) >= ev.capacity;
-  const myName = (currentUser && currentUser.name) || '';
-  let prefs = {};
-  try { prefs = JSON.parse(localStorage.getItem('delphic_prefs') || '{}'); } catch(e) {}
-
-  // Reset ink choice
-  _mooseInkChoice = ev.interestOnly ? 'interest' : 'ink';
-
-  const safeId = eventId.replace(/'/g, "\\'");
-
-  let html = '<div class="moose-sheet-title">' + escapeHtml(ev.title) + '</div>';
-  html += '<div class="moose-sheet-sub">' + escapeHtml(meta) + '</div>';
-
-  // Ink / interest count bar
-  const inkC = ev.inkCount || 0, intC = ev.interestCount || 0;
-  const parts = [];
-  if (inkC > 0) parts.push('<strong>' + inkC + '</strong> inked in');
-  if (intC > 0) parts.push('<strong>' + intC + '</strong> interested');
-  if (ev.capacity > 0) parts.push('cap ' + ev.capacity);
-  if (parts.length) html += '<div class="ink-count-bar">' + parts.join(' &nbsp;&middot;&nbsp; ') + '</div>';
-
-  if (ev.description) {
-    html += '<div style="font-family:\'Crimson Pro\',serif;font-size:15px;color:var(--text);line-height:1.6;padding:12px 16px;background:var(--surface2);border-radius:6px;border-left:3px solid #5B8DEF;margin-bottom:16px;">' + escapeHtml(ev.description) + '</div>';
-  }
-
-  if (isFrozen) {
-    html += '<div style="font-family:\'Crimson Pro\',serif;font-size:15px;color:var(--text-dim);font-style:italic;">Sign-ups are closed for this event.</div>';
-  } else if (isFull) {
-    html += '<div style="font-family:\'Crimson Pro\',serif;font-size:15px;color:var(--red);">This event is full.</div>';
-  } else {
-    // Ink / Interested toggle (only when not interestOnly)
-    if (!ev.interestOnly) {
-      html += '<div class="ink-choice-wrap">' +
-        '<button class="ink-choice active" id="inkChoice_ink" onclick="setInkChoice(\'ink\')">Ink In</button>' +
-        '<button class="ink-choice int-btn" id="inkChoice_interest" onclick="setInkChoice(\'interest\')">Interested</button>' +
-      '</div>';
-    } else {
-      html += '<div style="font-family:\'Crimson Pro\',serif;font-size:13px;font-style:italic;color:var(--text-dim);margin-bottom:16px;">No commitment needed — just mark your interest.</div>';
-    }
-
-    html += '<div class="field"><label class="field-label">Name <span class="req">*</span></label>' +
-      '<input type="text" id="mooseEvtName" value="' + myName.replace(/"/g,'&quot;') + '" placeholder="Your name"></div>';
-    if (ev.collectGradYear) {
-      html += '<div class="field"><label class="field-label">Year</label><select id="mooseEvtGrad"><option value="">—</option>';
-      const yr = new Date().getFullYear();
-      for (let y = yr; y <= yr + 6; y++) html += '<option>' + y + '</option>';
-      html += '</select></div>';
-    }
-    if (ev.collectDiet) {
-      html += '<div class="field"><label class="field-label">Dietary Preference</label><select id="mooseEvtDiet">';
-      ['No Dietary Restrictions','Vegan','Vegetarian','Gluten-Free','No Pork','No Beef'].forEach(opt => {
-        html += '<option' + (prefs.diet === opt ? ' selected' : '') + '>' + opt + '</option>';
-      });
-      html += '</select></div>';
-    }
-    html += '<div class="field"><label class="field-label">Notes (optional)</label>' +
-      '<textarea id="mooseEvtNotes" rows="2" placeholder="Any notes\u2026"></textarea></div>';
-    const btnLabel = ev.interestOnly ? 'Mark Interest \u2192' : 'Ink In \u2192';
-    html += '<button class="btn btn-primary" id="mooseEvtBtn" onclick="submitMooseInk(\'' + safeId + '\')">' + btnLabel + '</button>';
-    html += '<div id="mooseEvtErr" style="display:none;font-family:\'Crimson Pro\',serif;font-size:14px;color:var(--red);margin-top:8px;"></div>';
-  }
-
-  body.innerHTML = html;
-  overlay.classList.add('show');
+  if (!(_mooseEvents || []).some(e => e.eventId === eventId)) return;
+  _mooseSheetId = eventId;
+  _mooseEditing = false;
+  _mooseConfirmRemove = false;
+  renderMooseEventSheet();
+  document.getElementById('mooseEventOverlay').classList.add('show');
 }
 
 function closeMooseEventSheet() {
   const overlay = document.getElementById('mooseEventOverlay');
   if (overlay) overlay.classList.remove('show');
+  _mooseSheetId = null;
 }
 
-async function submitMooseInk(eventId) {
-  const nameEl = document.getElementById('mooseEvtName');
-  const name = nameEl ? nameEl.value.trim() : '';
+function renderMooseEventSheet() {
+  const ev = (_mooseEvents || []).find(e => e.eventId === _mooseSheetId);
+  const body = document.getElementById('mooseEventBody');
+  if (!body) return;
+  if (!ev) { closeMooseEventSheet(); return; }
+
+  const cat = _mooseCat(ev);
+  const st = _mooseStatus(ev);
+  const mine = _mooseMine(ev);
+  const kicker = [ev.category ? cat.label : '', _mooseDateLabel(ev, { weekday: 'short', month: 'short', day: 'numeric' })].filter(Boolean).join(' · ');
+
+  let html = '<div class="moose-kicker" style="--cat:' + cat.color + '">' + escapeHtml(kicker) + '</div>';
+  html += '<div class="moose-sheet-title">' + escapeHtml(ev.title) + '</div>';
+
+  html += '<div class="moose-facts">';
+  html += '<div>' + escapeHtml(_mooseDateLabel(ev)) + (ev.time ? ' · ' + escapeHtml(ev.time) : '') + '</div>';
+  html += '<div' + (ev.location ? '' : ' class="mf-dim"') + '>' + (ev.location ? escapeHtml(ev.location) : 'Location TBD') + '</div>';
+  if (st.freezeTs && !st.past) {
+    html += '<div class="mf-dim">' + (st.closed ? 'Sign-ups closed ' : 'Sign-ups close ') + escapeHtml(_mooseFreezeLabel(st.freezeTs)) + '</div>';
+  }
+  if (ev.maxGuests > 0 && !ev.interestOnly) {
+    html += '<div class="mf-dim">You can bring up to ' + ev.maxGuests + (ev.maxGuests === 1 ? ' guest' : ' guests') + '</div>';
+  }
+  html += '</div>';
+  if (ev.description) html += '<div class="moose-desc">' + escapeHtml(ev.description) + '</div>';
+
+  html += _mooseMeHtml(ev, st, mine);
+  html += _mooseWhoHtml(ev);
+
+  body.innerHTML = html;
+  _initMooseGuests();
+}
+
+// Your part of the sheet: what you can do depends on where you stand
+function _mooseMeHtml(ev, st, mine) {
+  const id = _mooseEsc(ev.eventId);
+  const isGoing = mine && mine.inkType !== 'interest';
+
+  if (_mooseNamesHidden && !st.past) {
+    return '<div class="moose-me"><div class="moose-me-sub" style="margin:0;">' + _mooseHiddenNotice() + '</div></div>';
+  }
+
+  const other = _mooseOtherLabel(mine);
+  if (mine && !_mooseEditing) {
+    const guests = mine.guests || [];
+    let html = '<div class="moose-me' + (isGoing ? ' mm-going' : '') + '">';
+    if (isGoing) {
+      html += '<div class="moose-me-head">&#10003; ' + (other ? escapeHtml(other) + ' is going' : 'You’re going') + '</div>';
+      html += '<div class="moose-me-sub">' + (guests.length ? 'With ' + escapeHtml(guests.join(', ')) + '.' : (st.past ? 'Hope it was a good one.' : 'See you there.')) + '</div>';
+    } else {
+      html += '<div class="moose-me-head">' + (other ? escapeHtml(other) + ' is interested' : 'You’re interested') + '</div>';
+      html += '<div class="moose-me-sub">' + (ev.interestOnly ? 'Thanks — the organizers can see you’re interested.'
+        : st.closed ? 'Sign-ups for this event are closed.'
+        : st.full ? 'The event is full right now. If a spot opens up, you can switch to I’m in here.'
+        : 'Not a commitment yet. Tap I’m in when you’re sure.') + '</div>';
+    }
+    const canWithdraw = !st.past && (!st.closed || !isGoing);
+    if (!canWithdraw) {
+      if (!st.past) html += '<div class="moose-me-sub" style="margin-top:10px;font-style:italic;">Sign-ups are closed — ask an admin if your plans change.</div>';
+    } else if (_mooseConfirmRemove) {
+      html += '<div class="moose-me-actions"><span class="moose-me-sub" style="margin:0;">' + (other ? 'Take ' + escapeHtml(other) + ' off this event?' : 'Take yourself off this event?') + '</span>' +
+        '<button class="moose-link ml-danger" onclick="removeMooseSignup(\'' + id + '\')">' + (other ? 'Yes, remove' : 'Yes, remove me') + '</button>' +
+        '<button class="moose-link" onclick="_mooseConfirmRemove=false;renderMooseEventSheet()">Keep</button></div>';
+    } else {
+      html += '<div class="moose-me-actions">';
+      if (st.closed) {
+        // Only withdrawing interest is left after the freeze
+      } else if (!isGoing && !ev.interestOnly && !st.full) {
+        html += '<button class="btn btn-primary" style="width:auto;padding:9px 20px;font-size:13px;" onclick="editMooseSignup()">I’m in</button>';
+      } else if (isGoing) {
+        html += '<button class="btn btn-secondary" style="width:auto;padding:8px 16px;font-size:12px;" onclick="editMooseSignup()">Change details</button>';
+      }
+      html += '<button class="moose-link ml-danger" onclick="_mooseConfirmRemove=true;renderMooseEventSheet()">' +
+        (isGoing ? 'Can’t make it anymore' : 'Remove my interest') + '</button></div>';
+    }
+    return html + '</div>';
+  }
+
+  if (st.past) return '<div class="moose-me"><div class="moose-me-sub" style="margin:0;font-style:italic;">This event has passed.</div></div>';
+  if (st.closed) return '<div class="moose-me"><div class="moose-me-head">Sign-ups are closed</div><div class="moose-me-sub">Ask an admin if you still want to come.</div></div>';
+
+  // Signup form (new, or changing an existing signup). Changing a signup keeps its
+  // name, otherwise it would create a second signup under the account name.
+  const name = mine ? mine.name : ((currentUser && currentUser.name) || '');
+  let prefs = {};
+  try { prefs = JSON.parse(localStorage.getItem('delphic_prefs') || '{}'); } catch (e) {}
+  const canGo = !ev.interestOnly && (!st.full || isGoing);
+
+  let html = '<div class="moose-me">';
+  if (!canGo && !ev.interestOnly) {
+    html += '<div class="moose-me-head">This event is full</div><div class="moose-me-sub" style="margin-bottom:14px;">You can still mark interest so the organizers know.</div>';
+  }
+  if (name) {
+    html += '<div class="moose-as" id="mooseAsLine">' + (mine ? 'Changing the signup for' : 'Signing up as') + ' <strong>' + escapeHtml(name) + '</strong>' +
+      (mine ? '' : ' &nbsp;<button class="moose-link" onclick="document.getElementById(\'mooseAsLine\').style.display=\'none\';document.getElementById(\'mooseNameField\').style.display=\'block\';">Not you?</button>') + '</div>';
+  }
+  html += '<div class="field" id="mooseNameField" style="margin-bottom:16px;' + (name ? 'display:none;' : '') + '"><label class="field-label">Name <span class="req">*</span></label>' +
+    '<input type="text" id="mooseEvtName" value="' + escapeHtml(name) + '" placeholder="Your full name"></div>';
+  // Year/diet/notes come back only for signups the server knows are yours. Older
+  // signups show them blank: saving one doesn't carry its old private fields over.
+  if (ev.collectGradYear) {
+    const yr = new Date().getFullYear();
+    const cur = mine && mine.gradYear ? mine.gradYear : '';
+    html += '<div class="field" style="margin-bottom:16px;"><label class="field-label">Class Year</label><select id="mooseEvtGrad"><option value="">—</option>';
+    const years = [];
+    for (let y = yr; y <= yr + 4; y++) years.push(String(y));
+    if (cur && !years.includes(cur)) years.unshift(cur);
+    years.forEach(y => { html += '<option' + (y === cur ? ' selected' : '') + '>' + escapeHtml(y) + '</option>'; });
+    html += '</select></div>';
+  }
+  if (ev.collectDiet) {
+    const cur = mine && 'diet' in mine ? mine.diet : prefs.diet;
+    html += '<div class="field" style="margin-bottom:16px;"><label class="field-label">Dietary Preference</label><select id="mooseEvtDiet">';
+    MOOSE_DIETS.forEach(opt => { html += '<option' + (cur === opt ? ' selected' : '') + '>' + opt + '</option>'; });
+    html += '</select></div>';
+  }
+  // Guests already on your signup can be kept even if the limit is lower
+  const existing = isGoing ? (mine.guests || []) : [];
+  const guestLimit = Math.max(ev.maxGuests || 0, existing.length);
+  if (canGo && guestLimit > 0) {
+    html += '<div class="field" style="margin-bottom:16px;"><label class="field-label">Guests</label>' +
+      '<div class="moose-stepper"><button type="button" id="mooseGuestMinus" onclick="stepMooseGuests(-1)" aria-label="Fewer guests">&minus;</button>' +
+      '<span id="mooseGuestN">0</span><button type="button" id="mooseGuestPlus" onclick="stepMooseGuests(1)" aria-label="More guests">+</button></div>' +
+      '<div id="mooseGuestInputs" data-max="' + guestLimit + '" data-initial="' + escapeHtml(JSON.stringify(existing)) + '"></div></div>';
+  }
+  html += '<div class="field" style="margin-bottom:16px;"><label class="field-label">Notes <span style="text-transform:none;letter-spacing:0;">(optional)</span></label>' +
+    '<textarea id="mooseEvtNotes" rows="2" placeholder="Anything the organizers should know">' + escapeHtml(mine && mine.notes ? mine.notes : '') + '</textarea></div>';
+
+  html += '<div class="moose-btn-row">';
+  if (isGoing) {
+    html += '<button class="btn btn-primary" id="mooseEvtBtn" onclick="submitMooseSignup(\'' + id + '\',\'ink\')">Save changes</button>' +
+      '<button class="btn btn-secondary" onclick="_mooseEditing=false;renderMooseEventSheet()">Cancel</button>';
+  } else if (canGo) {
+    html += '<button class="btn btn-primary" id="mooseEvtBtn" onclick="submitMooseSignup(\'' + id + '\',\'ink\')">I’m in</button>';
+    if (!mine) html += '<button class="btn btn-secondary" id="mooseIntBtn" onclick="submitMooseSignup(\'' + id + '\',\'interest\')">Interested</button>';
+  } else if (!mine) {
+    html += '<button class="btn btn-primary" id="mooseIntBtn" onclick="submitMooseSignup(\'' + id + '\',\'interest\')">' + (ev.interestOnly ? 'I’m interested' : 'Mark interest') + '</button>';
+  }
+  html += '</div><div id="mooseEvtErr" style="display:none;font-family:\'Crimson Pro\',serif;font-size:14px;color:var(--red);margin-top:8px;"></div>';
+  if (mine && !isGoing) html += '<div style="margin-top:12px;"><button class="moose-link" onclick="_mooseEditing=false;renderMooseEventSheet()">Cancel</button></div>';
+  html += '</div>';
+
+  return html;
+}
+
+function _initMooseGuests() {
+  const box = document.getElementById('mooseGuestInputs');
+  if (!box) return;
+  let initial = [];
+  try { initial = JSON.parse(box.dataset.initial || '[]'); } catch (e) {}
+  _renderMooseGuests(initial);
+}
+
+function _renderMooseGuests(names) {
+  const box = document.getElementById('mooseGuestInputs');
+  if (!box) return;
+  const max = parseInt(box.dataset.max, 10) || 0;
+  names = names.slice(0, max);
+  box.innerHTML = names.map((n, i) =>
+    '<input type="text" class="moose-guest-input" placeholder="Guest ' + (i + 1) + ' name" value="' + escapeHtml(n) + '">').join('');
+  document.getElementById('mooseGuestN').textContent = names.length;
+  document.getElementById('mooseGuestMinus').disabled = names.length === 0;
+  document.getElementById('mooseGuestPlus').disabled = names.length >= max;
+}
+
+function stepMooseGuests(dir) {
+  const names = Array.from(document.querySelectorAll('#mooseGuestInputs input')).map(i => i.value);
+  if (dir > 0) names.push(''); else names.pop();
+  _renderMooseGuests(names);
+  if (dir > 0) { const inputs = document.querySelectorAll('#mooseGuestInputs input'); inputs[inputs.length - 1].focus(); }
+}
+
+function editMooseSignup() {
+  _mooseEditing = true;
+  _mooseConfirmRemove = false;
+  renderMooseEventSheet();
+}
+
+// Going / Interested lists. Admins also see year, diet and notes.
+function _mooseWhoHtml(ev) {
+  const all = ev.attendees || [];
+  const going = all.filter(a => a.inkType !== 'interest');
+  const interested = all.filter(a => a.inkType === 'interest');
+  const isAdmin = currentUser && currentUser.isAdmin;
+
+  const list = (people) => {
+    if (isAdmin) {
+      return people.map(a => {
+        const guests = a.guests || [];
+        const detail = [a.gradYear, a.diet && a.diet !== 'No Dietary Restrictions' ? a.diet : '', a.allergies, a.notes].filter(Boolean).join(' · ');
+        return '<div class="moose-roster-row" style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;"><div style="min-width:0;">' + escapeHtml(a.name) +
+          (guests.length ? ' <span class="mr-detail">+ ' + escapeHtml(guests.join(', ')) + '</span>' : '') +
+          (detail ? '<div class="mr-detail">' + escapeHtml(detail) + '</div>' : '') + '</div>' +
+          '<button class="moose-link ml-danger" style="font-size:11px;flex-shrink:0;" data-name="' + escapeHtml(a.name) + '" onclick="adminRemoveMooseSignup(\'' + _mooseEsc(ev.eventId) + '\', this.dataset.name)">Remove</button></div>';
+      }).join('');
+    }
+    return '<div class="moose-names">' + people.map(a => {
+      const n = _mooseGuestCount(a);
+      const mine = _mooseIsMine(a);
+      return '<span class="moose-name' + (mine ? ' mn-me' : '') + '"' + (n ? ' title="' + escapeHtml('Guests: ' + a.guests.join(', ')) + '"' : '') + '>' +
+        escapeHtml(a.name) + (n ? '<small>+' + n + '</small>' : '') + '</span>';
+    }).join('') + '</div>';
+  };
+
+  let html = '';
+  // Names withheld: show the count only, not a misleading "No one yet"
+  if (_mooseNamesHidden) {
+    return ev.interestOnly
+      ? '<div class="moose-sheet-sect"><span>Interested · ' + (ev.interestCount || 0) + '</span></div>'
+      : '<div class="moose-sheet-sect"><span>Going · ' + (ev.goingCount || 0) + (ev.capacity > 0 ? ' of ' + ev.capacity : '') + '</span></div>';
+  }
+  if (!ev.interestOnly) {
+    const seats = ev.goingCount || 0;
+    html += '<div class="moose-sheet-sect"><span>Going · ' + seats + (ev.capacity > 0 ? ' of ' + ev.capacity : '') + '</span>' +
+      (isAdmin && going.length ? '<button class="moose-link" style="font-size:11px;letter-spacing:0;text-transform:none;" onclick="copyMooseNames(\'' + _mooseEsc(ev.eventId) + '\')">Copy names</button>' : '') + '</div>';
+    html += going.length ? list(going) : '<div class="moose-none">No one yet.</div>';
+  }
+  if (interested.length || ev.interestOnly) {
+    html += '<div class="moose-sheet-sect"><span>Interested · ' + interested.length + '</span></div>';
+    html += interested.length ? list(interested) : '<div class="moose-none">No one yet.</div>';
+  }
+  return html;
+}
+
+async function adminRemoveMooseSignup(eventId, name) {
+  const ev = (_mooseEvents || []).find(e => e.eventId === eventId);
+  if (!ev || !confirm('Remove ' + name + ' from ' + ev.title + '?')) return;
+  try {
+    await apiCall('removeEventSignup', { eventId, name });
+    showToast('Removed ' + name, 'var(--text-dim)');
+    await _fetchMooseEvents();
+    renderMoose(true);
+  } catch (e) {}
+}
+
+function copyMooseNames(eventId) {
+  const ev = (_mooseEvents || []).find(e => e.eventId === eventId);
+  if (!ev) return;
+  const lines = [];
+  (ev.attendees || []).filter(a => a.inkType !== 'interest').forEach(a => {
+    lines.push(a.name);
+    (a.guests || []).forEach(g => lines.push(g + ' (guest of ' + a.name + ')'));
+  });
+  navigator.clipboard.writeText(lines.join('\n'))
+    .then(() => showToast('Copied ' + lines.length + (lines.length === 1 ? ' name' : ' names')))
+    .catch(() => showToast('Could not copy', 'var(--red)'));
+}
+
+async function submitMooseSignup(eventId, inkType) {
+  const errEl = document.getElementById('mooseEvtErr');
+  const showErr = (msg) => { if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; } };
+  const name = ((document.getElementById('mooseEvtName') || {}).value || '').trim();
   if (!name) {
-    const errEl = document.getElementById('mooseEvtErr');
-    if (errEl) { errEl.textContent = 'Please enter your name.'; errEl.style.display = 'block'; }
+    document.getElementById('mooseAsLine') && (document.getElementById('mooseAsLine').style.display = 'none');
+    document.getElementById('mooseNameField').style.display = 'block';
+    showErr('Please enter your name.');
     return;
   }
-  const btn = document.getElementById('mooseEvtBtn');
-  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner spinner-sm" style="margin-right:6px;"></span>Submitting\u2026'; }
+  const guests = Array.from(document.querySelectorAll('#mooseGuestInputs input')).map(i => i.value.trim());
+  if (inkType === 'ink' && guests.some(g => !g)) { showErr('Add a name for each guest, or remove the empty ones.'); return; }
 
+  const btn = document.getElementById(inkType === 'ink' ? 'mooseEvtBtn' : 'mooseIntBtn');
+  const btnText = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner spinner-sm" style="margin-right:6px;"></span>Saving…'; }
+
+  // Only send the fields the form showed, so hidden ones keep their saved value
+  const val = (id) => { const el = document.getElementById(id); return el ? el.value.trim() : undefined; };
   const signup = {
     name,
-    gradYear: (document.getElementById('mooseEvtGrad') || {}).value || '',
-    diet: (document.getElementById('mooseEvtDiet') || {}).value || '',
-    notes: (document.getElementById('mooseEvtNotes') || {}).value || '',
-    guests: '',
-    inkType: _mooseInkChoice,
+    gradYear: val('mooseEvtGrad'),
+    diet: val('mooseEvtDiet'),
+    notes: val('mooseEvtNotes'),
+    guests: inkType === 'ink' ? guests : [],
+    inkType,
   };
   try {
     await apiCall('addEventSignup', { eventId, signup });
-    closeMooseEventSheet();
+    // Guest-code users: remember the name so the sheet recognizes them next time
+    if (currentUser && !currentUser.name) {
+      currentUser.name = name;
+      sessionStorage.setItem('delphic_user', JSON.stringify(currentUser));
+      try {
+        const prefs = JSON.parse(localStorage.getItem('delphic_prefs') || '{}');
+        if (!prefs.name) { prefs.name = name; localStorage.setItem('delphic_prefs', JSON.stringify(prefs)); }
+      } catch (e) {}
+    }
     const ev = (_mooseEvents || []).find(e => e.eventId === eventId);
-    const label = _mooseInkChoice === 'ink' ? 'Inked in' : 'Interest marked';
-    showToast(label + (ev ? ' for ' + ev.title : '') + '!', 'var(--green)');
-    apiCall('getEvents').then(r => {
-      _mooseEvents = r.events || [];
-      renderMooseUpcoming();
-      renderMooseCalendar();
-    }).catch(() => {});
-  } catch(e) {
-    const errEl = document.getElementById('mooseEvtErr');
-    if (errEl) { errEl.textContent = 'Failed \u2014 please try again.'; errEl.style.display = 'block'; }
-    const label = _mooseInkChoice === 'ink' ? 'Ink In \u2192' : 'Mark Interest \u2192';
-    if (btn) { btn.disabled = false; btn.textContent = label; }
+    showToast((inkType === 'ink' ? 'You’re in' : 'Interest marked') + (ev ? ' — ' + ev.title : ''), 'var(--green)');
+    _mooseEditing = false;
+    await _fetchMooseEvents();
+    renderMoose(true);
+  } catch (e) {
+    // apiCall already toasted; server errors are worth repeating next to the button
+    showErr(e._toastShown ? e.message : 'Couldn’t reach the server — check your connection and try again.');
+    if (btn) { btn.disabled = false; btn.textContent = btnText; }
+    // Capacity may have changed under us
+    _fetchMooseEvents().then(() => { renderMooseList(); renderMooseCalendar(); });
+  }
+}
+
+async function removeMooseSignup(eventId) {
+  const ev = (_mooseEvents || []).find(e => e.eventId === eventId);
+  const mine = ev && _mooseMine(ev);
+  if (!mine) return;
+  try {
+    const r = await apiCall('removeEventSignup', { eventId, name: mine.name });
+    if (r && r.removed === false) {
+      // Already gone (another tab, or an admin removed it)
+      showToast('That signup was already removed', 'var(--text-dim)');
+      _mooseConfirmRemove = false;
+      await _fetchMooseEvents();
+      renderMoose(true);
+      return;
+    }
+    showToast('Removed from ' + ev.title, 'var(--text-dim)');
+    _mooseConfirmRemove = false;
+    await _fetchMooseEvents();
+    renderMoose(true);
+  } catch (e) {
+    _mooseConfirmRemove = false;
+    renderMooseEventSheet();
   }
 }
 </script>

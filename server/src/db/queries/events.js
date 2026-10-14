@@ -1,5 +1,10 @@
 const db = require('../knex');
 
+// Keep in sync with MOOSE_CATEGORIES in index.html
+const EVENT_CATEGORIES = ['social', 'formal', 'sports', 'trip', 'other'];
+const category = (c) => EVENT_CATEGORIES.includes(c) ? c : '';
+const maxGuests = (n) => Math.min(5, Math.max(0, parseInt(n, 10) || 0));
+
 async function getAll() {
   return db('events').select('*').orderBy('date');
 }
@@ -20,7 +25,9 @@ async function create(eventId, event) {
     collect_grad_year: event.collectGradYear || false,
     collect_diet: event.collectDiet || false,
     freeze_date: event.freezeDate || '',
-    interest_only: event.interestOnly || false
+    interest_only: event.interestOnly || false,
+    category: category(event.category),
+    max_guests: maxGuests(event.maxGuests)
   });
 }
 
@@ -35,7 +42,10 @@ async function update(eventId, event) {
     collect_grad_year: event.collectGradYear || false,
     collect_diet: event.collectDiet || false,
     freeze_date: event.freezeDate || '',
-    interest_only: event.interestOnly || false
+    interest_only: event.interestOnly || false,
+    // Older admin pages don't send these; leave them as they are
+    ...(event.category !== undefined ? { category: category(event.category) } : {}),
+    ...(event.maxGuests !== undefined ? { max_guests: maxGuests(event.maxGuests) } : {})
   });
   return count > 0;
 }

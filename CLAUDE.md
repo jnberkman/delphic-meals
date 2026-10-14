@@ -6,7 +6,7 @@ A meal sign-up web application for the Delphic Club. Members sign up for weekly 
 
 ## Architecture
 
-**Frontend**: Single-file static site (`server/index.html`, ~3925 lines) served by Express on **Railway** at `meals.delphicclub.org`. Contains all HTML, CSS, and vanilla JavaScript in one file — no build step, no framework, no bundler.
+**Frontend**: Single-file static site (`server/index.html`, ~4080 lines) served by Express on **Railway** at `meals.delphicclub.org`. Contains all HTML, CSS, and vanilla JavaScript in one file — no build step, no framework, no bundler.
 
 **Backend**: Node.js + Express + PostgreSQL (`server/`), deployed on **Railway**. 28 API actions. Syncs chef-facing week display sheets to Google Sheets (fire-and-forget, no-ops without credentials).
 
@@ -44,6 +44,8 @@ server/                     # Backend + frontend — Node.js + Express + Postgre
   migrations/
     001_initial_schema.js   # 8 tables: members, settings, access_requests, week_configs, signups, events, event_signups, claim_tokens
     002_add_spotted_up_at.js # Add spotted_up_at timestamp to signups (for GroupMe 2-hour claim window)
+    ...
+    008_add_event_category_and_guests.js # events.category (social/formal/sports/trip/other) + events.max_guests; event_signups.guest_list jsonb (legacy `guests` text kept, still written) + event_signups.signer
   scripts/
     migrate-from-sheets.js  # One-time data import from Google Sheets to PostgreSQL
   src/
@@ -66,6 +68,7 @@ server/                     # Backend + frontend — Node.js + Express + Postgre
     utils/
       time.js               # Timezone helpers (America/New_York)
       weekHelpers.js        # Monday-date key utilities
+      guests.js             # Event guest-list parsing (request/DB arrays, legacy free text)
     middleware/
       cors.js               # CORS config
       errorHandler.js       # Express error handler
@@ -82,7 +85,7 @@ server/                     # Backend + frontend — Node.js + Express + Postgre
 - **No frameworks** — plain vanilla JS, all in `<script>` tags within `index.html`
 - **CSS variables** defined in `:root` for theming (gold accent `--accent`, muted earth tones)
 - **Fonts**: Cormorant Garamond (headings), Crimson Pro (body/serif), Jost (UI/sans-serif)
-- **Tabs**: Sign Up, View Signups, Calendar (hidden), Events (hidden), Moose, Admin (admin-only)
+- **Tabs**: Sign Up, View Signups, Moose (events only — no meals), Admin (admin-only)
 - **API communication**: All backend calls go through `apiCall(action, data)` which POSTs JSON to `/api` with `Authorization: Bearer <id_token>` header when signed in via Google
 - **Auth**: Google OAuth2 redirect-based sign-in. Guest access code validated server-side via `checkAccessCode` action
 - **Client-side caching**: `getCache()`/`setCache()` with 10-minute TTL for API responses
@@ -141,8 +144,11 @@ server/                     # Backend + frontend — Node.js + Express + Postgre
 - The entire frontend is a single HTML file — when making changes, be mindful of the file size and keep related code near existing patterns
 - Week data uses Monday dates as keys (ISO format: `YYYY-MM-DD`)
 - "Spot Up" = a member gives up their meal spot; others can claim it via in-app button, email link, or GroupMe "claim" reply (3 claim methods, all use row-level locking)
-- "Ink" (formerly RSVP) = interest/attendance tracking on events
-- The Moose tab shows special events with calendar-style pills
+- "Ink" (formerly RSVP) = interest/attendance tracking on events. In the UI, `ink` = "Going" and `interest` = "Interested"
+- The Moose tab is for club events only (not meals): agenda list + month calendar, and an event sheet that adapts to the member's signup
+- **Event signup ownership**: `event_signups.signer` records who made a signup (`google:<email>` from the verified token, or `guest:<id>` from a random browser id the frontend sends as `signerId`). Only that signer or an admin can change/remove it, except that a verified member may take back a signup under their members-list name unless another member made it (never the Google profile name; disabled while `autoRegister` is on; takeovers are logged). Admins acting for someone else never become the owner. Signing out clears the browser id (`delphic_signer_id`). `getEvents` marks `mine` and returns your own year/diet/notes. Signups from before migration 008 have no signer and are matched by name until next saved; claiming one doesn't inherit its private fields
+- **Event capacity** counts only `ink` signups plus their guests (`goingCount`); `interest` never takes a seat. `addEventSignup` locks the event row and checks capacity before replacing an existing signup. Fields omitted from `signup` keep their saved value. Names match on `LOWER(TRIM(name))`. Guests (`guest_list`) are capped at `max_guests` (a member may keep guests they already had). After the freeze only admins can remove going signups (interest can still be withdrawn); past events reject changes from non-admins
+- **Event attendee privacy**: `getEvents` is public, but the events handler (given a viewer built by `eventViewer` in `api.js`) returns attendee names/guests only to members (verified Google token + members table) and guest-code users, and year/diet/allergies/notes only to admins and the signer; otherwise it sets `namesHidden` so the UI shows a sign-in notice. The frontend sends the guest code alongside any stored token
 - Admin features are gated by `isAdmin` flag from the members table, enforced server-side
 - `interestOnly` admin setting controls whether events show full signup or just interest tracking
 - **Sheets sync constraint**: Do NOT modify the live Google Sheet directly — the sync service only writes chef-facing display sheets (`Week_YYYY-MM-DD`). Postgres is the source of truth

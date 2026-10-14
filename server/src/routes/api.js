@@ -9,6 +9,34 @@ const settingsHandler = require('../handlers/settings');
 const eventsHandler = require('../handlers/events');
 
 const config = require('../config');
+const { hasValidAccessCode } = require('../middleware/auth');
+const settingsDb = require('../db/queries/settings');
+
+// Who is calling, for the events handlers (see handlers/events.js). Google identity
+// comes from the verified token; the guest id is a random id the browser keeps,
+// honoured only for callers who may sign up at all.
+async function eventViewer(req, data) {
+  const hasCode = hasValidAccessCode(data);
+  const user = req.user || {};
+  const memberName = user.isMember && user.memberName ? user.memberName.trim().toLowerCase() : '';
+  // With auto-register on, members pick their own members-list name, so it can't
+  // prove who they are
+  const trustMemberName = !!memberName && !(await settingsDb.getAll()).autoRegister;
+  const signers = [];
+  if (req.user && req.user.email) signers.push('google:' + req.user.email.toLowerCase());
+  if ((req.user || hasCode) && typeof data.signerId === 'string' && /^[A-Za-z0-9-]{16,64}$/.test(data.signerId)) {
+    signers.push('guest:' + data.signerId);
+  }
+  return {
+    signers,
+    selfNames: [memberName, (user.name || '').trim().toLowerCase()].filter(Boolean),
+    // A members-list name (set by admins, unlike the Google profile name), so a guest
+    // can't lock a member out by signing up under it first
+    ownNames: trustMemberName ? [memberName] : [],
+    isAdmin: !!(req.user && req.user.isAdmin),
+    canSeeNames: !!(req.user && req.user.isMember) || hasCode
+  };
+}
 
 const handlers = {
   ping:               () => ({ status: 'ok' }),
@@ -40,12 +68,12 @@ const handlers = {
   setSettings:        (d) => settingsHandler.setSettings(d.settings),
   setNotifyEmail:     (d) => settingsHandler.setNotifyEmail(d.email, d.notify),
   // Events
-  getEvents:          () => eventsHandler.getEvents(),
+  getEvents:          async (d, req) => eventsHandler.getEvents(await eventViewer(req, d)),
   createEvent:        (d) => eventsHandler.createEvent(d.event),
   updateEvent:        (d) => eventsHandler.updateEvent(d.eventId, d.event),
   deleteEvent:        (d) => eventsHandler.deleteEvent(d.eventId),
-  addEventSignup:     (d) => eventsHandler.addEventSignup(d.eventId, d.signup),
-  removeEventSignup:  (d) => eventsHandler.removeEventSignup(d.eventId, d.name),
+  addEventSignup:     async (d, req) => eventsHandler.addEventSignup(d.eventId, d.signup, await eventViewer(req, d)),
+  removeEventSignup:  async (d, req) => eventsHandler.removeEventSignup(d.eventId, d.name, await eventViewer(req, d)),
 };
 
 async function dispatch(req, res) {
@@ -65,7 +93,7 @@ async function dispatch(req, res) {
   if (!handler) return res.json({ error: 'Unknown action: ' + action });
 
   try {
-    let result = await handler(data);
+    let result = await handler(data, req);
 
     // Strip sensitive fields from getWeek for non-admin callers
     if (action === 'getWeek' && result && result.signups && !(req.user && req.user.isAdmin)) {

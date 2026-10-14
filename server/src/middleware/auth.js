@@ -95,7 +95,7 @@ async function auth(req, res, next) {
     const payload = await verifyGoogleToken(token);
     if (payload) {
       const member = await membersDb.findByEmail(payload.email);
-      req.user = { email: payload.email, name: payload.name, isAdmin: !!(member && member.is_admin) };
+      req.user = { email: payload.email, name: payload.name, memberName: (member && member.name) || '', isMember: !!member, isAdmin: !!(member && member.is_admin) };
     }
   }
 
@@ -124,3 +124,4 @@ async function auth(req, res, next) {
 }
 
 module.exports = auth;
+module.exports.hasValidAccessCode = hasValidAccessCode;

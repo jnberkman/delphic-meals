@@ -36,4 +36,9 @@ function getTimeSlotsForMeal(meal) {
   return ['12:00 PM', '1:00 PM'];
 }
 
-module.exports = { normalizeTime, getTimeLabel, getTimeSlotsForMeal };
+// Today's date (YYYY-MM-DD) in America/New_York
+function todayET() {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date());
+}
+
+module.exports = { normalizeTime, getTimeLabel, getTimeSlotsForMeal, todayET };

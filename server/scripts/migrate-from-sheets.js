@@ -17,6 +17,7 @@
 require('dotenv').config();
 const { google } = require('googleapis');
 const knex = require('knex')(require('../knexfile'));
+const { parseLegacyGuests } = require('../src/utils/guests');
 
 const SPREADSHEET_ID = process.env.GOOGLE_SPREADSHEET_ID;
 
@@ -136,6 +137,7 @@ async function main() {
             notes: r[4] || '',
             timestamp: r[5] ? new Date(r[5]) : new Date(),
             guests: r[6] || '',
+            guest_list: JSON.stringify((r[7] || 'ink') === 'interest' ? [] : parseLegacyGuests(r[6])),
             ink_type: r[7] || 'ink'
           });
         } catch (e) {

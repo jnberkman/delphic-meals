@@ -164,6 +164,9 @@ async function addEventSignup(eventId, signup, viewer = NOBODY) {
     if (owner && !canOverride(viewer, owner)) {
       return { error: name + ' is already signed up by someone else. Use your own name, or ask an admin to change it.' };
     }
+    if (owner && !viewer.isAdmin) {
+      console.log(`Event ${eventId}: member ${viewer.signers[0]} took back signup "${name}" from ${owner.signer}`);
+    }
 
     // Fields left out of the request keep their saved value (older clients send
     // guests as '' and never had a guest picker)
@@ -249,6 +252,9 @@ async function removeEventSignup(eventId, name, viewer = NOBODY) {
       return { error: 'Sign-ups are closed for this event — ask an admin to remove you' };
     }
   }
+
+  const takenBack = !viewer.isAdmin && rows.find(s => s.signer && !viewer.signers.includes(s.signer));
+  if (takenBack) console.log(`Event ${eventId}: member ${viewer.signers[0]} removed guest signup "${name}" (${takenBack.signer})`);
 
   const count = await db('event_signups').whereIn('id', rows.map(s => s.id)).del();
   if (count > 0) {

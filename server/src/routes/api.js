@@ -42,11 +42,19 @@ function mealActor(req) {
   return { isAdmin: !!(req.user && req.user.isAdmin) };
 }
 
+async function weekAudience(req, data) {
+  const openAccess = !!(await settingsDb.getAll()).openAccess;
+  return {
+    roster: !!(req.user && req.user.isMember) || hasValidAccessCode(data) || openAccess,
+    kitchen: !!(req.user && req.user.isAdmin)
+  };
+}
+
 const handlers = {
   ping:               () => ({ status: 'ok' }),
   checkAccessCode:    (d) => ({ valid: !!(config.accessCode && d.code === config.accessCode) }),
   // Meals
-  getWeek:            (d) => mealsHandler.getWeek(d.monday),
+  getWeek:            async (d, req) => mealsHandler.getWeek(d.monday, await weekAudience(req, d)),
   addSignups:         (d, req) => mealsHandler.addSignups(d.monday, d.entries, d.caps || {}, mealActor(req)),
   removeSignup:       (d, req) => mealsHandler.removeSignup(d.monday, d.dayIndex, d.name, d.time, mealActor(req)),
   setWeekConfig:      (d) => mealsHandler.setWeekConfig(d.monday, d.config, d.caps || {}, d.freezeDate || ''),
@@ -58,7 +66,7 @@ const handlers = {
   cancelSpotUp:       (d) => spotupHandler.cancelSpotUp(d.monday, d.dayIndex, d.name, d.time),
   markServed:         (d) => spotupHandler.markServed(d.monday, d.dayIndex, d.name, d.time, d.served),
   // Members
-  checkMember:        (d) => membersHandler.checkMember(d.email, d.name),
+  checkMember:        (d, req) => membersHandler.checkMember(d.email, d.name, req.user && req.user.email),
   getMembers:         () => membersHandler.getMembers(),
   addMember:          (d) => membersHandler.addMember(d.email, d.isAdmin, d.name),
   removeMember:       (d) => membersHandler.removeMember(d.email),
@@ -97,18 +105,7 @@ async function dispatch(req, res) {
   if (!handler) return res.json({ error: 'Unknown action: ' + action });
 
   try {
-    let result = await handler(data, req);
-
-    // Strip sensitive fields from getWeek for non-admin callers
-    if (action === 'getWeek' && result && result.signups && !(req.user && req.user.isAdmin)) {
-      for (const dayIdx of Object.keys(result.signups)) {
-        result.signups[dayIdx] = result.signups[dayIdx].map(s => {
-          const { diet, allergies, ...rest } = s;
-          return rest;
-        });
-      }
-    }
-
+    const result = await handler(data, req);
     res.json(result);
   } catch (err) {
     console.error(`Action ${action} error:`, err);

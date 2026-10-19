@@ -2,6 +2,7 @@ const weeksDb = require('../db/queries/weeks');
 const signupsDb = require('../db/queries/signups');
 const { normalizeTime } = require('../utils/time');
 const { buildDefaultConfig, DEFAULT_CAPS } = require('../utils/weekHelpers');
+const mealFreeze = require('../utils/mealFreeze');
 const sheetsSync = require('../services/sheetsSync');
 
 function normalizeGuests(guests) {
@@ -47,17 +48,6 @@ function getGuestLimitPerSignup(weekCfg, caps) {
   return Number.isFinite(limit) && limit > 0 ? limit : 0;
 }
 
-function isPastFreeze(freezeDate) {
-  return !!(freezeDate && Date.now() > new Date(freezeDate).getTime());
-}
-
-function isDayOpenForSignups(weekCfg, dayIdx) {
-  const day = weekCfg && weekCfg.config && weekCfg.config[dayIdx];
-  if (day && day.enabled === false) return false;
-  if (!isPastFreeze(weekCfg.freeze_date)) return true;
-  return !!(day && day.reopenSignups === true);
-}
-
 /**
  * Port of getWeek() from Code.gs:870-886.
  */
@@ -65,7 +55,7 @@ async function getWeek(monday) {
   const weekCfg = await weeksDb.getConfig(monday);
   const config = weekCfg ? weekCfg.config : buildDefaultConfig(monday);
   const caps = weekCfg ? weekCfg.caps : DEFAULT_CAPS;
-  const freezeDate = weekCfg ? weekCfg.freeze_date : '';
+  const freeze = mealFreeze.forWeek(monday, weekCfg);
 
   const rows = await signupsDb.getByMonday(monday);
   const signups = {};
@@ -89,13 +79,13 @@ async function getWeek(monday) {
     });
   }
 
-  return { monday, config, signups, caps, freezeDate };
+  return { monday, config, signups, caps, freezeDate: freeze.override, freezeAt: freeze.at.toISOString() };
 }
 
 /**
  * Port of addSignups() from Code.gs:889-930.
  */
-async function addSignups(monday, entries, caps) {
+async function addSignups(monday, entries, caps, actor) {
   // Ensure week config exists
   let weekCfg = await weeksDb.getConfig(monday);
   if (!weekCfg) {
@@ -106,12 +96,14 @@ async function addSignups(monday, entries, caps) {
   }
 
   const guestLimitPerSignup = getGuestLimitPerSignup(weekCfg, caps);
+  const freeze = mealFreeze.forWeek(monday, weekCfg);
+  const now = Date.now();
 
   let added = 0, updated = 0, full = 0, frozen = 0, guestLimit = 0;
 
   for (const entry of entries) {
     const dayIdx = entry.dayIndex;
-    if (!isDayOpenForSignups(weekCfg, dayIdx)) {
+    if (freeze.closedReason(dayIdx, actor, now)) {
       frozen++;
       continue;
     }
@@ -161,7 +153,10 @@ async function addSignups(monday, entries, caps) {
 /**
  * Port of removeSignup() from Code.gs:932-948.
  */
-async function removeSignup(monday, dayIndex, name, time) {
+async function removeSignup(monday, dayIndex, name, time, actor) {
+  const closed = mealFreeze.forWeek(monday, await weeksDb.getConfig(monday))
+    .closedReason(dayIndex, actor, Date.now());
+  if (closed) return { error: closed };
   await signupsDb.deleteByDayAndName(monday, dayIndex, name);
   sheetsSync.syncWeek(monday).catch(e => console.error('Sheets sync error (week):', e.message));
   return { removed: true };
@@ -171,16 +166,18 @@ async function removeSignup(monday, dayIndex, name, time) {
  * Port of setWeekConfig() from Code.gs:950-966.
  */
 async function setWeekConfig(monday, config, caps, freezeDate) {
+  const invalid = mealFreeze.checkOverride(freezeDate);
+  if (invalid) return { error: invalid };
   await weeksDb.upsertConfig(monday, config, caps, freezeDate);
   sheetsSync.syncWeek(monday).catch(e => console.error('Sheets sync error (week):', e.message));
   return { status: 'ok' };
 }
 
 /**
- * Admin-only add of a single signup. Bypasses freeze date and capacity caps.
- * Used when an admin signs someone up on their behalf.
+ * Admin-only add of a single signup. Skips capacity caps. The freeze gate
+ * still runs; an admin actor passes it.
  */
-async function adminAddSignup(monday, dayIndex, name, time) {
+async function adminAddSignup(monday, dayIndex, name, time, actor) {
   if (!name || !String(name).trim()) {
     return { error: 'Name is required' };
   }
@@ -191,6 +188,9 @@ async function adminAddSignup(monday, dayIndex, name, time) {
     await weeksDb.upsertConfig(monday, defaultCfg, DEFAULT_CAPS, '');
     weekCfg = await weeksDb.getConfig(monday);
   }
+
+  const closed = mealFreeze.forWeek(monday, weekCfg).closedReason(dayIndex, actor, Date.now());
+  if (closed) return { error: closed };
 
   const cleanName = String(name).trim();
   const timeStr = normalizeTime(time);

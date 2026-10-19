@@ -38,15 +38,19 @@ async function eventViewer(req, data) {
   };
 }
 
+function mealActor(req) {
+  return { isAdmin: !!(req.user && req.user.isAdmin) };
+}
+
 const handlers = {
   ping:               () => ({ status: 'ok' }),
   checkAccessCode:    (d) => ({ valid: !!(config.accessCode && d.code === config.accessCode) }),
   // Meals
   getWeek:            (d) => mealsHandler.getWeek(d.monday),
-  addSignups:         (d) => mealsHandler.addSignups(d.monday, d.entries, d.caps || {}),
-  removeSignup:       (d) => mealsHandler.removeSignup(d.monday, d.dayIndex, d.name, d.time),
+  addSignups:         (d, req) => mealsHandler.addSignups(d.monday, d.entries, d.caps || {}, mealActor(req)),
+  removeSignup:       (d, req) => mealsHandler.removeSignup(d.monday, d.dayIndex, d.name, d.time, mealActor(req)),
   setWeekConfig:      (d) => mealsHandler.setWeekConfig(d.monday, d.config, d.caps || {}, d.freezeDate || ''),
-  adminAddSignup:     (d) => mealsHandler.adminAddSignup(d.monday, d.dayIndex, d.name, d.time),
+  adminAddSignup:     (d, req) => mealsHandler.adminAddSignup(d.monday, d.dayIndex, d.name, d.time, mealActor(req)),
   // Spot Up
   spotUp:             (d) => spotupHandler.spotUp(d.monday, d.dayIndex, d.name, d.time),
   claimSpotUp:        (d) => spotupHandler.claimSpotUp(d.monday, d.dayIndex, d.originalName, d.time, d.claimerName),

@@ -67,6 +67,7 @@ server/                     # Backend + frontend — Node.js + Express + Postgre
       sheetsSync.js         # Fire-and-forget sync of chef-facing week display sheets to Google Sheets
     utils/
       time.js               # Timezone helpers (America/New_York)
+      mealFreeze.js         # Meal-week freeze: Friday 2:00 PM ET default, Eastern wall-time override
       weekHelpers.js        # Monday-date key utilities
       guests.js             # Event guest-list parsing (request/DB arrays, legacy free text)
     middleware/
@@ -154,6 +155,7 @@ server/                     # Backend + frontend — Node.js + Express + Postgre
 - **Sheets sync constraint**: Do NOT modify the live Google Sheet directly — the sync service only writes chef-facing display sheets (`Week_YYYY-MM-DD`). Postgres is the source of truth
 - **Rate limiting**: `/api` is limited to 100 req/min, `/groupme` to 15 req/15min via `express-rate-limit`
 - **Claim token expiry**: Email claim links expire after 24 hours
+- **Meal freeze**: each week closes at `freezeAt`, 2:00 PM America/New_York on the Friday before its Monday, unless `week_configs.freeze_date` holds an override (Eastern wall time `YYYY-MM-DDTHH:mm`; blank means the default; a far-future time keeps the week open). `utils/mealFreeze.js` owns the clock. `addSignups`, `removeSignup`, and `adminAddSignup` call `forWeek(...).closedReason`; admins pass. `reopenSignups` reopens one day after the cutoff. Spot-up and claim paths do not check the freeze. No migration: existing overrides stay wall-clock strings and are read as Eastern time
 - **Diet/allergy privacy**: `getWeek` API strips `diet` and `allergies` fields for non-admin callers; frontend also hides them for non-admins
 - **Data migration**: `server/scripts/migrate-from-sheets.js` imports existing data from Google Sheets to PostgreSQL (one-time, requires credentials)
 - **Constants shared with backend**: `DAYS`, `DEFAULT_MEALS`, `CATEGORIES` are duplicated in both `index.html` and `Code.gs` — keep them in sync if modifying the legacy backend

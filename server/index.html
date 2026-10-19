@@ -616,8 +616,9 @@
             </div>
           </div>
           <div style="flex:1;min-width:180px;">
-            <label class="field-label" style="font-size:10px;">Freeze sign-ups after</label>
+            <label class="field-label" style="font-size:10px;">Freeze override (Eastern time)</label>
             <input type="datetime-local" id="freezeDate" onchange="if(adminWeekData)adminWeekData.freezeDate=this.value">
+            <div id="freezeDefaultHint" style="font-size:11px;color:var(--text-dim);margin-top:4px;">Blank uses Friday 2:00 PM ET before the week.</div>
           </div>
         </div>
 
@@ -1277,7 +1278,14 @@ function slotMatchesSignup(signup, slot) {
 }
 
 function isWeekFrozen(weekData) {
-  return !!(weekData && weekData.freezeDate && Date.now() > new Date(weekData.freezeDate).getTime());
+  return !!(weekData && weekData.freezeAt && Date.now() >= Date.parse(weekData.freezeAt));
+}
+
+function formatFreezeAt(iso) {
+  const fd = new Date(iso);
+  const opts = { timeZone: 'America/New_York' };
+  return fd.toLocaleDateString('en-US', Object.assign({ weekday: 'long', month: 'long', day: 'numeric' }, opts))
+    + ' at ' + fd.toLocaleTimeString('en-US', Object.assign({ hour: 'numeric', minute: '2-digit' }, opts)) + ' ET';
 }
 
 function isDayReopened(day) {
@@ -1285,8 +1293,10 @@ function isDayReopened(day) {
 }
 
 function isDayOpenForSignups(weekData, dayIdx) {
+  const day = weekData && weekData.config && weekData.config[dayIdx];
+  if (day && day.enabled === false) return false;
   if (!isWeekFrozen(weekData)) return true;
-  return isDayReopened(weekData.config && weekData.config[dayIdx]);
+  return isDayReopened(day);
 }
 
 let _scrollLockCount = 0;
@@ -1406,7 +1416,9 @@ function renderMySignupsSummary() {
       '<span>' + escapeHtml(day.day) + ' <span style="color:var(--text-dim);">&middot;</span> ' + escapeHtml(day.meal) +
         (timeLabel ? ' <span style="color:var(--text-dim);">&middot;</span> <span style="font-size:13px;color:var(--text-dim);">' + timeLabel + '</span>' : '') +
       '</span>' +
-      '<button class="my-signups-cancel" onclick="cancelMySignup(\'' + safeMon + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')" title="Remove sign-up">&#215;</button>' +
+      (isDayOpenForSignups(currentWeekData, dayIdx)
+        ? '<button class="my-signups-cancel" onclick="cancelMySignup(\'' + safeMon + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')" title="Remove sign-up">&#215;</button>'
+        : '') +
     '</div>';
   });
   html += '</div>';
@@ -1678,7 +1690,7 @@ function renderDayCards() {
 
   let html = '';
 
-  if (currentWeekData.freezeDate) {
+  if (currentWeekData.freezeAt) {
     if (isWeekFrozen(currentWeekData)) {
       const reopenedDays = config.filter(day => day.enabled && isDayReopened(day)).map(day => day.day);
       const msg = reopenedDays.length > 0
@@ -1686,8 +1698,7 @@ function renderDayCards() {
         : 'Sign-ups for this week are closed.';
       html += '<div style="background:#B1424210;border:1px solid #B1424230;border-radius:4px;padding:14px 18px;font-family:\'Crimson Pro\',serif;font-size:14px;color:var(--red);margin-bottom:16px;line-height:1.5;">' + escapeHtml(msg) + '</div>';
     } else {
-      const fd = new Date(currentWeekData.freezeDate);
-      html += '<div style="background:#B07A2A10;border:1px solid #B07A2A25;border-radius:4px;padding:12px 16px;font-family:\'Crimson Pro\',serif;font-size:13px;color:var(--orange);margin-bottom:16px;font-style:italic;">Sign-ups close ' + fd.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}) + ' at ' + fd.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}) + '</div>';
+      html += '<div style="background:#B07A2A10;border:1px solid #B07A2A25;border-radius:4px;padding:12px 16px;font-family:\'Crimson Pro\',serif;font-size:13px;color:var(--orange);margin-bottom:16px;font-style:italic;">Sign-ups close ' + escapeHtml(formatFreezeAt(currentWeekData.freezeAt)) + '</div>';
     }
   }
 
@@ -2963,10 +2974,13 @@ async function renderAdminWeek() {
     adminWeekData = buildDefaultWeek(monday);
   }
 
-  if (adminWeekData.freezeDate) {
-    document.getElementById('freezeDate').value = adminWeekData.freezeDate;
-  } else {
-    document.getElementById('freezeDate').value = '';
+  const freezeInput = document.getElementById('freezeDate');
+  if (freezeInput) freezeInput.value = adminWeekData.freezeDate || '';
+  const freezeHint = document.getElementById('freezeDefaultHint');
+  if (freezeHint) {
+    freezeHint.textContent = adminWeekData.freezeAt
+      ? 'Effective deadline: ' + formatFreezeAt(adminWeekData.freezeAt) + '. Blank uses Friday 2:00 PM ET before the week.'
+      : 'Blank uses Friday 2:00 PM ET before the week.';
   }
 
   renderAdminWeekHTML();

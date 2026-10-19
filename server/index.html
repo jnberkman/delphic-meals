@@ -953,6 +953,8 @@ function grantAccess(user) {
     loadAdminEvents();
     loadAccessRequests();
   }
+  // The sign-in screen already fetched a nameless board; drop it and load the roster
+  refreshSignedInWeeks();
 }
 
 let _signingIn = false;
@@ -1117,6 +1119,14 @@ function clearPersistedSession() {
   sessionStorage.removeItem('delphic_access_code');
   // The browser id owns guest event signups; the next person here shouldn't inherit them
   localStorage.removeItem('delphic_signer_id');
+  // A signed-in roster must not survive in the week cache for the next person
+  try {
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i);
+      if (key && key.indexOf('delphic_week_') === 0) localStorage.removeItem(key);
+    }
+  } catch (e) {}
+  try { weekCache = {}; weekCacheTs = {}; } catch (e) {}
 }
 
 (async function() {
@@ -1147,6 +1157,7 @@ function clearPersistedSession() {
       if (currentUser.isAdmin) {
         document.getElementById('adminTabBtn').style.display = '';
       }
+      refreshSignedInWeeks();
       return;
     }
 
@@ -1165,6 +1176,7 @@ function clearPersistedSession() {
         if (currentUser.isAdmin) {
           document.getElementById('adminTabBtn').style.display = '';
         }
+        refreshSignedInWeeks();
         return;
       }
       // Token expired — attempt silent re-auth
@@ -1217,6 +1229,55 @@ function getCache(key) {
 }
 function setCache(key, value) {
   try { localStorage.setItem('delphic_' + key, JSON.stringify({ v: value, ts: Date.now() })); } catch(e) {}
+}
+
+// A roster is for a signed-in member, guest code, or open access. Anything else is the public board.
+function expectsRoster() {
+  return !!currentUser;
+}
+
+function weekMatchesSession(week) {
+  if (!week) return false;
+  if (week.roster === true) return expectsRoster();
+  if (week.roster === false) return !expectsRoster();
+  return false;
+}
+
+function rememberWeek(monday, week) {
+  if (!weekMatchesSession(week)) return false;
+  weekCache[monday] = week;
+  weekCacheTs[monday] = Date.now();
+  // Names never go to localStorage: sign-out reloads and would show them until the TTL
+  if (week.roster === false) setCache('week_' + monday, week);
+  return true;
+}
+
+function storedWeek(monday) {
+  const mem = weekCache[monday];
+  if (mem && weekMatchesSession(mem)) return mem;
+  if (expectsRoster()) return null;
+  const stored = getCache('week_' + monday);
+  if (stored && stored.roster === false) {
+    weekCache[monday] = stored;
+    return stored;
+  }
+  return null;
+}
+
+function applyWeekCaps(week) {
+  if (!week || !week.caps) return;
+  caps.slot12 = week.caps.slot12 || 45;
+  caps.slot1 = week.caps.slot1 || 45;
+  caps.dinner = week.caps.dinner || 90;
+  caps.guestLimitPerSignup = parseInt(week.caps.guestLimitPerSignup || 0, 10) || 0;
+}
+
+function refreshSignedInWeeks() {
+  weekCacheTs = {};
+  const weekInput = document.getElementById('weekSelect');
+  if (weekInput && weekInput.value) loadWeekData();
+  const viewInput = document.getElementById('viewWeekSelect');
+  if (viewInput && viewInput.value) loadViewData();
 }
 
 const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
@@ -1393,7 +1454,9 @@ function renderMySignupsSummary() {
     ? currentUser.name.toLowerCase().trim() : '';
   if (!myName) { el.innerHTML = ''; return; }
 
-  const { config, signups, monday } = currentWeekData;
+  const config = currentWeekData.config || [];
+  const signups = currentWeekData.signups || {};
+  const monday = currentWeekData.monday;
   const myEntries = [];
   config.forEach((day, i) => {
     if (!day.enabled || _pendingCancels.has(i)) return;
@@ -1595,24 +1658,18 @@ async function loadWeekData(autoAdvance) {
   document.getElementById('dayCards').textContent = '';
   document.getElementById('timeSection').style.display = 'none';
 
-  // Show cached data instantly if available
-  const cachedWeek = weekCache[monday] || getCache('week_' + monday);
+  // Show cached data instantly if it matches this session (a board while signed out, a roster while signed in)
+  const cachedWeek = storedWeek(monday);
   if (cachedWeek) {
     currentWeekData = cachedWeek;
-    weekCache[monday] = cachedWeek;
-    if (cachedWeek.caps) {
-      caps.slot12 = cachedWeek.caps.slot12 || 45;
-      caps.slot1 = cachedWeek.caps.slot1 || 45;
-      caps.dinner = cachedWeek.caps.dinner || 90;
-      caps.guestLimitPerSignup = parseInt(cachedWeek.caps.guestLimitPerSignup || 0, 10) || 0;
-    }
+    applyWeekCaps(cachedWeek);
     renderDayCards();
   } else {
     document.getElementById('loadingDays').style.display = 'block';
   }
 
   // Skip background re-fetch if data was just fetched within 60 seconds
-  if (weekCacheTs[monday] && Date.now() - weekCacheTs[monday] < 60000) {
+  if (weekCacheTs[monday] && Date.now() - weekCacheTs[monday] < 60000 && weekMatchesSession(weekCache[monday])) {
     document.getElementById('loadingDays').style.display = 'none';
     if (autoAdvance && currentWeekData && currentWeekData.config.every(d => !d.enabled)) {
       return advanceToNextActiveWeek(monday);
@@ -1622,16 +1679,13 @@ async function loadWeekData(autoAdvance) {
 
   try {
     const result = await apiCall('getWeek', { monday });
-    currentWeekData = result;
-    weekCache[monday] = result;
-    weekCacheTs[monday] = Date.now();
-    setCache('week_' + monday, result);
-    if (result.caps) {
-      caps.slot12 = result.caps.slot12 || 45;
-      caps.slot1 = result.caps.slot1 || 45;
-      caps.dinner = result.caps.dinner || 90;
-      caps.guestLimitPerSignup = parseInt(result.caps.guestLimitPerSignup || 0, 10) || 0;
+    // Drop a board that arrives after sign-in, and a roster that arrives after sign-out
+    if (!rememberWeek(monday, result)) {
+      document.getElementById('loadingDays').style.display = 'none';
+      return;
     }
+    currentWeekData = result;
+    applyWeekCaps(result);
     renderDayCards();
   } catch (e) {
     if (!cachedWeek) currentWeekData = buildDefaultWeek(monday);
@@ -1652,18 +1706,11 @@ async function advanceToNextActiveWeek(fromMonday) {
     const nextMonday = d.toISOString().slice(0, 10);
     try {
       const result = await apiCall('getWeek', { monday: nextMonday });
-      weekCache[nextMonday] = result;
-      weekCacheTs[nextMonday] = Date.now();
-      setCache('week_' + nextMonday, result);
+      if (!rememberWeek(nextMonday, result)) continue;
       if (result.config.some(day => day.enabled)) {
         document.getElementById('weekSelect').value = nextMonday;
         currentWeekData = result;
-        if (result.caps) {
-          caps.slot12 = result.caps.slot12 || 45;
-          caps.slot1 = result.caps.slot1 || 45;
-          caps.dinner = result.caps.dinner || 90;
-          caps.guestLimitPerSignup = parseInt(result.caps.guestLimitPerSignup || 0, 10) || 0;
-        }
+        applyWeekCaps(result);
         renderDayCards();
         return;
       }
@@ -1686,7 +1733,8 @@ function buildDefaultWeek(monday) {
 function renderDayCards() {
   if (!currentWeekData) return;
   _pendingCancels.clear(); // fresh data, reset optimistic state
-  const { config, signups } = currentWeekData;
+  const config = currentWeekData.config || [];
+  const signups = currentWeekData.signups || {};
 
   let html = '';
 
@@ -1707,7 +1755,10 @@ function renderDayCards() {
     const daySups = signups[i] || [];
     const times = getDayTimes(day);
     const maxTotal = times.reduce((s, t) => s + getCapForSlot(t, day), 0);
-    const total = signupGroupSize(daySups);
+    const seats = currentWeekData.seats && currentWeekData.seats[i];
+    const total = seats
+      ? Object.keys(seats).reduce((n, t) => n + (seats[t] || 0), 0)
+      : signupGroupSize(daySups);
     const isFull = total >= maxTotal;
     const isClosed = !isDayOpenForSignups(currentWeekData, i);
     const pct = total / maxTotal;
@@ -1756,7 +1807,8 @@ function updateTimeSection() {
     document.getElementById('timeSection').style.display = 'none'; return;
   }
   document.getElementById('timeSection').style.display = 'block';
-  const { config, signups } = currentWeekData;
+  const config = currentWeekData.config || [];
+  const signups = currentWeekData.signups || {};
 
   let html = '';
   [...selectedDays].sort().forEach(i => {
@@ -1774,7 +1826,8 @@ function updateTimeSection() {
     }
     html += '<div class="time-row" style="margin-bottom:14px;">';
     times.forEach(t => {
-      const count = signupGroupSize(daySups.filter(s => slotMatchesSignup(s, t)));
+      const seats = currentWeekData.seats && currentWeekData.seats[i];
+      const count = seats ? (seats[t] || 0) : signupGroupSize(daySups.filter(s => slotMatchesSignup(s, t)));
       const cap = getCapForSlot(t, day);
       const full = count >= cap;
       const label = t === '12:00 PM' ? '12:00\u20131:00 PM' : t === '1:00 PM' ? '1:00\u20132:00 PM' : t;
@@ -1984,6 +2037,17 @@ async function submitSignup() {
 let viewMonday = ''; // track current view week for spot-up calls
 let viewDayIdx = 0;
 let viewEnabledDays = [];
+let viewSeats = null; // public board counts, keyed by day, when names are withheld
+
+function viewHeadcount(dayIdx, sups, slot) {
+  if (viewSeats) {
+    const byTime = viewSeats[dayIdx] || {};
+    if (slot != null) return byTime[slot] || 0;
+    return Object.keys(byTime).reduce((n, t) => n + (byTime[t] || 0), 0);
+  }
+  const rows = slot == null ? (sups || []) : (sups || []).filter(s => slotMatchesSignup(s, slot));
+  return signupGroupSize(rows);
+}
 
 function _applyViewData(data, preserveIdx) {
   const nav = document.getElementById('viewDayNav');
@@ -1993,7 +2057,9 @@ function _applyViewData(data, preserveIdx) {
     caps.dinner = data.caps.dinner || 90;
     caps.guestLimitPerSignup = parseInt(data.caps.guestLimitPerSignup || 0, 10) || 0;
   }
-  const { config, signups } = data;
+  viewSeats = data.roster === false ? (data.seats || {}) : null;
+  const config = data.config || [];
+  const signups = data.signups || {};
   const newEnabled = config
     .map((day, i) => ({ day, sups: signups[i] || [], configIdx: i }))
     .filter(d => d.day.enabled);
@@ -2039,10 +2105,9 @@ async function loadViewData(autoAdvance) {
   const monday = getMonday(weekInput);
   viewMonday = monday;
 
-  // Show cached data instantly (in-memory first, then localStorage)
-  const cached = weekCache[monday] || getCache('week_' + monday);
+  // Show cached data instantly when it matches this session
+  const cached = storedWeek(monday);
   if (cached) {
-    weekCache[monday] = cached;
     _applyViewData(cached, false);
   } else {
     document.getElementById('viewLoading').style.display = 'block';
@@ -2051,7 +2116,7 @@ async function loadViewData(autoAdvance) {
   }
 
   // Skip background re-fetch if data was just fetched within 60 seconds
-  if (weekCacheTs[monday] && Date.now() - weekCacheTs[monday] < 60000) {
+  if (weekCacheTs[monday] && Date.now() - weekCacheTs[monday] < 60000 && weekMatchesSession(weekCache[monday])) {
     document.getElementById('viewLoading').style.display = 'none';
     if (autoAdvance) {
       const weekData = cached || weekCache[monday];
@@ -2066,10 +2131,11 @@ async function loadViewData(autoAdvance) {
   let freshData = null;
   try {
     const data = await apiCall('getWeek', { monday });
+    if (!rememberWeek(monday, data)) {
+      document.getElementById('viewLoading').style.display = 'none';
+      return;
+    }
     freshData = data;
-    weekCache[monday] = data;
-    weekCacheTs[monday] = Date.now();
-    setCache('week_' + monday, data);
     _applyViewData(data, !!cached); // preserve current day index if cache was shown
   } catch (e) {
     if (!cached) _applyViewData(buildDefaultWeek(monday), false);
@@ -2092,9 +2158,7 @@ async function advanceViewToNextActiveWeek(fromMonday) {
     const nextMonday = d.toISOString().slice(0, 10);
     try {
       const result = await apiCall('getWeek', { monday: nextMonday });
-      weekCache[nextMonday] = result;
-      weekCacheTs[nextMonday] = Date.now();
-      setCache('week_' + nextMonday, result);
+      if (!rememberWeek(nextMonday, result)) continue;
       if (result.config.some(day => day.enabled)) {
         document.getElementById('viewWeekSelect').value = nextMonday;
         viewMonday = nextMonday;
@@ -2116,7 +2180,7 @@ function renderViewDay(idx) {
   const { day, sups, configIdx: i } = viewEnabledDays[idx];
   const times = getDayTimes(day);
   const maxTotal = times.reduce((s, t) => s + getCapForSlot(t, day), 0);
-  const dayCount = signupGroupSize(sups);
+  const dayCount = viewHeadcount(i, sups);
 
   // Update nav prev/next state
   const prevBtn = document.getElementById('viewPrevDay');
@@ -2150,7 +2214,7 @@ function renderViewDay(idx) {
       const slotLabel = slot === '12:00 PM' ? '12:00\u20131:00 PM' : slot === '1:00 PM' ? '1:00\u20132:00 PM' : slot;
       const slotSups = times.length === 1 ? sups : sups.filter(s => slotMatchesSignup(s, slot));
       const slotCap = getCapForSlot(slot, day);
-      const slotCount = signupGroupSize(slotSups);
+      const slotCount = viewHeadcount(i, sups, times.length === 1 ? null : slot);
 
       html += '<div style="margin-top:16px;padding:12px 16px;background:var(--surface2);border-radius:12px;border-left:3px solid #5B8DEF;">';
       html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
@@ -2160,6 +2224,8 @@ function renderViewDay(idx) {
 
       if (slotCount === 0) {
         html += '<div style="color:var(--text-dim);font-size:13px;padding:4px 0;">No signups for this time.</div>';
+      } else if (slotSups.length === 0) {
+        html += '<div style="color:var(--text-dim);font-size:13px;padding:4px 0;">Sign in to see who\u2019s signed up.</div>';
       } else {
         // Own signup floats to top
         const mySignups = myName ? slotSups.filter(s => s.name && s.name.toLowerCase().trim() === myName) : [];
@@ -2229,7 +2295,7 @@ function renderHorizontalView() {
   viewEnabledDays.forEach(({ day, sups, configIdx: i }) => {
     const times = getDayTimes(day);
     const maxTotal = times.reduce((s, t) => s + getCapForSlot(t, day), 0);
-    const dayCount = signupGroupSize(sups);
+    const dayCount = viewHeadcount(i, sups);
     const isFull = dayCount >= maxTotal;
     const pct = dayCount / maxTotal;
     const countColor = isFull ? 'var(--red)' : pct > 0.8 ? 'var(--orange)' : 'var(--green)';
@@ -2259,10 +2325,12 @@ function renderHorizontalView() {
         const slotSups = times.length === 1 ? sups : sups.filter(s => slotMatchesSignup(s, slot));
         const slotLabel = slot === '12:00 PM' ? '12–1 PM' : slot === '1:00 PM' ? '1–2 PM' : slot;
         const slotCap = getCapForSlot(slot, day);
-        const slotCount = signupGroupSize(slotSups);
+        const slotCount = viewHeadcount(i, sups, times.length === 1 ? null : slot);
         html += '<div class="view-col-slot-label">' + slotLabel + ' &middot; ' + slotCount + '/' + slotCap + '</div>';
         if (slotCount === 0) {
           html += '<div class="view-col-no-sups" style="padding:2px 0;">\u2014</div>';
+        } else if (slotSups.length === 0) {
+          html += '<div class="view-col-no-sups" style="padding:2px 0;">Sign in to see who\u2019s signed up.</div>';
         }
         const sortedSups = [...slotSups].sort((a, b) => (b.early ? 1 : 0) - (a.early ? 1 : 0));
         sortedSups.forEach(s => { html += renderHorizontalName(s, viewMonday, i, slot, myName, isAdmin, dinnerClaimBlocked); });
@@ -3526,7 +3594,7 @@ document.addEventListener('visibilitychange', () => {
   const mon = getMonday(weekVal);
   if (!weekCacheTs[mon] || Date.now() - weekCacheTs[mon] > 55000) {
     apiCall('getWeek', { monday: mon }).then(data => {
-      weekCache[mon] = data; weekCacheTs[mon] = Date.now(); setCache('week_' + mon, data);
+      if (!rememberWeek(mon, data)) return;
       if (currentWeekData && currentWeekData.monday === mon) { currentWeekData = data; renderDayCards(); }
       if (viewMonday === mon) _applyViewData(data, true);
     }).catch(() => {});

@@ -2,7 +2,11 @@ const membersDb = require('../db/queries/members');
 const settingsDb = require('../db/queries/settings');
 const sheetsSync = require('../services/sheetsSync');
 
-async function checkMember(email, name) {
+async function checkMember(email, name, callerEmail) {
+  const asked = String(email || '').trim().toLowerCase();
+  const caller = String(callerEmail || '').trim().toLowerCase();
+  if (!caller || asked !== caller) return { authorized: false };
+
   let member = await membersDb.findByEmail(email);
   if (!member) {
     const settings = await settingsDb.getAll();

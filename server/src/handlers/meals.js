@@ -3,6 +3,7 @@ const signupsDb = require('../db/queries/signups');
 const { normalizeTime } = require('../utils/time');
 const { buildDefaultConfig, DEFAULT_CAPS } = require('../utils/weekHelpers');
 const mealFreeze = require('../utils/mealFreeze');
+const { presentWeek } = require('../utils/weekView');
 const sheetsSync = require('../services/sheetsSync');
 
 function normalizeGuests(guests) {
@@ -51,7 +52,7 @@ function getGuestLimitPerSignup(weekCfg, caps) {
 /**
  * Port of getWeek() from Code.gs:870-886.
  */
-async function getWeek(monday) {
+async function getWeek(monday, audience) {
   const weekCfg = await weeksDb.getConfig(monday);
   const config = weekCfg ? weekCfg.config : buildDefaultConfig(monday);
   const caps = weekCfg ? weekCfg.caps : DEFAULT_CAPS;
@@ -79,7 +80,14 @@ async function getWeek(monday) {
     });
   }
 
-  return { monday, config, signups, caps, freezeDate: freeze.override, freezeAt: freeze.at.toISOString() };
+  return presentWeek({
+    monday,
+    config,
+    signups,
+    caps,
+    freezeDate: freeze.override,
+    freezeAt: freeze.at.toISOString()
+  }, audience);
 }
 
 /**

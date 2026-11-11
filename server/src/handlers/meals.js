@@ -108,17 +108,21 @@ async function addSignups(monday, entries, caps, actor) {
   const now = Date.now();
 
   let added = 0, updated = 0, full = 0, frozen = 0, guestLimit = 0;
+  // Per-entry outcome so the client can confirm only what was saved
+  const results = [];
 
   for (const entry of entries) {
     const dayIdx = entry.dayIndex;
     if (freeze.closedReason(dayIdx, actor, now)) {
       frozen++;
+      results.push({ dayIndex: dayIdx, status: 'frozen' });
       continue;
     }
 
     const guests = normalizeGuests(entry.guests);
     if (guestLimitPerSignup > 0 && guests.length > guestLimitPerSignup) {
       guestLimit++;
+      results.push({ dayIndex: dayIdx, status: 'guestLimit' });
       continue;
     }
 
@@ -130,7 +134,7 @@ async function addSignups(monday, entries, caps, actor) {
     const timeCount = await signupsDb.countPartyByTime(monday, dayIdx, timeStr, existing ? existing.id : null);
     const cap = getCapForEntry(weekCfg, caps, dayIdx, timeStr);
 
-    if (timeCount + partySize > cap) { full++; continue; }
+    if (timeCount + partySize > cap) { full++; results.push({ dayIndex: dayIdx, status: 'full' }); continue; }
 
     // Delete existing signup for this name+day after capacity is known to be available.
     const deleted = await signupsDb.deleteByDayAndName(monday, dayIdx, entry.name);
@@ -149,13 +153,14 @@ async function addSignups(monday, entries, caps, actor) {
       grad_gasman: entry.gradGasman || false
     });
     added++;
+    results.push({ dayIndex: dayIdx, status: deleted > 0 ? 'updated' : 'added' });
   }
 
   sheetsSync.syncWeek(monday).catch(e => console.error('Sheets sync error (week):', e.message));
   if (frozen > 0 && added === 0 && full === 0 && guestLimit === 0) {
-    return { added, updated, full, frozen, guestLimit, error: 'Sign-ups are closed for this week' };
+    return { added, updated, full, frozen, guestLimit, results, error: 'Sign-ups are closed for this week' };
   }
-  return { added, updated, full, frozen, guestLimit };
+  return { added, updated, full, frozen, guestLimit, results };
 }
 
 /**

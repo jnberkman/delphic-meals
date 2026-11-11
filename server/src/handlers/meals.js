@@ -140,15 +140,19 @@ async function addSignups(monday, entries, caps, actor) {
     const deleted = await signupsDb.deleteByDayAndName(monday, dayIdx, entry.name);
     if (deleted > 0) updated++;
 
+    // Fields left out of an edit keep their saved value (members never see their saved
+    // diet/allergies, so the page can't send them back)
+    const keep = (field, column, fallback) =>
+      entry[field] !== undefined ? (entry[field] || fallback) : (existing && existing[column] != null ? existing[column] : fallback);
     await signupsDb.insert({
       monday,
       day_index: dayIdx,
       name: entry.name,
-      diet: entry.diet || 'No Dietary Restrictions',
-      allergies: entry.allergies || '',
+      diet: keep('diet', 'diet', 'No Dietary Restrictions'),
+      allergies: keep('allergies', 'allergies', ''),
       time: timeStr,
       early: entry.early || false,
-      notes: entry.notes || '',
+      notes: keep('notes', 'notes', ''),
       guests: JSON.stringify(guests),
       grad_gasman: entry.gradGasman || false
     });

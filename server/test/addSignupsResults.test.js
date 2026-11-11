@@ -59,3 +59,19 @@ test('addSignups returns a status for each entry', async () => {
   assert.equal(result.full, 1);
   assert.equal(result.guestLimit, 1);
 });
+
+test('an edit keeps saved diet, allergies and notes it leaves out, and clears ones sent blank', async () => {
+  rows.length = 0;
+  rows.push({ id: 7, day_index: 2, name: 'Ada', diet: 'Vegan', allergies: 'no cheese', notes: 'window seat' });
+  await addSignups('2026-11-16', [{ dayIndex: 2, name: 'Ada', time: '12:00 PM' }], { slot12: 5 }, null);
+  let saved = rows.find(r => r.day_index === 2 && r.name === 'Ada');
+  assert.equal(saved.diet, 'Vegan');
+  assert.equal(saved.allergies, 'no cheese');
+  assert.equal(saved.notes, 'window seat');
+
+  await addSignups('2026-11-16', [{ dayIndex: 2, name: 'Ada', time: '12:00 PM', allergies: '', notes: '' }], { slot12: 5 }, null);
+  saved = rows.find(r => r.day_index === 2 && r.name === 'Ada');
+  assert.equal(saved.allergies, '');
+  assert.equal(saved.notes, '');
+  assert.equal(saved.diet, 'Vegan');
+});

@@ -903,6 +903,8 @@ const GOOGLE_CLIENT_ID = '343675266881-9qqpec1ftisitj7lhdffmbpooljub4t5.apps.goo
 // Returns the ID token in the URL fragment (#id_token=...) which is never
 // sent to the server, so GitHub Pages never receives a POST.
 function signInWithGoogle() {
+  // Leaving for Google: keep whatever meal choices are on the form
+  if (typeof selectedDays !== 'undefined' && selectedDays.size && !pendingMealDraft()) saveMealDraft();
   const nonce = crypto.getRandomValues(new Uint32Array(4)).join('');
   sessionStorage.setItem('google_nonce', nonce);
   const redirectUri = location.origin + location.pathname;
@@ -1065,6 +1067,7 @@ async function submitAccessCode() {
 // Dialogs: focus moves in when one opens, Tab stays inside, focus returns on close
 const _dialogOverlays = ['confirmOverlay', 'guestPaymentOverlay', 'spotupOverlay', 'mooseSheetOverlay', 'mooseEventOverlay'];
 const _dialogReturn = [];
+let _dialogLastPopped = null;
 const _FOCUSABLE = 'input:not([type=hidden]):not([disabled]), select, textarea, button:not([disabled]), a[href], [tabindex="0"]';
 function _openDialog() {
   const open = _dialogOverlays.map(id => document.getElementById(id)).filter(el => el && el.classList.contains('show'));
@@ -1079,15 +1082,20 @@ _dialogOverlays.forEach(id => {
     if (isOpen === wasOpen) return;
     wasOpen = isOpen;
     if (isOpen) {
-      _dialogReturn.push(document.activeElement);
+      // Opened from inside a sheet that just closed: return to what opened that sheet
+      const a = document.activeElement;
+      const inClosed = a && a.closest && a.closest('.moose-overlay:not(.show), .spotup-overlay:not(.show), .confirm-overlay:not(.show)');
+      _dialogReturn.push(inClosed ? _dialogLastPopped : a);
       setTimeout(() => {
         if (el.contains(document.activeElement)) return;
-        const first = el.querySelector('input:not([type=hidden]), .btn-primary') || el.querySelector(_FOCUSABLE);
+        const visible = sel => [...el.querySelectorAll(sel)].find(x => x.offsetParent !== null);
+        const first = visible('input:not([type=hidden]), .btn-primary') || visible(_FOCUSABLE);
         if (first) first.focus();
       }, 60);
     } else {
       const back = _dialogReturn.pop();
-      if (back && back.focus && document.contains(back) && !_openDialog()) back.focus();
+      _dialogLastPopped = back;
+      if (back && back.focus && document.contains(back) && back.offsetParent !== null && !_openDialog()) back.focus();
     }
   }).observe(el, { attributes: true, attributeFilter: ['class'] });
 });
@@ -1170,6 +1178,8 @@ function renderWhoAmI() {
 function showSignIn() {
   const overlay = document.getElementById('signinOverlay');
   if (!overlay) return;
+  closeMooseEventSheet();
+  closeMooseSheet();
   const back = document.getElementById('signinBack');
   if (back) back.style.display = currentUser ? '' : 'none';
   overlay.style.display = '';
@@ -1196,9 +1206,10 @@ function restorePreferences() {
     const prefs = JSON.parse(raw);
     // Saved by a different Google account on this browser
     const me = (currentUser && currentUser.email) || '';
-    if (me && prefs.owner && prefs.owner !== me) return;
+    // Prefs saved before owners existed have no key and still load
+    if (me && ('owner' in prefs) && prefs.owner !== me) return;
     if (prefs.name) { const el = document.getElementById('memberName'); if (el && !el.value) el.value = prefs.name; }
-    if (prefs.diet) { const el = document.querySelector('input[name="diet"][value="' + prefs.diet + '"]'); if (el) el.checked = true; }
+    if (prefs.diet) { const el = document.querySelector('input[name="diet"][value="' + prefs.diet + '"]'); if (el) { el.checked = true; _dietTouched = true; } }
     if (prefs.allergies) { const el = document.getElementById('allergies'); if (el && !el.value) el.value = prefs.allergies; }
     if (prefs.gradGasman) { const el = document.getElementById('gradGasman'); if (el) el.checked = prefs.gradGasman; }
   } catch(e) {}
@@ -1223,7 +1234,7 @@ document.addEventListener('visibilitychange', function() {
   if (document.visibilityState !== 'visible' || !_googleSessionExpired()) return;
   const drafting = (typeof selectedDays !== 'undefined' && selectedDays.size > 0) ||
     !!document.querySelector('.moose-overlay.show #mooseEvtName');
-  if (drafting) showToast('Your sign-in expired. It will refresh when you submit; your choices are kept.', 'var(--orange)');
+  if (drafting) showToast('Your sign-in expired. It will refresh when you submit, and your answers will be kept.', 'var(--orange)');
   else _silentReauth();
 });
 
@@ -1231,6 +1242,7 @@ function saveMealDraft() {
   try {
     if (!currentWeekData || !selectedDays.size) return;
     sessionStorage.setItem('delphic_meal_draft', JSON.stringify({
+      owner: (currentUser && currentUser.email) || '',
       monday: currentWeekData.monday, days: [...selectedDays], times: selectedTimes,
       opts: dayOptions, notes: document.getElementById('notes').value
     }));
@@ -1245,6 +1257,9 @@ function pendingMealDraft() {
 function applyMealDraft(monday) {
   const draft = pendingMealDraft();
   if (!draft || draft.monday !== monday || !currentWeekData || currentWeekData.roster === false) return;
+  // Only the account that saved it, and only once this session can submit
+  if (!currentUser || !currentUser.email || !canWrite()) return;
+  if (draft.owner && draft.owner !== currentUser.email) { sessionStorage.removeItem('delphic_meal_draft'); return; }
   sessionStorage.removeItem('delphic_meal_draft');
   draft.days.forEach(d => { if (isDayOpenForSignups(currentWeekData, d)) selectedDays.add(d); });
   selectedTimes = draft.times || {};
@@ -1252,7 +1267,7 @@ function applyMealDraft(monday) {
   if (draft.notes) document.getElementById('notes').value = draft.notes;
   renderDayCards();
   updateTimeSection();
-  if (selectedDays.size) showToast('You\u2019re signed in again. Check your choices and submit.', 'var(--orange)');
+  if (selectedDays.size) showToast('Your choices are back. Check them and submit.', 'var(--orange)');
 }
 
 function _silentReauth() {
@@ -1283,6 +1298,8 @@ function clearPersistedSession() {
   // The browser id owns guest event signups; the next person here shouldn't inherit them
   localStorage.removeItem('delphic_signer_id');
   localStorage.removeItem('delphic_prefs');
+  sessionStorage.removeItem('delphic_meal_draft');
+  sessionStorage.removeItem('delphic_moose_draft');
   // A signed-in roster must not survive in the week cache for the next person
   try {
     for (let i = localStorage.length - 1; i >= 0; i--) {
@@ -1460,10 +1477,12 @@ function refreshSignedInWeeks() {
     const on = !(st.spotUpEnabled === false || String(st.spotUpEnabled).toUpperCase() === 'FALSE');
     if (on !== spotUpEnabled) { spotUpEnabled = on; if (currentWeekData) renderDayCards(); if (viewEnabledDays.length) loadViewData(); }
   }).catch(() => {});
+  // First signed-in load still skips meal-less weeks, unless a saved draft pins the week
   const weekInput = document.getElementById('weekSelect');
-  if (weekInput && weekInput.value) loadWeekData();
+  if (weekInput && weekInput.value) loadWeekData(!pendingMealDraft());
   const viewInput = document.getElementById('viewWeekSelect');
-  if (viewInput && viewInput.value) loadViewData();
+  if (viewInput && viewInput.value) loadViewData(true);
+  if (sessionStorage.getItem('delphic_moose_draft')) switchTab('moose');
 }
 
 const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
@@ -1864,6 +1883,8 @@ window.matchMedia('(min-width: 900px)').addEventListener('change', () => {
 // =============================================
 let currentWeekData = null;
 let _weekLoadSeq = 0;
+let _dietTouched = false; // the member picked a diet on this page (or it came from their saved prefs)
+document.addEventListener('change', e => { if (e.target && e.target.name === 'diet') _dietTouched = true; });
 let selectedDays = new Set();
 let selectedTimes = {};
 let dayOptions = {};
@@ -1886,6 +1907,7 @@ async function loadWeekData(autoAdvance) {
     currentWeekData = cachedWeek;
     applyWeekCaps(cachedWeek);
     renderDayCards();
+    applyMealDraft(monday);
   } else {
     document.getElementById('loadingDays').style.display = 'block';
   }
@@ -2034,7 +2056,10 @@ function toggleDay(idx) {
     // Editing an existing signup: start from what's saved
     const existing = mySignupOn(idx);
     if (existing && !selectedTimes[idx] && existing.time) selectedTimes[idx] = existing.time;
-    if (existing && !dayOptions[idx]) dayOptions[idx] = { early: !!existing.early, guests: normalizeGuestNames(existing.guests), keep: existing };
+    if (existing && !dayOptions[idx]) dayOptions[idx] = { early: !!existing.early, guests: normalizeGuestNames(existing.guests), editing: true, savedGuests: normalizeGuestNames(existing.guests).length };
+    // Show the saved note so a blank box really means "no note"
+    const notesEl = document.getElementById('notes');
+    if (existing && existing.notes && notesEl && !notesEl.value) notesEl.value = existing.notes;
   }
   card.setAttribute('aria-pressed', selectedDays.has(idx));
   updateTimeSection();
@@ -2110,7 +2135,7 @@ function updateTimeSection() {
     }
 
     html += '<div>' +
-      '<label style="font-family:\'Jost\',sans-serif;font-size:11px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-dim);">Accommodations for ' + escapeHtml(day.day) + '</label>' +
+      '<label for="accom_' + i + '" style="font-family:\'Jost\',sans-serif;font-size:11px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-dim);">Accommodations for ' + escapeHtml(day.day) + '</label>' +
       '<input type="text" id="accom_' + i + '" value="' + escapeHtml((dayOptions[i] || {}).accommodations || '') + '" placeholder="e.g. no cheese, extra rice" style="margin-top:6px;" oninput="dayOptions[' + i + '] = dayOptions[' + i + '] || {}; dayOptions[' + i + '].accommodations = this.value;">' +
     '</div>';
 
@@ -2240,10 +2265,14 @@ async function submitSignup() {
       btn.innerHTML = 'Submit Sign-Up';
       return;
     }
-    // Editing a saved day: blank fields keep what was saved rather than erasing it
-    const kept = opts.keep || {};
-    const allNotes = [allergies, accom].filter(Boolean).join(', ') || kept.allergies || '';
-    entries.push({ dayIndex: dayIdx, day: day.day, date: day.date, meal: day.meal, time: finalTime, name, diet, allergies: allNotes, early, notes: generalNotes || kept.notes || '', guests, gradGasman });
+    const entry = { dayIndex: dayIdx, day: day.day, date: day.date, meal: day.meal, time: finalTime, name, diet, allergies: [allergies, accom].filter(Boolean).join(', '), early, notes: generalNotes, guests, gradGasman, savedGuests: opts.savedGuests || 0 };
+    // Editing a saved day: members can't see their saved diet/allergies, so leave them out
+    // unless changed here, and the server keeps what was saved
+    if (opts.editing) {
+      if (!accom) delete entry.allergies;
+      if (!_dietTouched) delete entry.diet;
+    }
+    entries.push(entry);
   }
 
   if (entries.length === 0) {
@@ -2254,7 +2283,9 @@ async function submitSignup() {
   }
 
   const memberNameVal = name;
-  const totalGuests = getEntryGuestCount(entries);
+  // Only ask about guest payment when guests were added, not on every edit
+  const totalGuests = entries.reduce((n, e) => n + Math.max(0, normalizeGuestNames(e.guests).length - (e.savedGuests || 0)), 0);
+  entries.forEach(e => { delete e.savedGuests; });
   if (totalGuests > 0) {
     const agreed = await showGuestPaymentAgreement(totalGuests);
     if (!agreed) {
@@ -2286,10 +2317,12 @@ async function submitSignup() {
       if (selectedTimes[d] && statusOf[d] !== 'full') keepTimes[d] = selectedTimes[d];
       if (dayOptions[d]) keepOpts[d] = dayOptions[d];
     });
+    sessionStorage.removeItem('delphic_meal_draft');
     delete weekCacheTs[monday]; // force fresh fetch after signup
-    await loadWeekData();
+    const selectedMonday = () => getMonday(document.getElementById('weekSelect').value);
+    if (selectedMonday() === monday) await loadWeekData();
     // Only bring choices back if the same week is still showing
-    if (currentWeekData && currentWeekData.monday === monday) {
+    if (selectedMonday() === monday && currentWeekData && currentWeekData.monday === monday) {
       keepDays.forEach(d => { if (isDayOpenForSignups(currentWeekData, d)) selectedDays.add(d); });
       selectedTimes = keepTimes;
       dayOptions = keepOpts;
@@ -2937,6 +2970,11 @@ function openSpotUpModal(monday, dayIdx, name, time) {
 }
 
 function openClaimModal(monday, dayIdx, origName, time) {
+  if (!(currentUser && currentUser.isAdmin) && !canWrite()) {
+    showToast('Sign in or enter the guest code to claim a spot', 'var(--orange)');
+    showSignIn();
+    return;
+  }
   const overlay = document.getElementById('spotupOverlay');
   document.getElementById('spotupModalTitle').textContent = 'Claim This Spot';
   document.getElementById('spotupModalSub').textContent = 'Take over ' + origName + "'s spot.";
@@ -4061,6 +4099,7 @@ function loadMoose() {
     loading.style.display = 'none';
     content.style.display = 'block';
     renderMoose();
+    applyMooseDraft();
   };
   // Show cached events immediately, refresh in the background
   if (_mooseEvents) show();
@@ -4085,6 +4124,32 @@ function renderMoose(refreshSheet) {
   const overlay = document.getElementById('mooseEventOverlay');
   if (!_mooseSheetId || !overlay || !overlay.classList.contains('show')) return;
   if (refreshSheet || !document.querySelector('#mooseEventBody #mooseEvtName')) renderMooseEventSheet();
+}
+
+function saveMooseDraft(eventId) {
+  try {
+    const val = id => { const el = document.getElementById(id); return el ? el.value : null; };
+    sessionStorage.setItem('delphic_moose_draft', JSON.stringify({
+      owner: (currentUser && currentUser.email) || '', eventId,
+      name: val('mooseEvtName'), grad: val('mooseEvtGrad'), diet: val('mooseEvtDiet'), notes: val('mooseEvtNotes'),
+      guests: Array.from(document.querySelectorAll('#mooseGuestInputs input')).map(i => i.value)
+    }));
+  } catch (e) {}
+}
+
+// Reopen an event form saved before a sign-in refresh
+function applyMooseDraft() {
+  let d = null;
+  try { d = JSON.parse(sessionStorage.getItem('delphic_moose_draft') || 'null'); } catch (e) {}
+  if (!d || !currentUser || !currentUser.email || _mooseNamesHidden) return;
+  sessionStorage.removeItem('delphic_moose_draft');
+  if (d.owner && d.owner !== currentUser.email) return;
+  if (!(_mooseEvents || []).some(e => e.eventId === d.eventId)) return;
+  openMooseEventSheet(d.eventId);
+  const set = (id, v) => { const el = document.getElementById(id); if (el && v != null) el.value = v; };
+  set('mooseEvtName', d.name); set('mooseEvtGrad', d.grad); set('mooseEvtDiet', d.diet); set('mooseEvtNotes', d.notes);
+  if (d.guests && d.guests.length && document.getElementById('mooseGuestInputs')) _renderMooseGuests(d.guests);
+  showToast('Your answers are back. Submit when ready.', 'var(--orange)');
 }
 
 function _mooseHiddenNotice() {
@@ -4492,8 +4557,9 @@ async function submitMooseSignup(eventId, inkType) {
   const errEl = document.getElementById('mooseEvtErr');
   const showErr = (msg) => { if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; } };
   if (_googleSessionExpired()) {
-    showErr('Your sign-in expired. Refreshing it now \u2014 then open the event and submit again.');
-    setTimeout(_silentReauth, 1500);
+    saveMooseDraft(eventId);
+    showErr('Your sign-in expired. Refreshing it now \u2014 your answers will be here when you\u2019re back.');
+    setTimeout(_silentReauth, 1200);
     return;
   }
   const name = ((document.getElementById('mooseEvtName') || {}).value || '').trim();

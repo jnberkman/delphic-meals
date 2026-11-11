@@ -1297,8 +1297,16 @@ const DEFAULT_TIMES = { Lunch: ['12:00 PM','1:00 PM'], Dinner: ['7:30 PM'], Brun
 //  HELPERS
 // =============================================
 function escapeHtml(str) {
-  if (!str) return '';
-  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  if (str == null || str === '') return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// Escape a value for use inside a single-quoted JS string in an inline handler attribute
+// (onclick="fn('...')"). JS-escape first, then HTML-escape so the attribute parser can't
+// turn entities back into quotes.
+function jsq(str) {
+  return escapeHtml(String(str == null ? '' : str)
+    .replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\r?\n/g, '\\n'));
 }
 
 function normalizeGuestNames(guests) {
@@ -1471,9 +1479,9 @@ function renderMySignupsSummary() {
   let html = '<div style="box-sizing:border-box;width:100%;margin-bottom:20px;padding:16px 16px;background:var(--accent-glow2);border:1px solid #8B691430;border-radius:6px;">';
   html += '<div style="font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);margin-bottom:10px;">Your Sign-Ups This Week</div>';
   myEntries.forEach(({ day, dayIdx, name, time }) => {
-    const safeTime = (time || '').replace(/'/g, "\\'");
-    const safeName = name.replace(/'/g, "\\'");
-    const safeMon = monday.replace(/'/g, "\\'");
+    const safeTime = jsq(time);
+    const safeName = jsq(name);
+    const safeMon = jsq(monday);
     const timeLabel = time === '12:00 PM' ? '12:00\u20131:00 PM' : time === '1:00 PM' ? '1:00\u20132:00 PM' : (time || '');
     html += '<div class="my-signups-row">' +
       '<span>' + escapeHtml(day.day) + ' <span style="color:var(--text-dim);">&middot;</span> ' + escapeHtml(day.meal) +
@@ -2403,9 +2411,9 @@ function renderHorizontalName(s, monday, dayIdx, slot, myName, isAdmin, claimBlo
   const canCancelSpotUp = isAdmin || !myName || origName.toLowerCase().trim() === myName;
   const canManageClaimed = isAdmin || !myName || claimedBy.toLowerCase().trim() === myName;
 
-  const safeName = s.name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-  const safeTime = (s.time || slot || '').replace(/'/g, "\\'");
-  const safeOrigName = origName.replace(/'/g, "\\'");
+  const safeName = jsq(s.name);
+  const safeTime = jsq(s.time || slot || '');
+  const safeOrigName = jsq(origName);
 
   // Determine row click action
   let rowClick = '';
@@ -2501,9 +2509,9 @@ function renderSignupItem(s, monday, dayIdx, slot, claimBlocked) {
   const origName = s.spotUpOrigName || '';
   const claimedBy = s.spotUpClaimedBy || '';
   const isGrad = s.gradGasman === true || s.gradGasman === 'true' || s.gradGasman === 'TRUE';
-  const safeName = s.name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-  const safeOrigName = origName.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-  const safeTime = (s.time || slot || '').replace(/'/g, "\\'");
+  const safeName = jsq(s.name);
+  const safeOrigName = jsq(origName);
+  const safeTime = jsq(s.time || slot || '');
 
   // Permission flags — no known identity means actions are open (guest / anonymous open-access)
   const canSpotUp = isAdmin || !myName || s.name.toLowerCase().trim() === myName;
@@ -2553,7 +2561,7 @@ function renderSignupItem(s, monday, dayIdx, slot, claimBlocked) {
     const adminClass = isAdmin ? 'can-spotup' : '';
     // Render claimed rows to show the swap, but without user-facing buttons
     let nameHtml = '<span class="name" style="' + gradNameStyle + '">' + escapeHtml(display) + '</span>' + allergyBadge;
-    let metaHtml = s.notes ? '<div class="meta">' + escapeHtml(s.notes) + '</div>' : '';
+    let metaHtml = (isAdmin || isMyRow) && s.notes ? '<div class="meta">' + escapeHtml(s.notes) + '</div>' : '';
     if (spotStatus === 'claimed') {
       nameHtml = '<span class="name" style="color:var(--green);font-weight:700;">' + escapeHtml(s.name) + '</span><span class="spotup-claimed-badge">SWAPPED</span>' + allergyBadge;
       metaHtml = '<div class="meta" style="color:var(--green);">Was: ' + escapeHtml(origName) + '</div>' + metaHtml;
@@ -2574,7 +2582,7 @@ function renderSignupItem(s, monday, dayIdx, slot, claimBlocked) {
   if (spotStatus === 'spotup') {
     return '<div class="signup-item spotup-item">' +
       '<div style="flex:1;">' +
-        '<div><span class="name" style="color:#E65100;text-decoration:line-through;opacity:.7;">' + display + '</span>' +
+        '<div><span class="name" style="color:#E65100;text-decoration:line-through;opacity:.7;">' + escapeHtml(display) + '</span>' +
         '<span class="spotup-badge">SPOT UP</span>' + allergyBadge + '</div>' +
         '<div class="meta" style="color:#E65100;">This spot is available to claim</div>' +
       '</div>' +
@@ -2593,10 +2601,10 @@ function renderSignupItem(s, monday, dayIdx, slot, claimBlocked) {
     return '<div class="signup-item claimed-item' + (isServed ? ' served-item' : '') + '" style="display:flex;align-items:center;">' +
       servedCb +
       '<div style="flex:1;">' +
-        '<div><span class="name" style="color:var(--green);font-weight:700;">' + s.name + '</span>' +
+        '<div><span class="name" style="color:var(--green);font-weight:700;">' + escapeHtml(s.name) + '</span>' +
         '<span class="spotup-claimed-badge">CLAIMED</span>' + allergyBadge + '</div>' +
-        '<div class="meta" style="color:var(--green);">Was: ' + origName + '</div>' +
-        (s.notes ? '<div class="meta">' + s.notes + '</div>' : '') +
+        '<div class="meta" style="color:var(--green);">Was: ' + escapeHtml(origName) + '</div>' +
+        ((isAdmin || isMyRow) && s.notes ? '<div class="meta">' + escapeHtml(s.notes) + '</div>' : '') +
       '</div>' +
       (canManageClaimed || isAdmin ?
         '<div style="display:flex;gap:4px;align-items:center;">' +
@@ -2614,8 +2622,8 @@ function renderSignupItem(s, monday, dayIdx, slot, claimBlocked) {
   return '<div class="signup-item ' + (canSpotUp ? 'can-spotup' : '') + (isServed ? ' served-item' : '') + '" ' + rowClick + ' style="display:flex;align-items:center;' + gradStyle + earlyRowStyle + '">' +
     servedCb +
     '<div style="flex:1;">' +
-      '<span class="name" style="' + gradNameStyle + '">' + display + '</span>' + allergyBadge +
-      (s.notes ? '<div class="meta">' + s.notes + '</div>' : '') +
+      '<span class="name" style="' + gradNameStyle + '">' + escapeHtml(display) + '</span>' + allergyBadge +
+      ((isAdmin || isMyRow) && s.notes ? '<div class="meta">' + escapeHtml(s.notes) + '</div>' : '') +
     '</div>' +
     (isAdmin ? '<button class="remove-btn" title="Remove" onclick="event.stopPropagation();removeSignup(\'' + monday + '\',' + dayIdx + ',\'' + safeName + '\',\'' + safeTime + '\')">&#215;</button>' : '') +
   '</div>';
@@ -2641,7 +2649,7 @@ function openSpotUpModal(monday, dayIdx, name, time) {
   document.getElementById('spotupModalBody').innerHTML = '<div style="font-family:\'Crimson Pro\',serif;font-size:14px;color:var(--text-dim);line-height:1.5;padding:8px 0;">This will mark the spot as open. Anyone can then claim it by entering their name.</div>';
   document.getElementById('spotupModalActions').innerHTML =
     '<button class="btn btn-secondary" onclick="closeSpotUpModal()">Cancel</button>' +
-    '<button class="btn btn-primary" style="background:#E65100;" onclick="doSpotUp(\'' + monday + '\',' + dayIdx + ',\'' + name.replace(/'/g, "\\'") + '\',\'' + time.replace(/'/g, "\\'") + '\')">Spot Up</button>';
+    '<button class="btn btn-primary" style="background:#E65100;" onclick="doSpotUp(\'' + monday + '\',' + dayIdx + ',\'' + jsq(name) + '\',\'' + jsq(time) + '\')">Spot Up</button>';
   overlay.classList.add('show');
   lockScroll();
 }
@@ -2654,11 +2662,11 @@ function openClaimModal(monday, dayIdx, origName, time) {
   document.getElementById('spotupModalBody').innerHTML =
     '<div class="field" style="margin-bottom:0;">' +
       '<label class="field-label">Your Name <span class="req">*</span></label>' +
-      '<input type="text" id="claimNameInput" placeholder="Enter your full name" value="' + prefilledName + '">' +
+      '<input type="text" id="claimNameInput" placeholder="Enter your full name" value="' + escapeHtml(prefilledName) + '">' +
     '</div>';
   document.getElementById('spotupModalActions').innerHTML =
     '<button class="btn btn-secondary" onclick="closeSpotUpModal()">Cancel</button>' +
-    '<button class="btn btn-primary" onclick="doClaimSpotUp(\'' + monday + '\',' + dayIdx + ',\'' + origName.replace(/'/g, "\\'") + '\',\'' + time.replace(/'/g, "\\'") + '\')">Claim Spot</button>';
+    '<button class="btn btn-primary" onclick="doClaimSpotUp(\'' + monday + '\',' + dayIdx + ',\'' + jsq(origName) + '\',\'' + jsq(time) + '\')">Claim Spot</button>';
   overlay.classList.add('show');
   lockScroll();
   setTimeout(() => { const el = document.getElementById('claimNameInput'); if (el) el.focus(); }, 400);
@@ -2750,10 +2758,10 @@ function openAdminSwapModal(monday, dayIdx, name, time, spotStatus, origName) {
   document.getElementById('spotupModalBody').innerHTML = bodyHtml;
 
   let actionsHtml = '<button class="btn btn-secondary" onclick="closeSpotUpModal()">Cancel</button>';
-  actionsHtml += '<button class="btn btn-primary" style="background:#5B8DEF;" onclick="doAdminSwap(\'' + monday + '\',' + dayIdx + ',\'' + name.replace(/'/g, "\\'") + '\',\'' + time.replace(/'/g, "\\'") + '\',\'' + (spotStatus||'') + '\',\'' + (origName||'').replace(/'/g, "\\'") + '\')">Assign</button>';
+  actionsHtml += '<button class="btn btn-primary" style="background:#5B8DEF;" onclick="doAdminSwap(\'' + monday + '\',' + dayIdx + ',\'' + jsq(name) + '\',\'' + jsq(time) + '\',\'' + jsq(spotStatus) + '\',\'' + jsq(origName) + '\')">Assign</button>';
   if (spotStatus === 'claimed' || spotStatus === 'spotup') {
     const restoreName = origName || name;
-    actionsHtml += '<button class="btn btn-secondary" style="margin-left:4px;" onclick="doAdminRestore(\'' + monday + '\',' + dayIdx + ',\'' + name.replace(/'/g, "\\'") + '\',\'' + time.replace(/'/g, "\\'") + '\',\'' + restoreName.replace(/'/g, "\\'") + '\',\'' + (spotStatus||'') + '\')">Restore to ' + restoreName + '</button>';
+    actionsHtml += '<button class="btn btn-secondary" style="margin-left:4px;" onclick="doAdminRestore(\'' + monday + '\',' + dayIdx + ',\'' + jsq(name) + '\',\'' + jsq(time) + '\',\'' + jsq(restoreName) + '\',\'' + jsq(spotStatus) + '\')">Restore to ' + escapeHtml(restoreName) + '</button>';
   }
   document.getElementById('spotupModalActions').innerHTML = actionsHtml;
 
@@ -3204,12 +3212,12 @@ async function loadAccessRequests() {
     badge.style.display = '';
     list.innerHTML = requests.map(r => {
       const dateStr = r.requestedAt ? new Date(r.requestedAt).toLocaleDateString() : '';
-      const safeName = (r.name || '').replace(/'/g, "\\'").replace(/</g, '&lt;').replace(/>/g, '&gt;');
-      const safeEmail = r.email.replace(/'/g, "\\'").replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const safeName = jsq(r.name || '');
+      const safeEmail = jsq(r.email);
       return '<div class="setting-row">' +
         '<div class="setting-info">' +
-          '<div class="setting-name" style="font-size:14px;">' + r.email.replace(/</g,'&lt;') + '</div>' +
-          '<div class="setting-desc">' + (r.name || 'No name provided') + (dateStr ? ' — ' + dateStr : '') + '</div>' +
+          '<div class="setting-name" style="font-size:14px;">' + escapeHtml(r.email) + '</div>' +
+          '<div class="setting-desc">' + (r.name ? escapeHtml(r.name) : 'No name provided') + (dateStr ? ' — ' + dateStr : '') + '</div>' +
         '</div>' +
         '<div style="display:flex;gap:6px;align-items:center;">' +
           '<button class="btn btn-secondary" style="width:auto;font-size:12px;padding:6px 14px;" onclick="adminApproveRequest(\'' + safeEmail + '\',\'' + safeName + '\')">Approve</button>' +
@@ -3256,7 +3264,7 @@ async function loadMembers() {
           '</div>' +
           (m.name ? '<div class="member-name">' + m.name.replace(/</g,'&lt;') + '</div>' : '') +
         '</div>' +
-        '<button class="remove-btn" onclick="adminRemoveMember(\'' + m.email.replace(/'/g,"\\'") + '\')" title="Remove member">&#x2715;</button>' +
+        '<button class="remove-btn" onclick="adminRemoveMember(\'' + jsq(m.email) + '\')" title="Remove member">&#x2715;</button>' +
       '</div>'
     ).join('');
   } catch(e) {}
@@ -3404,7 +3412,7 @@ async function loadAdminEvents() {
 
 function _adminEventRowHtml(evt) {
   const dateStr = new Date(evt.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  const safeId    = evt.eventId.replace(/'/g, "\\'");
+  const safeId    = jsq(evt.eventId);
   return '<div id="adminEvtRow_' + evt.eventId + '" style="border:1px solid var(--border);border-radius:4px;padding:12px 16px;margin-bottom:8px;background:var(--surface);">' +
     '<div style="display:flex;justify-content:space-between;align-items:center;">' +
       '<div style="min-width:0;">' +
@@ -3426,7 +3434,7 @@ function editAdminEvent(eventId) {
     if (!evt) return;
     const row = document.getElementById('adminEvtRow_' + eventId);
     if (!row) return;
-    const safeId = eventId.replace(/'/g, "\\'");
+    const safeId = jsq(eventId);
     // datetime-local wants local "YYYY-MM-DDTHH:MM"; freezeDate is stored as UTC ISO
     const fd = evt.freezeDate ? new Date(evt.freezeDate) : null;
     const freezeVal = fd && !isNaN(fd)
@@ -3692,7 +3700,7 @@ function _mooseInitials(name) {
 }
 
 function _mooseEsc(id) {
-  return String(id).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  return jsq(id);
 }
 
 function _mooseSort(list, desc) {

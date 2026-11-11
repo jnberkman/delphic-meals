@@ -75,4 +75,15 @@ function presentWeek(loaded, audience) {
   return boardWeek(loaded);
 }
 
-module.exports = { presentWeek };
+/**
+ * The name whose rows carry private fields for this viewer: a verified member's
+ * members-list name. With auto-register on, members choose that name themselves,
+ * so it proves nothing (same rule as event signups).
+ */
+function ownRowName(user, settings) {
+  if (!user || !user.isMember || !user.memberName) return '';
+  if (settings && settings.autoRegister) return '';
+  return user.memberName;
+}
+
+module.exports = { presentWeek, ownRowName };

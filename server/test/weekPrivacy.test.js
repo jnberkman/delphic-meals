@@ -86,3 +86,12 @@ test('a member sees diet and allergies on their own rows only', () => {
   assert.equal(bob.allergies, undefined);
   assert.equal(bob.diet, undefined);
 });
+
+test('own-row private fields need a verified member name and auto-register off', () => {
+  const { ownRowName } = require('../src/utils/weekView');
+  const member = { isMember: true, memberName: 'Ada Lovelace' };
+  assert.equal(ownRowName(member, { autoRegister: false }), 'Ada Lovelace');
+  assert.equal(ownRowName(member, { autoRegister: true }), '');
+  assert.equal(ownRowName({ isMember: false, memberName: 'Ada Lovelace' }, {}), '');
+  assert.equal(ownRowName(undefined, {}), '');
+});

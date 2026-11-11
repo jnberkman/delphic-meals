@@ -1212,7 +1212,7 @@ function restorePreferences() {
     if (me && ('owner' in prefs) && prefs.owner !== me) return;
     if (prefs.name) { const el = document.getElementById('memberName'); if (el && !el.value) el.value = prefs.name; }
     if (prefs.diet) { const el = document.querySelector('input[name="diet"][value="' + prefs.diet + '"]'); if (el) { el.checked = true; _dietTouched = true; } }
-    if (prefs.allergies) { const el = document.getElementById('allergies'); if (el && !el.value) { el.value = prefs.allergies; _allergiesTouched = true; } }
+    if (prefs.allergies) { const el = document.getElementById('allergies'); if (el && !el.value) el.value = prefs.allergies; }
     if (prefs.gradGasman) { const el = document.getElementById('gradGasman'); if (el) el.checked = prefs.gradGasman; }
   } catch(e) {}
 }
@@ -1246,7 +1246,12 @@ function saveMealDraft() {
     sessionStorage.setItem('delphic_meal_draft', JSON.stringify({
       owner: (currentUser && currentUser.email) || '',
       monday: currentWeekData.monday, days: [...selectedDays], times: selectedTimes,
-      opts: dayOptions, notes: document.getElementById('notes').value
+      opts: dayOptions, notes: document.getElementById('notes').value,
+      // The top of the form too: a failed refresh clears saved prefs
+      allergies: document.getElementById('allergies').value,
+      gradGasman: document.getElementById('gradGasman').checked,
+      diet: _dietTouched ? ((document.querySelector('input[name="diet"]:checked') || {}).value || '') : '',
+      allergiesTouched: _allergiesTouched
     }));
   } catch (e) {}
 }
@@ -1267,6 +1272,13 @@ function applyMealDraft(monday) {
   selectedTimes = draft.times || {};
   dayOptions = draft.opts || {};
   if (draft.notes) document.getElementById('notes').value = draft.notes;
+  if (draft.allergies != null) document.getElementById('allergies').value = draft.allergies;
+  if (draft.gradGasman != null) document.getElementById('gradGasman').checked = !!draft.gradGasman;
+  if (draft.diet) {
+    const el = document.querySelector('input[name="diet"][value="' + draft.diet + '"]');
+    if (el) { el.checked = true; _dietTouched = true; }
+  }
+  if (draft.allergiesTouched) _allergiesTouched = true;
   renderDayCards();
   updateTimeSection();
   if (selectedDays.size) showToast('Your choices are back. Check them and submit.', 'var(--orange)');
@@ -1889,7 +1901,7 @@ window.matchMedia('(min-width: 900px)').addEventListener('change', () => {
 let currentWeekData = null;
 let _weekLoadSeq = 0;
 let _dietTouched = false;      // the member picked a diet (here or in saved prefs)
-let _allergiesTouched = false; // the member typed in the top allergies box (or it came from prefs)
+let _allergiesTouched = false; // the member typed in the top allergies box on this page
 document.addEventListener('change', e => { if (e.target && e.target.name === 'diet') _dietTouched = true; });
 document.addEventListener('input', e => { if (e.target && e.target.id === 'allergies') _allergiesTouched = true; });
 let selectedDays = new Set();
@@ -4168,7 +4180,7 @@ function applyMooseDraft() {
   if (!document.getElementById('mooseEvtName')) return;
   const set = (id, v) => { const el = document.getElementById(id); if (el && v != null) el.value = v; };
   set('mooseEvtName', d.name); set('mooseEvtGrad', d.grad); set('mooseEvtDiet', d.diet); set('mooseEvtNotes', d.notes);
-  if (d.guests && d.guests.length && document.getElementById('mooseGuestInputs')) _renderMooseGuests(d.guests);
+  if (Array.isArray(d.guests) && document.getElementById('mooseGuestInputs')) _renderMooseGuests(d.guests);
   showToast('Your answers are back. Submit when ready.', 'var(--orange)');
 }
 

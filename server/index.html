@@ -1089,8 +1089,10 @@ _dialogOverlays.forEach(id => {
       setTimeout(() => {
         if (el.contains(document.activeElement)) return;
         const visible = sel => [...el.querySelectorAll(sel)].find(x => x.offsetParent !== null);
-        const first = visible('input:not([type=hidden]), .btn-primary') || visible(_FOCUSABLE);
-        if (first) first.focus();
+        const first = el.classList.contains('moose-overlay')
+          ? visible('.moose-sheet-close')
+          : (visible('input:not([type=hidden]), .btn-primary') || visible(_FOCUSABLE));
+        if (first) first.focus({ preventScroll: true });
       }, 60);
     } else {
       const back = _dialogReturn.pop();
@@ -1190,7 +1192,7 @@ function savePreferences() {
   try {
     const prefs = {
       name: document.getElementById('memberName').value.trim(),
-      diet: (document.querySelector('input[name="diet"]:checked') || {}).value || 'No Dietary Restrictions',
+      diet: _dietTouched ? ((document.querySelector('input[name="diet"]:checked') || {}).value || 'No Dietary Restrictions') : '',
       allergies: document.getElementById('allergies').value.trim(),
       gradGasman: document.getElementById('gradGasman').checked,
       owner: (currentUser && currentUser.email) || ''
@@ -1210,7 +1212,7 @@ function restorePreferences() {
     if (me && ('owner' in prefs) && prefs.owner !== me) return;
     if (prefs.name) { const el = document.getElementById('memberName'); if (el && !el.value) el.value = prefs.name; }
     if (prefs.diet) { const el = document.querySelector('input[name="diet"][value="' + prefs.diet + '"]'); if (el) { el.checked = true; _dietTouched = true; } }
-    if (prefs.allergies) { const el = document.getElementById('allergies'); if (el && !el.value) el.value = prefs.allergies; }
+    if (prefs.allergies) { const el = document.getElementById('allergies'); if (el && !el.value) { el.value = prefs.allergies; _allergiesTouched = true; } }
     if (prefs.gradGasman) { const el = document.getElementById('gradGasman'); if (el) el.checked = prefs.gradGasman; }
   } catch(e) {}
 }
@@ -1298,8 +1300,6 @@ function clearPersistedSession() {
   // The browser id owns guest event signups; the next person here shouldn't inherit them
   localStorage.removeItem('delphic_signer_id');
   localStorage.removeItem('delphic_prefs');
-  sessionStorage.removeItem('delphic_meal_draft');
-  sessionStorage.removeItem('delphic_moose_draft');
   // A signed-in roster must not survive in the week cache for the next person
   try {
     for (let i = localStorage.length - 1; i >= 0; i--) {
@@ -1663,6 +1663,11 @@ function resolveGuestPayment(accepted) {
   }
 }
 
+// Split an allergies string into trimmed, non-empty parts
+function allergyParts(str) {
+  return String(str || '').split(',').map(x => x.trim()).filter(Boolean);
+}
+
 // The name this browser signs up under (members-list name, or the name a guest last submitted)
 function mySignupName() {
   return (currentUser && currentUser.name) ? currentUser.name.toLowerCase().trim() : '';
@@ -1883,8 +1888,10 @@ window.matchMedia('(min-width: 900px)').addEventListener('change', () => {
 // =============================================
 let currentWeekData = null;
 let _weekLoadSeq = 0;
-let _dietTouched = false; // the member picked a diet on this page (or it came from their saved prefs)
+let _dietTouched = false;      // the member picked a diet (here or in saved prefs)
+let _allergiesTouched = false; // the member typed in the top allergies box (or it came from prefs)
 document.addEventListener('change', e => { if (e.target && e.target.name === 'diet') _dietTouched = true; });
+document.addEventListener('input', e => { if (e.target && e.target.id === 'allergies') _allergiesTouched = true; });
 let selectedDays = new Set();
 let selectedTimes = {};
 let dayOptions = {};
@@ -2056,10 +2063,16 @@ function toggleDay(idx) {
     // Editing an existing signup: start from what's saved
     const existing = mySignupOn(idx);
     if (existing && !selectedTimes[idx] && existing.time) selectedTimes[idx] = existing.time;
-    if (existing && !dayOptions[idx]) dayOptions[idx] = { early: !!existing.early, guests: normalizeGuestNames(existing.guests), editing: true, savedGuests: normalizeGuestNames(existing.guests).length };
-    // Show the saved note so a blank box really means "no note"
-    const notesEl = document.getElementById('notes');
-    if (existing && existing.notes && notesEl && !notesEl.value) notesEl.value = existing.notes;
+    if (existing && !dayOptions[idx]) {
+      const opts = { early: !!existing.early, guests: normalizeGuestNames(existing.guests), editing: true, savedGuests: normalizeGuestNames(existing.guests).length };
+      // Signed-in members get their own saved allergies back: show what the top box doesn't cover
+      if (existing.allergies !== undefined) {
+        const top = allergyParts(document.getElementById('allergies').value).map(a => a.toLowerCase());
+        opts.accommodations = allergyParts(existing.allergies).filter(a => !top.includes(a.toLowerCase())).join(', ');
+        opts.knowsAllergies = true;
+      }
+      dayOptions[idx] = opts;
+    }
   }
   card.setAttribute('aria-pressed', selectedDays.has(idx));
   updateTimeSection();
@@ -2265,12 +2278,16 @@ async function submitSignup() {
       btn.innerHTML = 'Submit Sign-Up';
       return;
     }
-    const entry = { dayIndex: dayIdx, day: day.day, date: day.date, meal: day.meal, time: finalTime, name, diet, allergies: [allergies, accom].filter(Boolean).join(', '), early, notes: generalNotes, guests, gradGasman, savedGuests: opts.savedGuests || 0 };
-    // Editing a saved day: members can't see their saved diet/allergies, so leave them out
-    // unless changed here, and the server keeps what was saved
+    // Top box + this day's box, without repeating an item
+    const seen = new Set();
+    const allergyText = allergyParts(allergies + ',' + accom).filter(a => !seen.has(a.toLowerCase()) && seen.add(a.toLowerCase())).join(', ');
+    const entry = { dayIndex: dayIdx, day: day.day, date: day.date, meal: day.meal, time: finalTime, name, diet, allergies: allergyText, early, notes: generalNotes, guests, gradGasman, savedGuests: opts.savedGuests || 0 };
+    // Editing a saved day: anything this page can't show stays as saved (the server keeps
+    // fields that are left out). Members see their own allergies, so theirs are sent as shown.
     if (opts.editing) {
-      if (!accom) delete entry.allergies;
+      if (!opts.knowsAllergies && !accom && !_allergiesTouched) delete entry.allergies;
       if (!_dietTouched) delete entry.diet;
+      if (!generalNotes) delete entry.notes;
     }
     entries.push(entry);
   }
@@ -4146,6 +4163,9 @@ function applyMooseDraft() {
   if (d.owner && d.owner !== currentUser.email) return;
   if (!(_mooseEvents || []).some(e => e.eventId === d.eventId)) return;
   openMooseEventSheet(d.eventId);
+  const ev = (_mooseEvents || []).find(e => e.eventId === d.eventId);
+  if (ev && _mooseMine(ev)) { _mooseEditing = true; renderMooseEventSheet(); }
+  if (!document.getElementById('mooseEvtName')) return;
   const set = (id, v) => { const el = document.getElementById(id); if (el && v != null) el.value = v; };
   set('mooseEvtName', d.name); set('mooseEvtGrad', d.grad); set('mooseEvtDiet', d.diet); set('mooseEvtNotes', d.notes);
   if (d.guests && d.guests.length && document.getElementById('mooseGuestInputs')) _renderMooseGuests(d.guests);
@@ -4162,6 +4182,9 @@ function _mooseHiddenNotice() {
 
 function mooseSignOut() {
   clearPersistedSession();
+  // Drafts outlive a failed sign-in refresh, but not an explicit sign-out
+  sessionStorage.removeItem('delphic_meal_draft');
+  sessionStorage.removeItem('delphic_moose_draft');
   // Skip open access once so the sign-in screen shows
   sessionStorage.setItem('delphic_show_signin', '1');
   location.reload();

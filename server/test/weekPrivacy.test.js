@@ -76,3 +76,13 @@ test('checkMember does not answer for a different email', async () => {
   const result = await checkMember('someone@club.org', 'Someone', '');
   assert.deepEqual(result, { authorized: false });
 });
+
+test('a member sees diet and allergies on their own rows only', () => {
+  const two = { ...loaded, signups: { 0: [loaded.signups[0][0], { ...loaded.signups[0][0], name: 'Bob Byte', allergies: 'peanut', diet: 'Vegetarian' }] } };
+  const roster = presentWeek(two, { roster: true, kitchen: false, self: ' ada lovelace ' });
+  const [ada, bob] = roster.signups['0'];
+  assert.equal(ada.allergies, 'sesame');
+  assert.equal(ada.diet, 'Vegan');
+  assert.equal(bob.allergies, undefined);
+  assert.equal(bob.diet, undefined);
+});

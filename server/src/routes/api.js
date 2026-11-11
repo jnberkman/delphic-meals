@@ -46,7 +46,9 @@ async function weekAudience(req, data) {
   const openAccess = !!(await settingsDb.getAll()).openAccess;
   return {
     roster: !!(req.user && req.user.isMember) || hasValidAccessCode(data) || openAccess,
-    kitchen: !!(req.user && req.user.isAdmin)
+    kitchen: !!(req.user && req.user.isAdmin),
+    // A verified member sees the private fields on their own rows (members-list name)
+    self: (req.user && req.user.isMember && req.user.memberName) || ''
   };
 }
 

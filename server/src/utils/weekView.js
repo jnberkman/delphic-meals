@@ -28,7 +28,8 @@ function boardWeek(loaded) {
   };
 }
 
-function rosterSignup(signup, kitchen) {
+// selfName: the verified member's own name; their rows carry diet/allergies so edits can show them
+function rosterSignup(signup, kitchen, selfName) {
   const row = {
     name: signup.name || '',
     time: signup.time,
@@ -42,17 +43,18 @@ function rosterSignup(signup, kitchen) {
     spotUpClaimedBy: signup.spotUpClaimedBy || '',
     servedStatus: signup.servedStatus || ''
   };
-  if (kitchen) {
+  const own = !!selfName && String(signup.name || '').trim().toLowerCase() === selfName;
+  if (kitchen || own) {
     row.diet = signup.diet;
     row.allergies = signup.allergies;
   }
   return row;
 }
 
-function rosterWeek(loaded, kitchen) {
+function rosterWeek(loaded, kitchen, selfName) {
   const signups = {};
   for (const dayIdx of Object.keys(loaded.signups || {})) {
-    signups[dayIdx] = (loaded.signups[dayIdx] || []).map(signup => rosterSignup(signup, kitchen));
+    signups[dayIdx] = (loaded.signups[dayIdx] || []).map(signup => rosterSignup(signup, kitchen, selfName));
   }
   return {
     monday: loaded.monday,
@@ -66,7 +68,10 @@ function rosterWeek(loaded, kitchen) {
 }
 
 function presentWeek(loaded, audience) {
-  if (audience && audience.roster) return rosterWeek(loaded, !!(audience && audience.kitchen));
+  if (audience && audience.roster) {
+    const selfName = audience.self ? String(audience.self).trim().toLowerCase() : '';
+    return rosterWeek(loaded, !!audience.kitchen, selfName);
+  }
   return boardWeek(loaded);
 }
 

@@ -72,7 +72,7 @@
   }
   input:focus, textarea:focus, select:focus { border-color: var(--accent-muted); box-shadow: 0 0 0 2px #8B691440; }
   :focus-visible { outline: 2px solid var(--accent-muted); outline-offset: 2px; }
-  input:focus-visible, textarea:focus-visible, select:focus-visible { outline: none; }
+  input[type="text"]:focus-visible, input[type="number"]:focus-visible, input[type="date"]:focus-visible, textarea:focus-visible, select:focus-visible { outline: none; }
   .option-pill input:focus-visible + .pill-label { outline: 2px solid var(--accent-muted); outline-offset: 2px; }
   textarea { resize: vertical; min-height: 72px; }
   select { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%237A8599' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
@@ -126,7 +126,7 @@
   .btn-secondary:hover { border-color: var(--border-light); background: var(--surface2); }
   .btn:disabled { opacity: .35; cursor: not-allowed; }
 
-  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--green); color: #fff; padding: 12px 24px; border-radius: 3px; font-weight: 500; font-size: 13px; z-index: 3000; transition: transform .4s cubic-bezier(.36,.66,.04,1); pointer-events: none; white-space: normal; text-align: center; line-height: 1.4; width: max-content; max-width: calc(100vw - 32px); }
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(calc(100% + 32px)); background: var(--green); color: #fff; padding: 12px 24px; border-radius: 3px; font-weight: 500; font-size: 13px; z-index: 3000; transition: transform .4s cubic-bezier(.36,.66,.04,1); pointer-events: none; white-space: normal; text-align: center; line-height: 1.4; width: max-content; max-width: calc(100vw - 32px); }
   .toast.show { transform: translateX(-50%) translateY(0); pointer-events: auto; }
   .toast-undo { background: none; border: 1px solid rgba(255,255,255,.5); color: #fff; font-family: 'Jost', sans-serif; font-size: 11px; font-weight: 500; letter-spacing: .5px; padding: 3px 10px; border-radius: 2px; cursor: pointer; margin-left: 14px; vertical-align: middle; transition: background .15s; }
   .toast-undo:hover { background: rgba(255,255,255,.15); }
@@ -373,6 +373,7 @@
   .moose-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.42); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 500; opacity: 0; pointer-events: none; visibility: hidden; transition: opacity .22s, visibility 0s .22s; display: flex; align-items: flex-end; justify-content: center; }
   .moose-overlay.show { opacity: 1; pointer-events: auto; visibility: visible; transition: opacity .22s; }
   .moose-sheet { position: relative; }
+  .moose-sheet-title, .moose-kicker { padding-right: 40px; }
   .moose-sheet-close { position: absolute; top: 8px; right: 10px; width: 36px; height: 36px; border: none; background: none; font-size: 24px; line-height: 1; color: var(--text-dim); cursor: pointer; border-radius: 50%; }
   .moose-sheet-close:hover { color: var(--text-bright); background: var(--surface2); }
   .moose-sheet { background: var(--bg); border-radius: 14px 14px 0 0; border: 1px solid var(--border); border-bottom: none; width: 100%; max-width: 520px; max-height: 86vh; overflow-y: auto; padding: 10px 20px 36px; box-shadow: 0 -8px 40px rgba(0,0,0,.15); transform: translateY(20px); transition: transform .28s cubic-bezier(.36,.66,.04,1); }
@@ -481,9 +482,9 @@
     </div>
     <div class="card">
       <div class="card-title">Your Info</div>
-      <div class="card-sub">Tell us who you are and any dietary needs</div>
+      <div class="card-sub">Allergies here go to the kitchen for every meal. Use each day&rsquo;s box for one-off requests, and General Notes for anything else.</div>
       <div class="field">
-        <label class="field-label">Name <span class="req">*</span></label>
+        <label class="field-label" for="memberName">Name <span class="req">*</span></label>
         <input type="text" id="memberName" placeholder="e.g. Robby Meek">
       </div>
       <div class="field">
@@ -498,7 +499,7 @@
         </div>
       </div>
       <div class="field">
-        <label class="field-label">Allergies / Special Accommodations</label>
+        <label class="field-label" for="allergies">Allergies / Special Accommodations</label>
         <input type="text" id="allergies" placeholder="e.g. peanut, tree nut, shellfish, dairy, no cheese">
       </div>
       <div class="field" style="margin-bottom:0;">
@@ -513,7 +514,7 @@
       <div class="card-title">Select Meals</div>
       <div class="card-sub">Pick the days you&rsquo;d like to attend. Sign-ups usually close the Friday before, at 2:00 PM ET.</div>
       <div class="field">
-        <label class="field-label">Week of (Monday)</label>
+        <label class="field-label" for="weekSelect">Week of (Monday)</label>
         <div style="display:flex;gap:8px;align-items:center;">
           <button class="btn btn-secondary" style="width:auto;padding:10px 14px;font-size:16px;" onclick="shiftWeek('weekSelect',-7,loadWeekData)" title="Previous week">&#8592;</button>
           <input type="date" id="weekSelect" style="flex:1;">
@@ -534,7 +535,7 @@
 
     <div class="card">
       <div class="field" style="margin-bottom:0;">
-        <label class="field-label">General Notes</label>
+        <label class="field-label" for="notes">General Notes</label>
         <textarea id="notes" placeholder="Other info that applies to all days"></textarea>
       </div>
     </div>
@@ -549,7 +550,7 @@
       <strong>Can&rsquo;t make a meal?</strong> Tap your name to <em>spot up</em> your seat. Anyone can then claim it here or in GroupMe, even after sign-ups close.
     </div>
     <div class="field">
-      <label class="field-label">Week of (Monday)</label>
+      <label class="field-label" for="viewWeekSelect">Week of (Monday)</label>
       <div style="display:flex;gap:8px;align-items:center;">
         <button class="btn btn-secondary" style="width:auto;padding:10px 14px;font-size:16px;" onclick="shiftWeek('viewWeekSelect',-7,loadViewData)" title="Previous week">&#8592;</button>
         <input type="date" id="viewWeekSelect" style="flex:1;">
@@ -1061,6 +1062,47 @@ async function submitAccessCode() {
   }
 }
 
+// Dialogs: focus moves in when one opens, Tab stays inside, focus returns on close
+const _dialogOverlays = ['confirmOverlay', 'guestPaymentOverlay', 'spotupOverlay', 'mooseSheetOverlay', 'mooseEventOverlay'];
+const _dialogReturn = [];
+const _FOCUSABLE = 'input:not([type=hidden]):not([disabled]), select, textarea, button:not([disabled]), a[href], [tabindex="0"]';
+function _openDialog() {
+  const open = _dialogOverlays.map(id => document.getElementById(id)).filter(el => el && el.classList.contains('show'));
+  return open.sort((a, b) => (parseInt(getComputedStyle(b).zIndex, 10) || 0) - (parseInt(getComputedStyle(a).zIndex, 10) || 0))[0] || null;
+}
+_dialogOverlays.forEach(id => {
+  const el = document.getElementById(id);
+  if (!el) return;
+  let wasOpen = false;
+  new MutationObserver(() => {
+    const isOpen = el.classList.contains('show');
+    if (isOpen === wasOpen) return;
+    wasOpen = isOpen;
+    if (isOpen) {
+      _dialogReturn.push(document.activeElement);
+      setTimeout(() => {
+        if (el.contains(document.activeElement)) return;
+        const first = el.querySelector('input:not([type=hidden]), .btn-primary') || el.querySelector(_FOCUSABLE);
+        if (first) first.focus();
+      }, 60);
+    } else {
+      const back = _dialogReturn.pop();
+      if (back && back.focus && document.contains(back) && !_openDialog()) back.focus();
+    }
+  }).observe(el, { attributes: true, attributeFilter: ['class'] });
+});
+document.addEventListener('keydown', function(e) {
+  if (e.key !== 'Tab') return;
+  const dlg = _openDialog();
+  if (!dlg) return;
+  const items = [...dlg.querySelectorAll(_FOCUSABLE)].filter(x => x.offsetParent !== null);
+  if (!items.length) return;
+  const first = items[0], last = items[items.length - 1];
+  if (!dlg.contains(document.activeElement)) { e.preventDefault(); first.focus(); }
+  else if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+});
+
 // Div-based controls (day cards, time chips, roster rows, Moose rows) act like buttons
 document.addEventListener('keydown', function(e) {
   if (e.key !== 'Enter' && e.key !== ' ') return;
@@ -1103,12 +1145,17 @@ function prefillName(name) {
 }
 
 // "Signed in as …" line, sign-out, and the browse-only notice for open access
+// Can this session write (Google member or guest code)? Open access alone only browses.
+function canWrite() {
+  return !!(currentUser && (currentUser.email || sessionStorage.getItem('delphic_access_code')));
+}
+
 function renderWhoAmI() {
   const el = document.getElementById('whoAmI');
   const banner = document.getElementById('browseOnlyBanner');
   if (!el) return;
   const u = currentUser;
-  const canSubmit = !!(u && (u.email || sessionStorage.getItem('delphic_access_code')));
+  const canSubmit = canWrite();
   if (banner) banner.style.display = u && !canSubmit ? 'block' : 'none';
   if (!u) { el.style.display = 'none'; return; }
   let who;
@@ -1149,7 +1196,7 @@ function restorePreferences() {
     const prefs = JSON.parse(raw);
     // Saved by a different Google account on this browser
     const me = (currentUser && currentUser.email) || '';
-    if (me && prefs.owner !== me) return;
+    if (me && prefs.owner && prefs.owner !== me) return;
     if (prefs.name) { const el = document.getElementById('memberName'); if (el && !el.value) el.value = prefs.name; }
     if (prefs.diet) { const el = document.querySelector('input[name="diet"][value="' + prefs.diet + '"]'); if (el) el.checked = true; }
     if (prefs.allergies) { const el = document.getElementById('allergies'); if (el && !el.value) el.value = prefs.allergies; }
@@ -1176,9 +1223,37 @@ document.addEventListener('visibilitychange', function() {
   if (document.visibilityState !== 'visible' || !_googleSessionExpired()) return;
   const drafting = (typeof selectedDays !== 'undefined' && selectedDays.size > 0) ||
     !!document.querySelector('.moose-overlay.show #mooseEvtName');
-  if (drafting) showToast('Your sign-in expired \u2014 it will refresh when you submit', 'var(--orange)');
+  if (drafting) showToast('Your sign-in expired. It will refresh when you submit; your choices are kept.', 'var(--orange)');
   else _silentReauth();
 });
+
+function saveMealDraft() {
+  try {
+    if (!currentWeekData || !selectedDays.size) return;
+    sessionStorage.setItem('delphic_meal_draft', JSON.stringify({
+      monday: currentWeekData.monday, days: [...selectedDays], times: selectedTimes,
+      opts: dayOptions, notes: document.getElementById('notes').value
+    }));
+  } catch (e) {}
+}
+
+function pendingMealDraft() {
+  try { return JSON.parse(sessionStorage.getItem('delphic_meal_draft') || 'null'); } catch (e) { return null; }
+}
+
+// Put a draft saved before a sign-in refresh back on the form (signed-in roster only)
+function applyMealDraft(monday) {
+  const draft = pendingMealDraft();
+  if (!draft || draft.monday !== monday || !currentWeekData || currentWeekData.roster === false) return;
+  sessionStorage.removeItem('delphic_meal_draft');
+  draft.days.forEach(d => { if (isDayOpenForSignups(currentWeekData, d)) selectedDays.add(d); });
+  selectedTimes = draft.times || {};
+  dayOptions = draft.opts || {};
+  if (draft.notes) document.getElementById('notes').value = draft.notes;
+  renderDayCards();
+  updateTimeSection();
+  if (selectedDays.size) showToast('You\u2019re signed in again. Check your choices and submit.', 'var(--orange)');
+}
 
 function _silentReauth() {
   const nonce = crypto.getRandomValues(new Uint32Array(4)).join('');
@@ -1253,14 +1328,14 @@ function clearPersistedSession() {
 
     // A guest who reloads keeps access for this tab, if the code still works
     const guestCode = sessionStorage.getItem('delphic_access_code');
-    if (stored && guestCode && !sessionToken) {
+    if (stored && guestCode) {
       let guestUser = null;
       try { guestUser = JSON.parse(stored); } catch (e) {}
       if (guestUser && guestUser.guest) {
-        try {
-          const check = await apiCall('checkAccessCode', { code: guestCode });
-          if (check.valid) { grantAccess(guestUser); return; }
-        } catch (e) {}
+        let check = null;
+        try { check = await apiCall('checkAccessCode', { code: guestCode }); } catch (e) {}
+        // Offline: keep the guest in; the server still checks the code on every write
+        if (!check || check.valid) { grantAccess(guestUser); return; }
         sessionStorage.removeItem('delphic_access_code');
       }
     }
@@ -1379,6 +1454,12 @@ function applyWeekCaps(week) {
 
 function refreshSignedInWeeks() {
   weekCacheTs = {};
+  // Settings were only read on a signed-out first load; restored sessions need them too
+  apiCall('getSettings').then(res => {
+    const st = (res && res.settings) || {};
+    const on = !(st.spotUpEnabled === false || String(st.spotUpEnabled).toUpperCase() === 'FALSE');
+    if (on !== spotUpEnabled) { spotUpEnabled = on; if (currentWeekData) renderDayCards(); if (viewEnabledDays.length) loadViewData(); }
+  }).catch(() => {});
   const weekInput = document.getElementById('weekSelect');
   if (weekInput && weekInput.value) loadWeekData();
   const viewInput = document.getElementById('viewWeekSelect');
@@ -1532,8 +1613,6 @@ function showConfirmation(name, daysList, count, wasUpdate, isEvent, note) {
 
   overlay.classList.add('show');
   lockScroll();
-  const btn = overlay.querySelector('.confirm-btn');
-  if (btn) btn.focus();
 }
 
 function closeConfirm() {
@@ -1724,6 +1803,9 @@ async function apiCall(action, data = {}) {
       console.error('Non-JSON response:', text.substring(0, 300));
       throw new Error('Server returned invalid response');
     }
+    if (result.error === 'Authentication required' && currentUser && currentUser.email) {
+      result.error = 'Your sign-in expired. Refresh the page to sign in again.';
+    }
     if (result.error) { showToast('Error: ' + result.error, 'var(--red)'); const err = new Error(result.error); err._toastShown = true; throw err; }
     return result;
   } catch (e) {
@@ -1736,6 +1818,11 @@ async function apiCall(action, data = {}) {
 // =============================================
 //  TABS
 // =============================================
+function switchTab(id) {
+  const tab = document.querySelector('.tab[data-tab="' + id + '"]');
+  if (tab) { tab.click(); window.scrollTo(0, 0); }
+}
+
 document.querySelectorAll('.tab').forEach(t => {
   t.addEventListener('click', () => {
     const id = t.dataset.tab;
@@ -1782,6 +1869,7 @@ let selectedTimes = {};
 let dayOptions = {};
 
 async function loadWeekData(autoAdvance) {
+  const seq = ++_weekLoadSeq;
   const weekInput = document.getElementById('weekSelect').value;
   if (!weekInput) return;
   const monday = getMonday(weekInput);
@@ -1806,12 +1894,11 @@ async function loadWeekData(autoAdvance) {
   if (weekCacheTs[monday] && Date.now() - weekCacheTs[monday] < 60000 && weekMatchesSession(weekCache[monday])) {
     document.getElementById('loadingDays').style.display = 'none';
     if (autoAdvance && currentWeekData && currentWeekData.config.every(d => !d.enabled)) {
-      return advanceToNextActiveWeek(monday);
+      return advanceToNextActiveWeek(monday, seq);
     }
     return;
   }
 
-  const seq = ++_weekLoadSeq;
   try {
     const result = await apiCall('getWeek', { monday });
     // A newer week was picked while this one loaded
@@ -1824,10 +1911,12 @@ async function loadWeekData(autoAdvance) {
     currentWeekData = result;
     applyWeekCaps(result);
     renderDayCards();
+    applyMealDraft(monday);
   } catch (e) {
     if (seq !== _weekLoadSeq) return;
     if (!cachedWeek) {
       currentWeekData = null;
+      document.getElementById('mySignupsSummary').innerHTML = '';
       document.getElementById('dayCards').innerHTML = loadErrorHtml('Couldn\u2019t load this week\u2019s meals.', 'loadWeekData()');
     }
   }
@@ -1835,11 +1924,11 @@ async function loadWeekData(autoAdvance) {
 
   // If all meals are off this week, auto-advance to next week with meals
   if (autoAdvance && currentWeekData && currentWeekData.config.every(d => !d.enabled)) {
-    return advanceToNextActiveWeek(monday);
+    return advanceToNextActiveWeek(monday, seq);
   }
 }
 
-async function advanceToNextActiveWeek(fromMonday) {
+async function advanceToNextActiveWeek(fromMonday, seq) {
   // Look ahead up to 4 weeks for a week with at least one meal enabled
   const d = new Date(fromMonday + 'T12:00:00');
   for (let i = 0; i < 4; i++) {
@@ -1847,6 +1936,7 @@ async function advanceToNextActiveWeek(fromMonday) {
     const nextMonday = d.toISOString().slice(0, 10);
     try {
       const result = await apiCall('getWeek', { monday: nextMonday });
+      if (seq !== _weekLoadSeq) return; // the member picked a week meanwhile
       if (!rememberWeek(nextMonday, result)) continue;
       if (result.config.some(day => day.enabled)) {
         document.getElementById('weekSelect').value = nextMonday;
@@ -1916,13 +2006,14 @@ function renderDayCards() {
 
     const menuPreview = day.menu ? (day.menu.length > 32 ? day.menu.slice(0, 32) + '\u2026' : day.menu) : '';
     const blocked = isFull || isClosed;
+    if (blocked) selectedDays.delete(i);
     const picked = !blocked && selectedDays.has(i);
     html += '<div class="day-card ' + (blocked ? 'full' : '') + (picked ? ' selected' : '') + '" data-day="' + i + '"' +
       (blocked ? ' aria-disabled="true"' : ' role="button" tabindex="0" aria-pressed="' + picked + '" onclick="toggleDay(' + i + ')"') + '>' +
       '<div class="day-meal">' + escapeHtml(day.meal) + '</div>' +
       '<div class="day-name">' + escapeHtml(day.day) + '</div>' +
       '<div class="day-date">' + new Date(day.date + 'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}) + '</div>' +
-      (menuPreview ? '<div class="day-menu-preview">' + menuPreview + '</div>' : '') +
+      (menuPreview ? '<div class="day-menu-preview">' + escapeHtml(menuPreview) + '</div>' : '') +
       '<div class="day-spots ' + spotsClass + '">' + spotsText + '</div>' +
     '</div>';
   });
@@ -1943,7 +2034,7 @@ function toggleDay(idx) {
     // Editing an existing signup: start from what's saved
     const existing = mySignupOn(idx);
     if (existing && !selectedTimes[idx] && existing.time) selectedTimes[idx] = existing.time;
-    if (existing && !dayOptions[idx]) dayOptions[idx] = { early: !!existing.early };
+    if (existing && !dayOptions[idx]) dayOptions[idx] = { early: !!existing.early, guests: normalizeGuestNames(existing.guests), keep: existing };
   }
   card.setAttribute('aria-pressed', selectedDays.has(idx));
   updateTimeSection();
@@ -2097,7 +2188,8 @@ async function submitSignup() {
   if (selectedDays.size === 0) { showToast('Please select at least one day', 'var(--red)'); return; }
   savePreferences();
   if (_googleSessionExpired()) {
-    // Google tokens last about an hour; refresh before the server rejects the signup
+    // Google tokens last about an hour; keep the draft, refresh, then let them resubmit
+    saveMealDraft();
     showToast('Refreshing your sign-in\u2026', 'var(--orange)');
     _silentReauth();
     return;
@@ -2148,8 +2240,10 @@ async function submitSignup() {
       btn.innerHTML = 'Submit Sign-Up';
       return;
     }
-    const allNotes = [allergies, accom].filter(Boolean).join(', ');
-    entries.push({ dayIndex: dayIdx, day: day.day, date: day.date, meal: day.meal, time: finalTime, name, diet, allergies: allNotes, early, notes: generalNotes, guests, gradGasman });
+    // Editing a saved day: blank fields keep what was saved rather than erasing it
+    const kept = opts.keep || {};
+    const allNotes = [allergies, accom].filter(Boolean).join(', ') || kept.allergies || '';
+    entries.push({ dayIndex: dayIdx, day: day.day, date: day.date, meal: day.meal, time: finalTime, name, diet, allergies: allNotes, early, notes: generalNotes || kept.notes || '', guests, gradGasman });
   }
 
   if (entries.length === 0) {
@@ -2188,13 +2282,19 @@ async function submitSignup() {
     const keep = new Set(entries.filter(e => !saved.includes(e)).map(e => e.dayIndex));
     const keepDays = new Set([...selectedDays].filter(d => keep.has(d)));
     const keepTimes = {}, keepOpts = {};
-    keepDays.forEach(d => { if (selectedTimes[d]) keepTimes[d] = selectedTimes[d]; if (dayOptions[d]) keepOpts[d] = dayOptions[d]; });
+    keepDays.forEach(d => {
+      if (selectedTimes[d] && statusOf[d] !== 'full') keepTimes[d] = selectedTimes[d];
+      if (dayOptions[d]) keepOpts[d] = dayOptions[d];
+    });
     delete weekCacheTs[monday]; // force fresh fetch after signup
     await loadWeekData();
-    keepDays.forEach(d => { if (isDayOpenForSignups(currentWeekData, d)) selectedDays.add(d); });
-    selectedTimes = keepTimes;
-    dayOptions = keepOpts;
-    if (selectedDays.size) { renderDayCards(); updateTimeSection(); }
+    // Only bring choices back if the same week is still showing
+    if (currentWeekData && currentWeekData.monday === monday) {
+      keepDays.forEach(d => { if (isDayOpenForSignups(currentWeekData, d)) selectedDays.add(d); });
+      selectedTimes = keepTimes;
+      dayOptions = keepOpts;
+      if (selectedDays.size) { renderDayCards(); updateTimeSection(); }
+    }
   } catch (e) {
     // already toasted
   }
@@ -2237,7 +2337,7 @@ function _applyViewData(data, preserveIdx) {
   viewSeats = data.roster === false ? (data.seats || {}) : null;
   viewWeekData = data;
   const spotInfo = document.getElementById('spotUpInfoBanner');
-  if (spotInfo) spotInfo.style.display = (spotUpEnabled && data.roster !== false) ? 'block' : 'none';
+  if (spotInfo) spotInfo.style.display = (spotUpEnabled && data.roster !== false && canWrite()) ? 'block' : 'none';
   const config = data.config || [];
   const signups = data.signups || {};
   const newEnabled = config
@@ -2275,6 +2375,7 @@ function _applyViewData(data, preserveIdx) {
 }
 
 async function loadViewData(autoAdvance) {
+  const seq = ++_viewLoadSeq;
   const weekInput = document.getElementById('viewWeekSelect').value;
   const nav = document.getElementById('viewDayNav');
   if (!weekInput) {
@@ -2301,7 +2402,7 @@ async function loadViewData(autoAdvance) {
     if (autoAdvance) {
       const weekData = cached || weekCache[monday];
       if (weekData && weekData.config.every(d => !d.enabled)) {
-        return advanceViewToNextActiveWeek(monday);
+        return advanceViewToNextActiveWeek(monday, seq);
       }
     }
     return;
@@ -2309,7 +2410,6 @@ async function loadViewData(autoAdvance) {
 
   // Fetch fresh data in background (stale-while-revalidate)
   let freshData = null;
-  const seq = ++_viewLoadSeq;
   try {
     const data = await apiCall('getWeek', { monday });
     if (seq !== _viewLoadSeq) return; // a newer week was picked meanwhile
@@ -2333,18 +2433,19 @@ async function loadViewData(autoAdvance) {
   if (autoAdvance) {
     const weekData = freshData || cached;
     if (weekData && weekData.config.every(d => !d.enabled)) {
-      return advanceViewToNextActiveWeek(monday);
+      return advanceViewToNextActiveWeek(monday, seq);
     }
   }
 }
 
-async function advanceViewToNextActiveWeek(fromMonday) {
+async function advanceViewToNextActiveWeek(fromMonday, seq) {
   const d = new Date(fromMonday + 'T12:00:00');
   for (let i = 0; i < 4; i++) {
     d.setDate(d.getDate() + 7);
     const nextMonday = d.toISOString().slice(0, 10);
     try {
       const result = await apiCall('getWeek', { monday: nextMonday });
+      if (seq !== _viewLoadSeq) return;
       if (!rememberWeek(nextMonday, result)) continue;
       if (result.config.some(day => day.enabled)) {
         document.getElementById('viewWeekSelect').value = nextMonday;
@@ -2377,8 +2478,7 @@ function renderViewDay(idx) {
   const lbl = document.getElementById('viewDayLabel');
   if (lbl) lbl.textContent = day.day + ' \u2014 ' + day.meal;
 
-  const myName = (currentUser && currentUser.name && !currentUser.guest)
-    ? currentUser.name.toLowerCase().trim() : '';
+  const myName = mySignupName();
   // Dinner spot-ups are only for members not already on that night's list (server enforces too)
   const dinnerClaimBlocked = !!myName && !(currentUser && currentUser.isAdmin) && /dinner/i.test(day.functionsAs || day.meal || '') &&
     sups.some(s => s.name && s.name.toLowerCase().trim() === myName);
@@ -2475,8 +2575,7 @@ function renderViewDay(idx) {
 
 function renderHorizontalView() {
   if (!viewEnabledDays || viewEnabledDays.length === 0) return;
-  const myName = (currentUser && currentUser.name && !currentUser.guest)
-    ? currentUser.name.toLowerCase().trim() : '';
+  const myName = mySignupName();
   const isAdmin = !!(currentUser && currentUser.isAdmin);
 
   let html = '<div class="view-day-grid">';
@@ -2498,6 +2597,7 @@ function renderHorizontalView() {
       '<div class="view-day-col-meal">' + escapeHtml(day.meal) + '</div>' +
       '<div class="view-day-col-date">' + new Date(day.date + 'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}) + '</div>' +
       '<span class="view-day-col-count" style="background:' + countBg + ';color:' + countColor + ';">' + dayCount + '&thinsp;/&thinsp;' + maxTotal + '</span>' +
+      (viewWeekData && !isDayOpenForSignups(viewWeekData, i) ? ' <span class="tag tag-red" style="font-size:9px;">CLOSED</span>' : '') +
       (day.menu ? '<div class="view-day-col-menu" title="' + escapeHtml(day.menu) + '">' + escapeHtml(day.menu) + '</div>' : '') +
     '</div>';
 
@@ -2588,9 +2688,10 @@ function renderHorizontalName(s, monday, dayIdx, slot, myName, isAdmin, claimBlo
   let displayName = s.name;
   if (spotStatus === 'claimed' && claimedBy) displayName = claimedBy;
 
-  const canSpotUp = isAdmin || !myName || s.name.toLowerCase().trim() === myName;
-  const canCancelSpotUp = isAdmin || !myName || origName.toLowerCase().trim() === myName;
-  const canManageClaimed = isAdmin || !myName || claimedBy.toLowerCase().trim() === myName;
+  const canAct = isAdmin || canWrite();
+  const canSpotUp = canAct && (isAdmin || !myName || s.name.toLowerCase().trim() === myName);
+  const canCancelSpotUp = canAct && (isAdmin || !myName || origName.toLowerCase().trim() === myName);
+  const canManageClaimed = canAct && (isAdmin || !myName || claimedBy.toLowerCase().trim() === myName);
 
   const safeName = jsq(s.name);
   const safeTime = jsq(s.time || slot || '');
@@ -2683,8 +2784,7 @@ function renderSignupItem(s, monday, dayIdx, slot, claimBlocked) {
   // Resolve identity + permissions
   const isAdmin = !!(currentUser && currentUser.isAdmin);
   // myName is set for any user with a known name (Google sign-in OR named open-access)
-  const myName = (currentUser && currentUser.name && !currentUser.guest)
-    ? currentUser.name.toLowerCase().trim() : '';
+  const myName = mySignupName();
 
   const spotStatus = s.spotUpStatus || '';
   const origName = s.spotUpOrigName || '';
@@ -2695,9 +2795,10 @@ function renderSignupItem(s, monday, dayIdx, slot, claimBlocked) {
   const safeTime = jsq(s.time || slot || '');
 
   // Permission flags — no known identity means actions are open (guest / anonymous open-access)
-  const canSpotUp = isAdmin || !myName || s.name.toLowerCase().trim() === myName;
-  const canCancelSpotUp = isAdmin || !myName || origName.toLowerCase().trim() === myName;
-  const canManageClaimed = isAdmin || !myName || claimedBy.toLowerCase().trim() === myName;
+  const canAct = isAdmin || canWrite();
+  const canSpotUp = canAct && (isAdmin || !myName || s.name.toLowerCase().trim() === myName);
+  const canCancelSpotUp = canAct && (isAdmin || !myName || origName.toLowerCase().trim() === myName);
+  const canManageClaimed = canAct && (isAdmin || !myName || claimedBy.toLowerCase().trim() === myName);
 
   const isMyRow = !!myName && s.name.toLowerCase().trim() === myName;
 
@@ -3760,7 +3861,7 @@ function snapToMonday(inputId, callback) {
 // Admin tab visibility is handled by handleGoogleSignIn / session restore above
 
 // Set defaults
-const signupMon = getSignupMonday();
+const signupMon = (pendingMealDraft() || {}).monday || getSignupMonday();
 const viewMon = getViewMonday();
 const adminMon = getCurrentMonday();
 document.getElementById('weekSelect').value = signupMon;
@@ -3771,7 +3872,7 @@ snapToMonday('weekSelect', loadWeekData);
 snapToMonday('viewWeekSelect', loadViewData);
 snapToMonday('adminWeekSelect', renderAdminWeek);
 
-loadWeekData(true);
+loadWeekData(!pendingMealDraft());
 loadViewData(true); // prefetch so View tab renders instantly on first click
 if (currentUser && currentUser.isAdmin) { switchAdminPanel('week'); loadAccessRequests(); }
 
@@ -4019,7 +4120,10 @@ function renderMooseList() {
 
   let html = '';
   if (_mooseNamesHidden) html += '<div class="moose-empty" style="padding:14px 18px;text-align:left;"><div class="moose-empty-sub">' + _mooseHiddenNotice() + '</div></div>';
-  if (upcoming.length) {
+  if (_mooseLoadFailed && !upcoming.length && !past.length) {
+    html += '<div class="moose-empty" role="alert"><div class="moose-empty-title">Couldn\u2019t load events</div>' +
+      '<div class="moose-empty-sub"><button class="moose-link" onclick="_mooseEvents=null;loadMoose()">Try again</button></div></div>';
+  } else if (upcoming.length) {
     html += '<div class="moose-list">' + upcoming.map(ev => _mooseRowHtml(ev, "openMooseEventSheet('" + _mooseEsc(ev.eventId) + "')")).join('') + '</div>';
   } else if (_mooseFilter === 'mine' && _mooseNamesHidden) {
     // The notice above explains why your signups can't be shown
@@ -4029,9 +4133,6 @@ function renderMooseList() {
   } else if (_mooseFilter === 'mine') {
     html += '<div class="moose-empty"><div class="moose-empty-title">You’re not signed up for anything yet</div>' +
       '<div class="moose-empty-sub">Events you’re going to or interested in show up here. <button class="moose-link" onclick="setMooseFilter(\'all\')">See all events</button></div></div>';
-  } else if (_mooseLoadFailed) {
-    html += '<div class="moose-empty" role="alert"><div class="moose-empty-title">Couldn\u2019t load events</div>' +
-      '<div class="moose-empty-sub"><button class="moose-link" onclick="_mooseEvents=null;loadMoose()">Try again</button></div></div>';
   } else {
     html += '<div class="moose-empty"><div class="moose-empty-title">Nothing on the calendar yet</div>' +
       '<div class="moose-empty-sub">When the club posts an event, you’ll be able to sign up here.</div></div>';
@@ -4390,6 +4491,11 @@ function copyMooseNames(eventId) {
 async function submitMooseSignup(eventId, inkType) {
   const errEl = document.getElementById('mooseEvtErr');
   const showErr = (msg) => { if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; } };
+  if (_googleSessionExpired()) {
+    showErr('Your sign-in expired. Refreshing it now \u2014 then open the event and submit again.');
+    setTimeout(_silentReauth, 1500);
+    return;
+  }
   const name = ((document.getElementById('mooseEvtName') || {}).value || '').trim();
   if (!name) {
     document.getElementById('mooseAsLine') && (document.getElementById('mooseAsLine').style.display = 'none');

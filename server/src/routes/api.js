@@ -11,6 +11,7 @@ const eventsHandler = require('../handlers/events');
 const config = require('../config');
 const { hasValidAccessCode } = require('../middleware/auth');
 const settingsDb = require('../db/queries/settings');
+const { ownRowName } = require('../utils/weekView');
 
 // Who is calling, for the events handlers (see handlers/events.js). Google identity
 // comes from the verified token; the guest id is a random id the browser keeps,
@@ -43,10 +44,11 @@ function mealActor(req) {
 }
 
 async function weekAudience(req, data) {
-  const openAccess = !!(await settingsDb.getAll()).openAccess;
+  const settings = await settingsDb.getAll();
   return {
-    roster: !!(req.user && req.user.isMember) || hasValidAccessCode(data) || openAccess,
-    kitchen: !!(req.user && req.user.isAdmin)
+    roster: !!(req.user && req.user.isMember) || hasValidAccessCode(data) || !!settings.openAccess,
+    kitchen: !!(req.user && req.user.isAdmin),
+    self: ownRowName(req.user, settings)
   };
 }
 

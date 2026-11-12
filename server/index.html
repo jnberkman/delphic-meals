@@ -423,7 +423,7 @@
 
 <div class="signin-overlay" id="signinOverlay">
   <div class="signin-modal">
-    <button type="button" id="signinBack" class="moose-link" style="display:none;margin-bottom:18px;" onclick="document.getElementById('signinOverlay').style.display='none'">&larr; Back</button>
+    <button type="button" id="signinBack" class="moose-link" style="display:none;margin:0 auto 18px;" onclick="document.getElementById('signinOverlay').style.display='none'">&larr; Back</button>
     <div class="header-badge">Members Only</div>
     <div class="signin-logo">Delphic Club<br>Meal Sign-Ups</div>
     <div class="header-rule" style="margin:16px auto 20px;"></div>
@@ -1183,7 +1183,7 @@ function showSignIn() {
   closeMooseEventSheet();
   closeMooseSheet();
   const back = document.getElementById('signinBack');
-  if (back) back.style.display = currentUser ? '' : 'none';
+  if (back) back.style.display = currentUser ? 'block' : 'none';
   overlay.style.display = '';
 }
 

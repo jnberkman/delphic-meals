@@ -631,19 +631,19 @@
           <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);margin-bottom:10px;">Default Slot Capacities</div>
           <div style="display:flex;gap:16px;flex-wrap:wrap;">
             <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);">
-              11:30 AM <input type="number" id="cap1130" value="45" min="1" style="width:72px;text-align:center;" onchange="saveCaps()">
+              11:30 AM <input type="number" id="cap1130" value="35" min="1" style="width:72px;text-align:center;" onchange="saveCaps()">
             </label>
             <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);">
-              12:00 PM <input type="number" id="cap12" value="45" min="1" style="width:72px;text-align:center;" onchange="saveCaps()">
+              12:00 PM <input type="number" id="cap12" value="35" min="1" style="width:72px;text-align:center;" onchange="saveCaps()">
             </label>
             <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);">
-              12:30 PM <input type="number" id="cap1230" value="45" min="1" style="width:72px;text-align:center;" onchange="saveCaps()">
+              12:30 PM <input type="number" id="cap1230" value="35" min="1" style="width:72px;text-align:center;" onchange="saveCaps()">
             </label>
             <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);">
-              1:00 PM <input type="number" id="cap1" value="45" min="1" style="width:72px;text-align:center;" onchange="saveCaps()">
+              1:00 PM <input type="number" id="cap1" value="35" min="1" style="width:72px;text-align:center;" onchange="saveCaps()">
             </label>
             <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);">
-              1:30 PM <input type="number" id="cap130" value="45" min="1" style="width:72px;text-align:center;" onchange="saveCaps()">
+              1:30 PM <input type="number" id="cap130" value="35" min="1" style="width:72px;text-align:center;" onchange="saveCaps()">
             </label>
             <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);">
               Dinner <input type="number" id="capDinner" value="90" min="1" style="width:72px;text-align:center;" onchange="saveCaps()">
@@ -1214,7 +1214,7 @@ function clearPersistedSession() {
 })();
 
 // Capacity defaults (will be overridden by sheet config when available)
-let caps = { slot1130: 45, slot12: 45, slot1230: 45, slot1: 45, slot130: 45, dinner: 90, guestLimitPerSignup: 0 };
+let caps = { slot1130: 35, slot12: 35, slot1230: 35, slot1: 35, slot130: 35, dinner: 90, guestLimitPerSignup: 0 };
 let weekCache = {};    // monday => {config, signups}
 let weekCacheTs = {};  // monday => timestamp of last fetch
 let spotUpEnabled = true; // controlled by admin Settings toggle
@@ -1314,7 +1314,7 @@ function slotLabel(time, day, short) {
 }
 
 function applyLunchCaps(src) {
-  LUNCH_SLOTS.forEach(sl => { caps[sl.cap] = (src && src[sl.cap]) || 45; });
+  LUNCH_SLOTS.forEach(sl => { caps[sl.cap] = (src && src[sl.cap]) || 35; });
 }
 
 (function() {
@@ -1570,7 +1570,7 @@ function getCapForSlot(slot, dayConfig) {
 }
 
 function saveCaps() {
-  LUNCH_SLOTS.forEach(sl => { caps[sl.cap] = parseInt(document.getElementById(sl.input).value) || 45; });
+  LUNCH_SLOTS.forEach(sl => { caps[sl.cap] = parseInt(document.getElementById(sl.input).value) || 35; });
   caps.dinner = parseInt(document.getElementById('capDinner').value) || 90;
   caps.guestLimitPerSignup = Math.max(0, parseInt((document.getElementById('guestLimitPerSignup') || {}).value || '0', 10) || 0);
   if (adminWeekData) {

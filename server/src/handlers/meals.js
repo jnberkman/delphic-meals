@@ -33,7 +33,7 @@ function getCapForEntry(weekCfg, caps, dayIdx, timeStr) {
   }
 
   const weekCaps = (weekCfg && weekCfg.caps) || {};
-  const capFor = key => caps[key] || weekCaps[key] || 50;
+  const capFor = key => caps[key] || weekCaps[key] || DEFAULT_CAPS[key] || 50;
 
   if (timeStr === '7:30 PM') return capFor('dinner');
   const lunch = getLunchSlot(timeStr);

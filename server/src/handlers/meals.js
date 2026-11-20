@@ -1,6 +1,6 @@
 const weeksDb = require('../db/queries/weeks');
 const signupsDb = require('../db/queries/signups');
-const { normalizeTime } = require('../utils/time');
+const { normalizeTime, getLunchSlot } = require('../utils/time');
 const { buildDefaultConfig, DEFAULT_CAPS } = require('../utils/weekHelpers');
 const mealFreeze = require('../utils/mealFreeze');
 const { presentWeek } = require('../utils/weekView');
@@ -32,13 +32,12 @@ function getCapForEntry(weekCfg, caps, dayIdx, timeStr) {
     return Number(customSlot.cap);
   }
 
-  const capSlot12 = caps.slot12 || weekCfg.caps.slot12 || 50;
-  const capSlot1 = caps.slot1 || weekCfg.caps.slot1 || 50;
-  const capDinner = caps.dinner || weekCfg.caps.dinner || 50;
+  const weekCaps = (weekCfg && weekCfg.caps) || {};
+  const capFor = key => caps[key] || weekCaps[key] || 50;
 
-  if (timeStr === '1:00 PM') return capSlot1;
-  if (timeStr === '7:30 PM') return capDinner;
-  return capSlot12;
+  if (timeStr === '7:30 PM') return capFor('dinner');
+  const lunch = getLunchSlot(timeStr);
+  return capFor(lunch ? lunch.cap : 'slot12');
 }
 
 function getGuestLimitPerSignup(weekCfg, caps) {

@@ -630,10 +630,19 @@
           <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);margin-bottom:10px;">Default Slot Capacities</div>
           <div style="display:flex;gap:16px;flex-wrap:wrap;">
             <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);">
+              11:30 AM <input type="number" id="cap1130" value="45" min="1" style="width:60px;text-align:center;" onchange="saveCaps()">
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);">
               12:00 PM <input type="number" id="cap12" value="45" min="1" style="width:60px;text-align:center;" onchange="saveCaps()">
             </label>
             <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);">
+              12:30 PM <input type="number" id="cap1230" value="45" min="1" style="width:60px;text-align:center;" onchange="saveCaps()">
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);">
               1:00 PM <input type="number" id="cap1" value="45" min="1" style="width:60px;text-align:center;" onchange="saveCaps()">
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);">
+              1:30 PM <input type="number" id="cap130" value="45" min="1" style="width:60px;text-align:center;" onchange="saveCaps()">
             </label>
             <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);">
               Dinner <input type="number" id="capDinner" value="90" min="1" style="width:60px;text-align:center;" onchange="saveCaps()">
@@ -1204,7 +1213,7 @@ function clearPersistedSession() {
 })();
 
 // Capacity defaults (will be overridden by sheet config when available)
-let caps = { slot12: 45, slot1: 45, dinner: 90, guestLimitPerSignup: 0 };
+let caps = { slot1130: 45, slot12: 45, slot1230: 45, slot1: 45, slot130: 45, dinner: 90, guestLimitPerSignup: 0 };
 let weekCache = {};    // monday => {config, signups}
 let weekCacheTs = {};  // monday => timestamp of last fetch
 let spotUpEnabled = true; // controlled by admin Settings toggle
@@ -1266,8 +1275,7 @@ function storedWeek(monday) {
 
 function applyWeekCaps(week) {
   if (!week || !week.caps) return;
-  caps.slot12 = week.caps.slot12 || 45;
-  caps.slot1 = week.caps.slot1 || 45;
+  applyLunchCaps(week.caps);
   caps.dinner = week.caps.dinner || 90;
   caps.guestLimitPerSignup = parseInt(week.caps.guestLimitPerSignup || 0, 10) || 0;
 }
@@ -1283,7 +1291,30 @@ function refreshSignedInWeeks() {
 const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
 const DEFAULT_MEALS = ['Lunch','Lunch','Lunch','Dinner','Lunch'];
 const CATEGORIES = ['No Dietary Restrictions','Vegan','Vegetarian','Gluten-Free','Allergies','No Pork','No Beef'];
-const DEFAULT_TIMES = { Lunch: ['12:00 PM','1:00 PM'], Dinner: ['7:30 PM'], Brunch: ['12:00 PM'] };
+// Lunch time slots: `time` is the stored signup value, `cap` the key in week caps.
+const LUNCH_SLOTS = [
+  { time: '11:30 AM', cap: 'slot1130', input: 'cap1130', label: '11:30 AM\u201312:00 PM', short: '11:30\u201312 PM' },
+  { time: '12:00 PM', cap: 'slot12',   input: 'cap12',   label: '12:00\u201312:30 PM',    short: '12\u201312:30 PM' },
+  { time: '12:30 PM', cap: 'slot1230', input: 'cap1230', label: '12:30\u20131:00 PM',     short: '12:30\u20131 PM' },
+  { time: '1:00 PM',  cap: 'slot1',    input: 'cap1',    label: '1:00\u20131:30 PM',      short: '1\u20131:30 PM' },
+  { time: '1:30 PM',  cap: 'slot130',  input: 'cap130',  label: '1:30\u20132:00 PM',      short: '1:30\u20132 PM' }
+];
+const DEFAULT_TIMES = { Lunch: LUNCH_SLOTS.map(sl => sl.time), Dinner: ['7:30 PM'], Brunch: ['12:00 PM'] };
+
+function lunchSlot(time) {
+  return LUNCH_SLOTS.find(sl => sl.time === time) || null;
+}
+
+// Display label for a slot time; non-lunch times (dinner, brunch, custom) show as-is.
+function slotLabel(time, day, short) {
+  const isLunch = !day || day.meal === 'Lunch' || day.functionsAs === 'Lunch';
+  const sl = isLunch ? lunchSlot(time) : null;
+  return sl ? (short ? sl.short : sl.label) : (time || '');
+}
+
+function applyLunchCaps(src) {
+  LUNCH_SLOTS.forEach(sl => { caps[sl.cap] = (src && src[sl.cap]) || 45; });
+}
 
 (function() {
   const now = new Date();
@@ -1329,9 +1360,12 @@ function slotMatchesSignup(signup, slot) {
   const t = ((signup && signup.time) || '').toString();
   if (t.indexOf('1899') !== -1 || t.indexOf('GMT') !== -1) {
     try {
-      const d = new Date(t); const h = d.getHours();
-      if (slot === '12:00 PM') return h === 12 || h === 0;
-      if (slot === '1:00 PM') return h === 13 || h === 1;
+      const d = new Date(t); const h = d.getHours(); const m = d.getMinutes();
+      if (slot === '11:30 AM') return h === 11 && m === 30;
+      if (slot === '12:00 PM') return (h === 12 || h === 0) && m < 30;
+      if (slot === '12:30 PM') return (h === 12 || h === 0) && m >= 30;
+      if (slot === '1:00 PM') return (h === 13 || h === 1) && m < 30;
+      if (slot === '1:30 PM') return (h === 13 || h === 1) && m >= 30;
       if (slot === '7:30 PM') return h === 19;
     } catch(e) {}
   }
@@ -1474,7 +1508,7 @@ function renderMySignupsSummary() {
     const safeTime = (time || '').replace(/'/g, "\\'");
     const safeName = name.replace(/'/g, "\\'");
     const safeMon = monday.replace(/'/g, "\\'");
-    const timeLabel = time === '12:00 PM' ? '12:00\u20131:00 PM' : time === '1:00 PM' ? '1:00\u20132:00 PM' : (time || '');
+    const timeLabel = slotLabel(time, day);
     html += '<div class="my-signups-row">' +
       '<span>' + escapeHtml(day.day) + ' <span style="color:var(--text-dim);">&middot;</span> ' + escapeHtml(day.meal) +
         (timeLabel ? ' <span style="color:var(--text-dim);">&middot;</span> <span style="font-size:13px;color:var(--text-dim);">' + timeLabel + '</span>' : '') +
@@ -1529,17 +1563,20 @@ function getCapForSlot(slot, dayConfig) {
     const s = dayConfig.slots.find(x => x.time === slot);
     if (s && s.cap != null) return s.cap;
   }
-  if (slot === '12:00 PM') return caps.slot12;
-  if (slot === '1:00 PM') return caps.slot1;
+  const sl = lunchSlot(slot);
+  if (sl) return caps[sl.cap];
   return caps.dinner;
 }
 
 function saveCaps() {
-  caps.slot12 = parseInt(document.getElementById('cap12').value) || 45;
-  caps.slot1 = parseInt(document.getElementById('cap1').value) || 45;
+  LUNCH_SLOTS.forEach(sl => { caps[sl.cap] = parseInt(document.getElementById(sl.input).value) || 45; });
   caps.dinner = parseInt(document.getElementById('capDinner').value) || 90;
   caps.guestLimitPerSignup = Math.max(0, parseInt((document.getElementById('guestLimitPerSignup') || {}).value || '0', 10) || 0);
-  if (adminWeekData) adminWeekData.caps = { slot12: caps.slot12, slot1: caps.slot1, dinner: caps.dinner, guestLimitPerSignup: caps.guestLimitPerSignup };
+  if (adminWeekData) {
+    const weekCaps = { dinner: caps.dinner, guestLimitPerSignup: caps.guestLimitPerSignup };
+    LUNCH_SLOTS.forEach(sl => { weekCaps[sl.cap] = caps[sl.cap]; });
+    adminWeekData.caps = weekCaps;
+  }
 }
 
 // =============================================
@@ -1830,7 +1867,7 @@ function updateTimeSection() {
       const count = seats ? (seats[t] || 0) : signupGroupSize(daySups.filter(s => slotMatchesSignup(s, t)));
       const cap = getCapForSlot(t, day);
       const full = count >= cap;
-      const label = t === '12:00 PM' ? '12:00\u20131:00 PM' : t === '1:00 PM' ? '1:00\u20132:00 PM' : t;
+      const label = slotLabel(t, day);
       html += '<div class="time-chip ' + (full ? 'disabled' : '') + ' ' + (times.length === 1 ? 'selected' : '') + '" data-day="' + i + '" data-time="' + t + '" onclick="' + (full ? '' : "selectTime(this," + i + ",'" + t + "')") + '">' +
         '<div class="time-label">' + label + '</div>' +
         '<div class="time-spots">' + (full ? 'FULL' : count + '/' + cap) + '</div>' +
@@ -2052,8 +2089,7 @@ function viewHeadcount(dayIdx, sups, slot) {
 function _applyViewData(data, preserveIdx) {
   const nav = document.getElementById('viewDayNav');
   if (data.caps) {
-    caps.slot12 = data.caps.slot12 || 45;
-    caps.slot1 = data.caps.slot1 || 45;
+    applyLunchCaps(data.caps);
     caps.dinner = data.caps.dinner || 90;
     caps.guestLimitPerSignup = parseInt(data.caps.guestLimitPerSignup || 0, 10) || 0;
   }
@@ -2211,14 +2247,14 @@ function renderViewDay(idx) {
     html += '<div style="color:var(--text-dim);font-size:13px;padding:12px 0;">No signups yet \u2014 be the first!</div>';
   } else {
     times.forEach(slot => {
-      const slotLabel = slot === '12:00 PM' ? '12:00\u20131:00 PM' : slot === '1:00 PM' ? '1:00\u20132:00 PM' : slot;
+      const label = slotLabel(slot, day);
       const slotSups = times.length === 1 ? sups : sups.filter(s => slotMatchesSignup(s, slot));
       const slotCap = getCapForSlot(slot, day);
       const slotCount = viewHeadcount(i, sups, times.length === 1 ? null : slot);
 
       html += '<div style="margin-top:16px;padding:12px 16px;background:var(--surface2);border-radius:12px;border-left:3px solid #5B8DEF;">';
       html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
-        '<span style="font-weight:700;font-size:15px;color:#5B8DEF;">' + slotLabel + '</span>' +
+        '<span style="font-weight:700;font-size:15px;color:#5B8DEF;">' + label + '</span>' +
         '<span style="font-size:12px;color:var(--text-dim);">' + slotCount + '/' + slotCap + ' signed up</span>' +
       '</div>';
 
@@ -2323,10 +2359,10 @@ function renderHorizontalView() {
     } else {
       times.forEach((slot, si) => {
         const slotSups = times.length === 1 ? sups : sups.filter(s => slotMatchesSignup(s, slot));
-        const slotLabel = slot === '12:00 PM' ? '12–1 PM' : slot === '1:00 PM' ? '1–2 PM' : slot;
+        const label = slotLabel(slot, day, true);
         const slotCap = getCapForSlot(slot, day);
         const slotCount = viewHeadcount(i, sups, times.length === 1 ? null : slot);
-        html += '<div class="view-col-slot-label">' + slotLabel + ' &middot; ' + slotCount + '/' + slotCap + '</div>';
+        html += '<div class="view-col-slot-label">' + label + ' &middot; ' + slotCount + '/' + slotCap + '</div>';
         if (slotCount === 0) {
           html += '<div class="view-col-no-sups" style="padding:2px 0;">\u2014</div>';
         } else if (slotSups.length === 0) {
@@ -3029,12 +3065,10 @@ async function renderAdminWeek() {
     adminWeekData = await apiCall('getWeek', { monday });
     // Load caps from sheet config
     if (adminWeekData.caps) {
-      caps.slot12 = adminWeekData.caps.slot12 || 45;
-      caps.slot1 = adminWeekData.caps.slot1 || 45;
+      applyLunchCaps(adminWeekData.caps);
       caps.dinner = adminWeekData.caps.dinner || 90;
       caps.guestLimitPerSignup = parseInt(adminWeekData.caps.guestLimitPerSignup || 0, 10) || 0;
-      document.getElementById('cap12').value = caps.slot12;
-      document.getElementById('cap1').value = caps.slot1;
+      LUNCH_SLOTS.forEach(sl => { document.getElementById(sl.input).value = caps[sl.cap]; });
       document.getElementById('capDinner').value = caps.dinner;
       document.getElementById('guestLimitPerSignup').value = caps.guestLimitPerSignup;
     }

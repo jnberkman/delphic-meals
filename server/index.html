@@ -107,8 +107,9 @@
   .my-signups-cancel { flex-shrink: 0; background: none; border: none; cursor: pointer; color: var(--text-dim); font-size: 18px; padding: 0 2px; line-height: 1; transition: color .15s; }
   .my-signups-cancel:hover { color: var(--red); }
 
-  .time-row { display: flex; gap: 10px; flex-wrap: wrap; }
-  .time-chip { flex: 1; min-width: 120px; padding: 14px; border-radius: 4px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; text-align: center; transition: all .2s; }
+  .time-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .time-chip:only-child { grid-column: 1 / -1; }
+  .time-chip { padding: 14px 8px; border-radius: 4px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; text-align: center; transition: all .2s; }
   .time-chip:hover { border-color: var(--border-light); }
   .time-chip.selected { border-color: var(--accent-muted); background: var(--accent-glow2); }
   .time-chip.disabled { opacity: .35; cursor: not-allowed; pointer-events: none; }
@@ -630,25 +631,25 @@
           <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);margin-bottom:10px;">Default Slot Capacities</div>
           <div style="display:flex;gap:16px;flex-wrap:wrap;">
             <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);">
-              11:30 AM <input type="number" id="cap1130" value="45" min="1" style="width:60px;text-align:center;" onchange="saveCaps()">
+              11:30 AM <input type="number" id="cap1130" value="45" min="1" style="width:72px;text-align:center;" onchange="saveCaps()">
             </label>
             <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);">
-              12:00 PM <input type="number" id="cap12" value="45" min="1" style="width:60px;text-align:center;" onchange="saveCaps()">
+              12:00 PM <input type="number" id="cap12" value="45" min="1" style="width:72px;text-align:center;" onchange="saveCaps()">
             </label>
             <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);">
-              12:30 PM <input type="number" id="cap1230" value="45" min="1" style="width:60px;text-align:center;" onchange="saveCaps()">
+              12:30 PM <input type="number" id="cap1230" value="45" min="1" style="width:72px;text-align:center;" onchange="saveCaps()">
             </label>
             <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);">
-              1:00 PM <input type="number" id="cap1" value="45" min="1" style="width:60px;text-align:center;" onchange="saveCaps()">
+              1:00 PM <input type="number" id="cap1" value="45" min="1" style="width:72px;text-align:center;" onchange="saveCaps()">
             </label>
             <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);">
-              1:30 PM <input type="number" id="cap130" value="45" min="1" style="width:60px;text-align:center;" onchange="saveCaps()">
+              1:30 PM <input type="number" id="cap130" value="45" min="1" style="width:72px;text-align:center;" onchange="saveCaps()">
             </label>
             <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);">
-              Dinner <input type="number" id="capDinner" value="90" min="1" style="width:60px;text-align:center;" onchange="saveCaps()">
+              Dinner <input type="number" id="capDinner" value="90" min="1" style="width:72px;text-align:center;" onchange="saveCaps()">
             </label>
             <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);">
-              Guests per person <input type="number" id="guestLimitPerSignup" value="0" min="0" style="width:60px;text-align:center;" onchange="saveCaps()">
+              Guests per person <input type="number" id="guestLimitPerSignup" value="0" min="0" style="width:72px;text-align:center;" onchange="saveCaps()">
             </label>
           </div>
           <div style="font-family:'Crimson Pro',serif;font-size:12px;color:var(--text-dim);font-style:italic;margin-top:6px;">Use 0 for no guest limit.</div>

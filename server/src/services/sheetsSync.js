@@ -14,7 +14,7 @@
 const { google } = require('googleapis');
 const config = require('../config');
 const db = require('../db/knex');
-const { normalizeTime, getTimeSlotsForMeal, getTimeLabel } = require('../utils/time');
+const { normalizeTime, getTimeSlotsForMeal, getTimeLabel, getLunchSlot } = require('../utils/time');
 const { CATEGORIES, CAT_COLORS, buildDefaultConfig } = require('../utils/weekHelpers');
 
 let sheetsApi = null;
@@ -275,7 +275,8 @@ async function rebuildDisplaySheet(monday, signups, weekCfg) {
     const shownNames = {};
 
     for (const slot of slots) {
-      const slotLabel = slot === '12:00 PM' ? '12:00-1:00 PM' : slot === '1:00 PM' ? '1:00-2:00 PM' : slot;
+      const lunchSlot = meal === 'Lunch' ? getLunchSlot(slot) : null;
+      const slotLabel = lunchSlot ? lunchSlot.label : slot;
       cellRows.push({
         values: [buildCell(slotLabel, { bold: true, fontSize: 11, bg: '#E3F2FD', fg: '#1565C0' })]
       });
